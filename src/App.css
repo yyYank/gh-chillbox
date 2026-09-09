@@ -455,6 +455,31 @@ th.col-rank {
   color: var(--text-muted);
 }
 
+.notification-item.unread {
+  background: #f0f4ff;
+  border-left: 3px solid var(--accent);
+}
+
+.notification-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.mark-read-btn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 4px;
+  color: var(--accent);
+  opacity: 0.5;
+  transition: opacity 0.15s;
+}
+.mark-read-btn:hover {
+  opacity: 1;
+}
+
 .dismiss-btn {
   flex-shrink: 0;
   border: none;

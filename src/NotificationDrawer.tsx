@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Eraser } from "lucide-react";
+import { Eraser, CheckCircle } from "lucide-react";
 import type { AppNotification } from "./types";
 
 type Props = {
@@ -7,7 +7,9 @@ type Props = {
   onClose: () => void;
   active: AppNotification[];
   dismissed: AppNotification[];
+  readIds: Set<string>;
   onDismiss: (id: string) => void;
+  onMarkRead: (id: string) => void;
 };
 
 function formatType(reason: string): string {
@@ -60,7 +62,9 @@ export function NotificationDrawer({
   onClose,
   active,
   dismissed,
+  readIds,
   onDismiss,
+  onMarkRead,
 }: Props) {
   const [tab, setTab] = useState<"active" | "dismissed">("active");
 
@@ -108,38 +112,56 @@ export function NotificationDrawer({
                 : "通知はありません"}
             </div>
           )}
-          {items.map((n) => (
-            <div key={n.id} className="notification-item">
-              <div className="notification-content">
-                <span className="notification-type-badge">
-                  {formatType(n.type)}
-                </span>
-                <p className="notification-message">
-                  <a
-                    href={n.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="notification-link"
-                  >
-                    {formatMessage(n)}
-                  </a>
-                </p>
-                <span className="notification-time">
-                  {formatTime(n.createdAt)}
-                </span>
+          {items.map((n) => {
+            const isRead = readIds.has(n.id);
+            return (
+              <div
+                key={n.id}
+                className={`notification-item ${!isRead && tab === "active" ? "unread" : ""}`}
+              >
+                <div className="notification-content">
+                  <span className="notification-type-badge">
+                    {formatType(n.type)}
+                  </span>
+                  <p className="notification-message">
+                    <a
+                      href={n.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="notification-link"
+                    >
+                      {formatMessage(n)}
+                    </a>
+                  </p>
+                  <span className="notification-time">
+                    {formatTime(n.createdAt)}
+                  </span>
+                </div>
+                {tab === "active" && (
+                  <div className="notification-actions">
+                    {!isRead && (
+                      <button
+                        type="button"
+                        className="mark-read-btn"
+                        onClick={() => onMarkRead(n.id)}
+                        title="既読にする"
+                      >
+                        <CheckCircle size={16} />
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      className="dismiss-btn"
+                      onClick={() => onDismiss(n.id)}
+                      title="通知を削除"
+                    >
+                      <Eraser size={16} />
+                    </button>
+                  </div>
+                )}
               </div>
-              {tab === "active" && (
-                <button
-                  type="button"
-                  className="dismiss-btn"
-                  onClick={() => onDismiss(n.id)}
-                  title="通知を削除"
-                >
-                  <Eraser size={16} />
-                </button>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
       </aside>
     </>

@@ -45,12 +45,14 @@ export function App() {
 
   const { order, reorder, getRank } = usePrOrder();
   const { hide, unhide, isHidden, hiddenSet } = useHiddenPrs();
-  const { active, dismissed, fetchNotifications, dismiss } =
+  const { active, dismissed, unreadCount, fetchNotifications, dismiss, markRead, readIds } =
     useNotifications(repo);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
   );
+
+  const apiMode = filter === "reviewer-me" ? "reviewer-me" : "open";
 
   const fetchPrs = useCallback(async () => {
     if (!repo.trim()) {
@@ -62,7 +64,7 @@ export function App() {
     try {
       const params = new URLSearchParams();
       params.set("repo", repo.trim());
-      if (filter === "reviewer-me") params.set("reviewer", "@me");
+      if (apiMode === "reviewer-me") params.set("reviewer", "@me");
       const res = await fetch(`/api/prs?${params}`);
       if (!res.ok) throw new Error(`API error: ${res.status}`);
       const data = await res.json();
@@ -73,7 +75,7 @@ export function App() {
     } finally {
       setLoading(false);
     }
-  }, [filter, repo]);
+  }, [apiMode, repo]);
 
   useEffect(() => {
     fetchPrs();
@@ -177,8 +179,8 @@ export function App() {
             onClick={() => setDrawerOpen(true)}
           >
             <Bell size={18} />
-            {active.length > 0 && (
-              <span className="notification-badge">{active.length}</span>
+            {unreadCount > 0 && (
+              <span className="notification-badge">{unreadCount}</span>
             )}
           </button>
           <button
@@ -391,7 +393,9 @@ export function App() {
         onClose={() => setDrawerOpen(false)}
         active={active}
         dismissed={dismissed}
+        readIds={readIds}
         onDismiss={dismiss}
+        onMarkRead={markRead}
       />
     </div>
   );

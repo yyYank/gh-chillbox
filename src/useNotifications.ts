@@ -3,6 +3,7 @@ import type { AppNotification } from "./types";
 
 const NOTIFICATIONS_KEY = "gh-chillbox:notifications";
 const DISMISSED_KEY = "gh-chillbox:notifications-dismissed";
+const READ_KEY = "gh-chillbox:notifications-read";
 
 function loadJson<T>(key: string, fallback: T): T {
   try {
@@ -27,6 +28,9 @@ export function useNotifications(repo: string) {
   );
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(
     () => new Set(loadJson<string[]>(DISMISSED_KEY, [])),
+  );
+  const [readIds, setReadIds] = useState<Set<string>>(
+    () => new Set(loadJson<string[]>(READ_KEY, [])),
   );
   const [loading, setLoading] = useState(false);
 
@@ -68,14 +72,27 @@ export function useNotifications(repo: string) {
     });
   }, []);
 
+  const markRead = useCallback((id: string) => {
+    setReadIds((prev) => {
+      const next = new Set(prev);
+      next.add(id);
+      saveJson(READ_KEY, [...next]);
+      return next;
+    });
+  }, []);
+
   const active = notifications.filter((n) => !dismissedIds.has(n.id));
   const dismissed = notifications.filter((n) => dismissedIds.has(n.id));
+  const unreadCount = active.filter((n) => !readIds.has(n.id)).length;
 
   return {
     active,
     dismissed,
+    unreadCount,
     fetchNotifications,
     dismiss,
+    markRead,
+    readIds,
     loading,
   };
 }
