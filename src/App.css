@@ -25,7 +25,6 @@ body {
 }
 
 .app {
-  max-width: 1100px;
   margin: 0 auto;
   padding: 24px 20px;
 }
@@ -269,5 +268,235 @@ th.col-rank {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+/* Header actions */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.notification-bell {
+  position: relative;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  cursor: pointer;
+  font-size: 1.1rem;
+  line-height: 1;
+  transition: background 0.15s;
+}
+.notification-bell:hover {
+  background: var(--bg);
+}
+
+.notification-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--danger);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Drawer overlay */
+.drawer-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);
+  z-index: 900;
+}
+
+/* Drawer */
+.drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 380px;
+  max-width: 90vw;
+  background: var(--surface);
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.12);
+  z-index: 1000;
+  transform: translateX(100%);
+  transition: transform 0.25s ease;
+  display: flex;
+  flex-direction: column;
+}
+.drawer-open {
+  transform: translateX(0);
+}
+
+.drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.drawer-header h2 {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.drawer-close-btn {
+  border: none;
+  background: transparent;
+  font-size: 1.4rem;
+  cursor: pointer;
+  color: var(--text-muted);
+  padding: 0 4px;
+  line-height: 1;
+}
+.drawer-close-btn:hover {
+  color: var(--text);
+}
+
+/* Drawer tabs */
+.drawer-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+}
+.drawer-tab {
+  flex: 1;
+  padding: 10px 12px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s;
+}
+.drawer-tab:hover {
+  color: var(--text);
+}
+.drawer-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  font-weight: 600;
+}
+
+/* Drawer body */
+.drawer-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+
+.drawer-empty {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 40px 20px;
+  font-size: 0.9rem;
+}
+
+/* Notification items */
+.notification-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.1s;
+}
+.notification-item:hover {
+  background: #f1f3f5;
+}
+.notification-item:last-child {
+  border-bottom: none;
+}
+
+.notification-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.notification-type-badge {
+  display: inline-block;
+  padding: 1px 8px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  background: #e8eafd;
+  color: var(--accent);
+  border-radius: 4px;
+  margin-bottom: 4px;
+}
+
+.notification-message {
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: var(--text);
+  word-break: break-word;
+  margin: 4px 0;
+}
+
+.notification-link {
+  color: var(--accent);
+  text-decoration: none;
+}
+.notification-link:hover {
+  text-decoration: underline;
+}
+
+.notification-time {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.dismiss-btn {
+  flex-shrink: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 4px;
+  opacity: 0.4;
+  transition: opacity 0.15s;
+}
+.dismiss-btn:hover {
+  opacity: 1;
+}
+
+/* Group header */
+.group-header-row td {
+  padding: 10px 16px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  background: var(--bg);
+  color: var(--text);
+  border-bottom: 2px solid var(--border);
+  letter-spacing: 0.02em;
+}
+
+/* Unhide button */
+.unhide-btn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--accent);
+  padding: 4px;
+  opacity: 0.6;
+  transition: opacity 0.15s;
+}
+.unhide-btn:hover {
+  opacity: 1;
+}
+
+/* Date columns */
+.col-date {
+  white-space: nowrap;
+  font-size: 0.8rem;
   color: var(--text-muted);
 }

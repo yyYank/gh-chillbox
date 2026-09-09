@@ -10,4 +10,15 @@ export type PR = {
   updatedAt: string;
 };
 
-export type Filter = "open" | "reviewer-me";
+export type Filter = "open" | "reviewer-me" | "group-by-author" | "hidden";
+
+export type AppNotification = {
+  id: string;
+  type: string;
+  prNumber: number;
+  prTitle: string;
+  message: string;
+  actor: string;
+  createdAt: string;
+  url: string;
+};

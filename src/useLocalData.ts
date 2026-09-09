@@ -55,7 +55,16 @@ export function useHiddenPrs() {
     });
   }, []);
 
+  const unhide = useCallback((prNumber: number) => {
+    setHidden((prev) => {
+      const next = new Set(prev);
+      next.delete(prNumber);
+      saveJson(HIDDEN_KEY, [...next]);
+      return next;
+    });
+  }, []);
+
   const isHidden = useCallback((prNumber: number) => hidden.has(prNumber), [hidden]);
 
-  return { hide, isHidden };
+  return { hide, unhide, isHidden, hiddenSet: hidden };
 }
