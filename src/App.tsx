@@ -18,6 +18,7 @@ import { useNotifications } from "./useNotifications";
 import { ContextMenu } from "./ContextMenu";
 import { SortableRow } from "./SortableRow";
 import { NotificationDrawer } from "./NotificationDrawer";
+import { PrDetail } from "./PrDetail";
 import "./App.css";
 
 const REPO_STORAGE_KEY = "gh-chillbox:repo";
@@ -56,6 +57,13 @@ export function App() {
   } | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [theme, setTheme] = useState<Theme>(getInitialTheme);
+  const [selectedPr, setSelectedPr] = useState<number | null>(() => {
+    if (location.pathname === "/pr-detail") {
+      const id = new URLSearchParams(location.search).get("id");
+      return id ? parseInt(id, 10) : null;
+    }
+    return null;
+  });
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
@@ -63,6 +71,29 @@ export function App() {
       localStorage.setItem(THEME_STORAGE_KEY, theme);
     } catch {}
   }, [theme]);
+
+  const navigateToPr = useCallback((prNumber: number) => {
+    setSelectedPr(prNumber);
+    history.pushState({ pr: prNumber }, "", `/pr-detail?id=${prNumber}`);
+  }, []);
+
+  const navigateToList = useCallback(() => {
+    setSelectedPr(null);
+    history.pushState(null, "", "/");
+  }, []);
+
+  useEffect(() => {
+    const onPopState = () => {
+      if (location.pathname === "/pr-detail") {
+        const id = new URLSearchParams(location.search).get("id");
+        setSelectedPr(id ? parseInt(id, 10) : null);
+      } else {
+        setSelectedPr(null);
+      }
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
 
   const { order, reorder, getRank } = usePrOrder();
   const { hide, unhide, isHidden, hiddenSet } = useHiddenPrs();
@@ -191,7 +222,7 @@ export function App() {
 
   return (
     <div className="app">
-      <header className="header">
+      <header className="header sticky-header">
         <h1>ChillBox</h1>
         <div className="header-actions">
           <button
@@ -235,174 +266,187 @@ export function App() {
         />
       </form>
 
-      <div className="filter-bar">
-        <button
-          type="button"
-          className={`filter-btn ${filter === "open" ? "active" : ""}`}
-          onClick={() => setFilter("open")}
-        >
-          Open PR
-        </button>
-        <button
-          type="button"
-          className={`filter-btn ${filter === "reviewer-me" ? "active" : ""}`}
-          onClick={() => setFilter("reviewer-me")}
-        >
-          Open PR &amp; Reviewer @me
-        </button>
-        <button
-          type="button"
-          className={`filter-btn ${filter === "group-by-author" ? "active" : ""}`}
-          onClick={() => setFilter("group-by-author")}
-        >
-          Author別
-        </button>
-        {hiddenSet.size > 0 && (
-          <button
-            type="button"
-            className={`filter-btn ${filter === "hidden" ? "active" : ""}`}
-            onClick={() => setFilter("hidden")}
-          >
-            非表示PR ({hiddenSet.size})
-          </button>
-        )}
-      </div>
+      {selectedPr !== null ? (
+        <PrDetail
+          repo={repo.trim()}
+          prNumber={selectedPr}
+          onBack={navigateToList}
+        />
+      ) : (
+        <>
+          <div className="filter-bar">
+            <button
+              type="button"
+              className={`filter-btn ${filter === "open" ? "active" : ""}`}
+              onClick={() => setFilter("open")}
+            >
+              Open PR
+            </button>
+            <button
+              type="button"
+              className={`filter-btn ${filter === "reviewer-me" ? "active" : ""}`}
+              onClick={() => setFilter("reviewer-me")}
+            >
+              Open PR &amp; Reviewer @me
+            </button>
+            <button
+              type="button"
+              className={`filter-btn ${filter === "group-by-author" ? "active" : ""}`}
+              onClick={() => setFilter("group-by-author")}
+            >
+              Author別
+            </button>
+            {hiddenSet.size > 0 && (
+              <button
+                type="button"
+                className={`filter-btn ${filter === "hidden" ? "active" : ""}`}
+                onClick={() => setFilter("hidden")}
+              >
+                非表示PR ({hiddenSet.size})
+              </button>
+            )}
+          </div>
 
-      {error && <div className="error">{error}</div>}
+          {error && <div className="error">{error}</div>}
 
-      <div className="table-wrap">
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={handleDragEnd}
-        >
-          <table className="pr-table">
-            <thead>
-              <tr>
-                {filter !== "hidden" && <th className="col-drag" />}
-                {filter !== "hidden" && <th className="col-rank">優先度</th>}
-                <th>PR</th>
-                <th>タイトル</th>
-                <th>Author</th>
-                <th>Reviewer</th>
-                <th>作成日時</th>
-                <th>更新日時</th>
-                {filter === "hidden" && <th />}
-              </tr>
-            </thead>
-
-            {filter === "hidden" ? (
-              <tbody>
-                {hiddenPrs.length === 0 && (
+          <div className="table-wrap">
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <table className="pr-table">
+                <thead>
                   <tr>
-                    <td colSpan={7} className="empty">
-                      非表示のPRはありません
-                    </td>
+                    {filter !== "hidden" && <th className="col-drag" />}
+                    {filter !== "hidden" && <th className="col-rank">優先度</th>}
+                    <th>PR</th>
+                    <th>タイトル</th>
+                    <th>Author</th>
+                    <th>Reviewer</th>
+                    <th>作成日時</th>
+                    <th>更新日時</th>
+                    {filter === "hidden" && <th />}
+                    {filter !== "hidden" && <th className="col-detail" />}
                   </tr>
-                )}
-                {hiddenPrs.map((pr) => (
-                  <tr key={pr.number}>
-                    <td className="col-number">
-                      <a
-                        href={pr.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        #{pr.number}
-                      </a>
-                    </td>
-                    <td className="col-title">
-                      {pr.isDraft && (
-                        <span className="draft-badge">Draft</span>
-                      )}
-                      {pr.title}
-                    </td>
-                    <td>{pr.author.login}</td>
-                    <td>{reviewers(pr)}</td>
-                    <td className="col-date">{formatDate(pr.createdAt)}</td>
-                    <td className="col-date">{formatDate(pr.updatedAt)}</td>
-                    <td>
-                      <button
-                        type="button"
-                        className="unhide-btn"
-                        onClick={() => unhide(pr.number)}
-                        title="再表示"
-                      >
-                        <RotateCcw size={14} />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            ) : filter === "group-by-author" ? (
-              groupedByAuthor.map(([author, groupPrs]) => (
-                <SortableContext
-                  key={author}
-                  items={groupPrs.map((pr) => pr.number)}
-                  strategy={verticalListSortingStrategy}
-                >
+                </thead>
+
+                {filter === "hidden" ? (
                   <tbody>
-                    <tr className="group-header-row">
-                      <td colSpan={8}>{author}</td>
-                    </tr>
-                    {groupPrs.map((pr, idx) => (
-                      <SortableRow
-                        key={pr.number}
-                        pr={pr}
-                        rank={idx + 1}
-                        reviewers={reviewers(pr)}
-                        formatDate={formatDate}
-                        onContextMenu={(e) => {
-                          e.preventDefault();
-                          setContextMenu({
-                            x: e.clientX,
-                            y: e.clientY,
-                            prNumber: pr.number,
-                          });
-                        }}
-                      />
+                    {hiddenPrs.length === 0 && (
+                      <tr>
+                        <td colSpan={7} className="empty">
+                          非表示のPRはありません
+                        </td>
+                      </tr>
+                    )}
+                    {hiddenPrs.map((pr) => (
+                      <tr key={pr.number}>
+                        <td className="col-number">
+                          <a
+                            href={pr.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            #{pr.number}
+                          </a>
+                        </td>
+                        <td className="col-title">
+                          {pr.isDraft && (
+                            <span className="draft-badge">Draft</span>
+                          )}
+                          {pr.title}
+                        </td>
+                        <td>{pr.author.login}</td>
+                        <td>{reviewers(pr)}</td>
+                        <td className="col-date">{formatDate(pr.createdAt)}</td>
+                        <td className="col-date">{formatDate(pr.updatedAt)}</td>
+                        <td>
+                          <button
+                            type="button"
+                            className="unhide-btn"
+                            onClick={() => unhide(pr.number)}
+                            title="再表示"
+                          >
+                            <RotateCcw size={14} />
+                          </button>
+                        </td>
+                      </tr>
                     ))}
                   </tbody>
-                </SortableContext>
-              ))
-            ) : (
-              <SortableContext
-                items={sortedPrs.map((pr) => pr.number)}
-                strategy={verticalListSortingStrategy}
-              >
-                <tbody>
-                  {sortedPrs.length === 0 && !loading && (
-                    <tr>
-                      <td colSpan={8} className="empty">
-                        {repo.trim()
-                          ? "該当するPRがありません"
-                          : "リポジトリを入力してください"}
-                      </td>
-                    </tr>
-                  )}
-                  {sortedPrs.map((pr) => (
-                    <SortableRow
-                      key={pr.number}
-                      pr={pr}
-                      rank={getRank(pr.number)}
-                      reviewers={reviewers(pr)}
-                      formatDate={formatDate}
-                      onContextMenu={(e) => {
-                        e.preventDefault();
-                        setContextMenu({
-                          x: e.clientX,
-                          y: e.clientY,
-                          prNumber: pr.number,
-                        });
-                      }}
-                    />
-                  ))}
-                </tbody>
-              </SortableContext>
-            )}
-          </table>
-        </DndContext>
-      </div>
+                ) : filter === "group-by-author" ? (
+                  groupedByAuthor.map(([author, groupPrs]) => (
+                    <SortableContext
+                      key={author}
+                      items={groupPrs.map((pr) => pr.number)}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      <tbody>
+                        <tr className="group-header-row">
+                          <td colSpan={8}>{author}</td>
+                        </tr>
+                        {groupPrs.map((pr, idx) => (
+                          <SortableRow
+                            key={pr.number}
+                            pr={pr}
+                            rank={idx + 1}
+                            reviewers={reviewers(pr)}
+                            formatDate={formatDate}
+                            onContextMenu={(e) => {
+                              e.preventDefault();
+                              setContextMenu({
+                                x: e.clientX,
+                                y: e.clientY,
+                                prNumber: pr.number,
+                              });
+                            }}
+                            onDetail={navigateToPr}
+                          />
+                        ))}
+                      </tbody>
+                    </SortableContext>
+                  ))
+                ) : (
+                  <SortableContext
+                    items={sortedPrs.map((pr) => pr.number)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    <tbody>
+                      {sortedPrs.length === 0 && !loading && (
+                        <tr>
+                          <td colSpan={8} className="empty">
+                            {repo.trim()
+                              ? "該当するPRがありません"
+                              : "リポジトリを入力してください"}
+                          </td>
+                        </tr>
+                      )}
+                      {sortedPrs.map((pr) => (
+                        <SortableRow
+                          key={pr.number}
+                          pr={pr}
+                          rank={getRank(pr.number)}
+                          reviewers={reviewers(pr)}
+                          formatDate={formatDate}
+                          onContextMenu={(e) => {
+                            e.preventDefault();
+                            setContextMenu({
+                              x: e.clientX,
+                              y: e.clientY,
+                              prNumber: pr.number,
+                            });
+                          }}
+                          onDetail={navigateToPr}
+                        />
+                      ))}
+                    </tbody>
+                  </SortableContext>
+                )}
+              </table>
+            </DndContext>
+          </div>
+        </>
+      )}
 
       {contextMenu && (
         <ContextMenu

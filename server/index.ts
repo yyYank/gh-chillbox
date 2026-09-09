@@ -126,6 +126,31 @@ app.get("/notifications", async (c) => {
   }
 });
 
+app.get("/pr-detail", async (c) => {
+  const repo = c.req.query("repo");
+  const number = c.req.query("number");
+  if (!repo || !number) {
+    return c.json({ error: "repo and number are required" }, 400);
+  }
+
+  try {
+    const { stdout } = await execFileAsync("gh", [
+      "pr",
+      "view",
+      number,
+      "--repo",
+      repo,
+      "--json",
+      "number,title,body,files",
+    ]);
+    const data = JSON.parse(stdout);
+    return c.json(data);
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Unknown error";
+    return c.json({ error: message }, 500);
+  }
+});
+
 serve({ fetch: app.fetch, port: 3001 }, (info) => {
   console.log(`Server running at http://localhost:${info.port}`);
 });

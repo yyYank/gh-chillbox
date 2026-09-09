@@ -1,6 +1,6 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical } from "lucide-react";
+import { GripVertical, ChevronRight } from "lucide-react";
 import type { PR } from "./types";
 
 type Props = {
@@ -9,9 +9,10 @@ type Props = {
   reviewers: string;
   formatDate: (iso: string) => string;
   onContextMenu: (e: React.MouseEvent) => void;
+  onDetail: (prNumber: number) => void;
 };
 
-export function SortableRow({ pr, rank, reviewers, formatDate, onContextMenu }: Props) {
+export function SortableRow({ pr, rank, reviewers, formatDate, onContextMenu, onDetail }: Props) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: pr.number });
 
@@ -45,6 +46,16 @@ export function SortableRow({ pr, rank, reviewers, formatDate, onContextMenu }: 
       <td>{reviewers}</td>
       <td className="col-date">{formatDate(pr.createdAt)}</td>
       <td className="col-date">{formatDate(pr.updatedAt)}</td>
+      <td className="col-detail">
+        <button
+          type="button"
+          className="detail-btn"
+          onClick={() => onDetail(pr.number)}
+          title="PR詳細"
+        >
+          <ChevronRight size={16} />
+        </button>
+      </td>
     </tr>
   );
 }
