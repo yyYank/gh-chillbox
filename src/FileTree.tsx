@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ChevronDown, ChevronRight, Folder, FileText } from "lucide-react";
 
 type FileEntry = { path: string; additions: number; deletions: number };
+type SelectionSet = Set<string>;
 
 type TreeNode = {
   name: string;
@@ -49,7 +50,7 @@ function sumStats(node: TreeNode): { additions: number; deletions: number } {
   return { additions, deletions };
 }
 
-function FolderNode({ node, depth, parentPath, storagePrefix }: { node: TreeNode; depth: number; parentPath: string; storagePrefix: string }) {
+function FolderNode({ node, depth, parentPath, storagePrefix, selectedFiles, onFileClick }: { node: TreeNode; depth: number; parentPath: string; storagePrefix: string; selectedFiles?: SelectionSet; onFileClick?: (path: string, e: React.MouseEvent) => void }) {
   const folderPath = parentPath ? `${parentPath}/${node.name}` : node.name;
   const storageKey = `${storagePrefix}:folder:${folderPath}`;
   const [open, setOpen] = useState(() => {
@@ -90,15 +91,17 @@ function FolderNode({ node, depth, parentPath, storagePrefix }: { node: TreeNode
       {open && (
         <ul className="tree-children">
           {sortedDirs.map(([name, child]) => (
-            <FolderNode key={name} node={child} depth={depth + 1} parentPath={folderPath} storagePrefix={storagePrefix} />
+            <FolderNode key={name} node={child} depth={depth + 1} parentPath={folderPath} storagePrefix={storagePrefix} selectedFiles={selectedFiles} onFileClick={onFileClick} />
           ))}
           {sortedFiles.map((f) => {
             const fileName = f.path.split("/").pop()!;
+            const selected = selectedFiles?.has(f.path) ?? false;
             return (
               <li
                 key={f.path}
-                className="tree-file"
+                className={`tree-file${selected ? " tree-file-selected" : ""}`}
                 style={{ paddingLeft: `${(depth + 1) * 16 + 12}px` }}
+                onClick={(e) => onFileClick?.(f.path, e)}
               >
                 <FileText size={14} className="tree-icon-file" />
                 <span className="tree-file-name">{fileName}</span>
@@ -118,9 +121,11 @@ function FolderNode({ node, depth, parentPath, storagePrefix }: { node: TreeNode
 type Props = {
   files: FileEntry[];
   storagePrefix: string;
+  selectedFiles?: SelectionSet;
+  onFileClick?: (path: string, e: React.MouseEvent) => void;
 };
 
-export function FileTree({ files, storagePrefix }: Props) {
+export function FileTree({ files, storagePrefix, selectedFiles, onFileClick }: Props) {
   const tree = buildTree(files);
 
   const sortedDirs = [...tree.children.entries()].sort((a, b) =>
@@ -135,12 +140,18 @@ export function FileTree({ files, storagePrefix }: Props) {
   return (
     <ul className="file-tree">
       {sortedDirs.map(([name, child]) => (
-        <FolderNode key={name} node={child} depth={0} parentPath="" storagePrefix={storagePrefix} />
+        <FolderNode key={name} node={child} depth={0} parentPath="" storagePrefix={storagePrefix} selectedFiles={selectedFiles} onFileClick={onFileClick} />
       ))}
       {sortedRootFiles.map((f) => {
         const fileName = f.path.split("/").pop()!;
+        const selected = selectedFiles?.has(f.path) ?? false;
         return (
-          <li key={f.path} className="tree-file" style={{ paddingLeft: "12px" }}>
+          <li
+            key={f.path}
+            className={`tree-file${selected ? " tree-file-selected" : ""}`}
+            style={{ paddingLeft: "12px" }}
+            onClick={(e) => onFileClick?.(f.path, e)}
+          >
             <FileText size={14} className="tree-icon-file" />
             <span className="tree-file-name">{fileName}</span>
             <span className="pr-detail-file-stat">

@@ -151,6 +151,71 @@ app.get("/pr-detail", async (c) => {
   }
 });
 
+const chatSessions = new Map<string, string>();
+
+app.post("/chat", async (c) => {
+  const body = await c.req.json<{
+    repo: string;
+    prNumber: number;
+    files?: string[];
+    quotedText?: string;
+    question: string;
+    prTitle: string;
+    prBody: string;
+  }>();
+
+  const { repo, prNumber, files, quotedText, question, prTitle, prBody } = body;
+  if (!repo || !prNumber || !question || (!files?.length && !quotedText)) {
+    return c.json({ error: "repo, prNumber, question, and either files or quotedText are required" }, 400);
+  }
+
+  const sessionKey = `${repo}:${prNumber}`;
+  const existingSessionId = chatSessions.get(sessionKey);
+
+  const args: string[] = ["-p"];
+
+  if (existingSessionId) {
+    args.push(question, "--resume", existingSessionId, "--output-format", "json");
+  } else {
+    const prUrl = `https://github.com/${repo}/pull/${prNumber}`;
+    const promptParts = [
+      `GitHub PR: ${prTitle} (${prUrl})`,
+      `リポジトリ: ${repo}  PR #${prNumber}`,
+      "",
+      "## PR本文",
+      prBody || "(なし)",
+      "",
+    ];
+
+    if (quotedText) {
+      promptParts.push(
+        "## 引用テキスト（PR本文から選択）",
+        `> ${quotedText.replace(/\n/g, "\n> ")}`,
+      );
+    } else {
+      const fileList = files!.map((f) => `- ${f}`).join("\n");
+      promptParts.push("## 質問対象の変更ファイル", fileList);
+    }
+
+    promptParts.push("", "## 質問", question);
+    args.push(promptParts.join("\n"), "--output-format", "json");
+  }
+
+  try {
+    const { stdout } = await execFileAsync("claude", args, {
+      timeout: 120000,
+    });
+    const parsed = JSON.parse(stdout);
+    if (!existingSessionId && parsed.session_id) {
+      chatSessions.set(sessionKey, parsed.session_id);
+    }
+    return c.json({ answer: parsed.result ?? stdout.trim() });
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Unknown error";
+    return c.json({ error: message }, 500);
+  }
+});
+
 serve({ fetch: app.fetch, port: 3001 }, (info) => {
   console.log(`Server running at http://localhost:${info.port}`);
 });
