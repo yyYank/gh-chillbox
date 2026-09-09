@@ -1,10 +1,27 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { marked } from "marked";
+import mermaid from "mermaid";
 import { ArrowLeft, ChevronDown, ChevronRight, MessageSquareQuote } from "lucide-react";
 import { FileTree } from "./FileTree";
 import { ChatPanel } from "./ChatPanel";
 
 marked.setOptions({ gfm: true, breaks: true });
+
+function escapeHtml(text: string) {
+  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+const renderer = new marked.Renderer();
+const originalCode = renderer.code.bind(renderer);
+renderer.code = function (token: Parameters<typeof originalCode>[0]) {
+  if (token.lang === "mermaid") {
+    return `<pre class="mermaid">${escapeHtml(token.text)}</pre>`;
+  }
+  return originalCode(token);
+};
+marked.use({ renderer });
+
+mermaid.initialize({ startOnLoad: false, theme: "default" });
 
 type PrDetailData = {
   number: number;
@@ -33,6 +50,8 @@ export function PrDetail({ repo, prNumber, onBack }: Props) {
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
   const [quotedText, setQuotedText] = useState<string | null>(null);
   const [floatingBtn, setFloatingBtn] = useState<{ x: number; y: number; text: string } | null>(null);
+  const [mermaidModal, setMermaidModal] = useState<string | null>(null);
+  const [modalScale, setModalScale] = useState(1);
   const bodyRef = useRef<HTMLDivElement>(null);
 
   const handleFileClick = useCallback((path: string, e: React.MouseEvent) => {
@@ -109,7 +128,45 @@ export function PrDetail({ repo, prNumber, onBack }: Props) {
       .finally(() => setLoading(false));
   }, [repo, prNumber]);
 
-  const bodyHtml = data?.body ? marked.parse(data.body) : "";
+  const rawBodyHtml = data?.body ? marked.parse(data.body) : "";
+  const [renderedBody, setRenderedBody] = useState("");
+
+  useEffect(() => {
+    if (!rawBodyHtml) { setRenderedBody(""); return; }
+    let cancelled = false;
+    (async () => {
+      const div = document.createElement("div");
+      div.innerHTML = rawBodyHtml as string;
+      const blocks = div.querySelectorAll("pre.mermaid");
+      for (let i = 0; i < blocks.length; i++) {
+        try {
+          const id = `mmd-${prNumber}-${i}-${Date.now()}`;
+          const { svg } = await mermaid.render(id, blocks[i].textContent || "");
+          blocks[i].innerHTML = svg;
+          blocks[i].setAttribute("data-rendered", "true");
+        } catch { /* keep raw text on parse error */ }
+      }
+      if (!cancelled) setRenderedBody(div.innerHTML);
+    })();
+    return () => { cancelled = true; };
+  }, [rawBodyHtml, prNumber]);
+
+  const handleMermaidClick = useCallback((e: React.MouseEvent) => {
+    const pre = (e.target as HTMLElement).closest("pre.mermaid[data-rendered]");
+    if (pre) {
+      setMermaidModal(pre.innerHTML);
+      setModalScale(1.5);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!mermaidModal) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMermaidModal(null);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [mermaidModal]);
 
   const selectedArray = [...selectedFiles];
   const hasChat = selectedFiles.size > 0 || !!quotedText;
@@ -185,8 +242,9 @@ export function PrDetail({ repo, prNumber, onBack }: Props) {
                   <div
                     ref={bodyRef}
                     className="pr-detail-body markdown-body"
-                    dangerouslySetInnerHTML={{ __html: bodyHtml as string }}
+                    dangerouslySetInnerHTML={{ __html: renderedBody }}
                     onMouseUp={handleBodyMouseUp}
+                    onClick={handleMermaidClick}
                   />
                 ) : (
                   <p className="pr-detail-empty">本文なし</p>
@@ -196,6 +254,32 @@ export function PrDetail({ repo, prNumber, onBack }: Props) {
           </>
         )}
       </div>
+
+      {mermaidModal && (
+        <div
+          className="mermaid-modal-overlay"
+          onClick={() => setMermaidModal(null)}
+        >
+          <div
+            className="mermaid-modal-content"
+            onClick={(e) => e.stopPropagation()}
+            onWheel={(e) => {
+              if (!e.ctrlKey) return;
+              e.preventDefault();
+              setModalScale((s) => Math.max(0.2, Math.min(5, s + (e.deltaY > 0 ? -0.1 : 0.1))));
+            }}
+            style={{ transform: `scale(${modalScale})` }}
+            dangerouslySetInnerHTML={{ __html: mermaidModal }}
+          />
+          <button
+            type="button"
+            className="mermaid-modal-close"
+            onClick={() => setMermaidModal(null)}
+          >
+            &times;
+          </button>
+        </div>
+      )}
 
       {floatingBtn && (
         <button

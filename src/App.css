@@ -1224,3 +1224,75 @@ th.col-rank {
   white-space: pre-wrap;
   word-break: break-word;
 }
+
+/* ===== Mermaid diagram sizing ===== */
+.markdown-body pre.mermaid {
+  min-height: 200px;
+  padding: 16px;
+  overflow-x: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: box-shadow 0.15s;
+}
+.markdown-body pre.mermaid:hover {
+  box-shadow: 0 0 0 2px var(--accent);
+}
+.markdown-body pre.mermaid svg {
+  width: 100%;
+  height: auto;
+  min-height: 180px;
+}
+
+/* ===== Mermaid modal ===== */
+.mermaid-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--overlay-bg);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+}
+
+.mermaid-modal-content {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 32px;
+  max-width: 95vw;
+  max-height: 90vh;
+  overflow: auto;
+  transform-origin: center center;
+  transition: transform 0.1s ease-out;
+  touch-action: pinch-zoom;
+}
+.mermaid-modal-content svg {
+  width: 100%;
+  height: auto;
+  min-width: 900px;
+}
+
+.mermaid-modal-close {
+  position: fixed;
+  top: 16px;
+  right: 24px;
+  z-index: 2001;
+  border: none;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 2rem;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--context-shadow);
+  transition: background 0.15s;
+}
+.mermaid-modal-close:hover {
+  background: var(--hover-bg);
+}
