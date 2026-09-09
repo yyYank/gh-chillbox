@@ -11,7 +11,7 @@ import {
   SortableContext,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { Bell, RotateCcw } from "lucide-react";
+import { Bell, RotateCcw, Sun, Moon } from "lucide-react";
 import type { PR, Filter } from "./types";
 import { usePrOrder, useHiddenPrs } from "./useLocalData";
 import { useNotifications } from "./useNotifications";
@@ -21,6 +21,19 @@ import { NotificationDrawer } from "./NotificationDrawer";
 import "./App.css";
 
 const REPO_STORAGE_KEY = "gh-chillbox:repo";
+const THEME_STORAGE_KEY = "gh-chillbox:theme";
+
+type Theme = "light" | "dark";
+
+function getInitialTheme(): Theme {
+  try {
+    const stored = localStorage.getItem(THEME_STORAGE_KEY);
+    if (stored === "light" || stored === "dark") return stored;
+  } catch {}
+  return window.matchMedia("(prefers-color-scheme: dark)").matches
+    ? "dark"
+    : "light";
+}
 
 function loadRepo(): string {
   try {
@@ -42,6 +55,14 @@ export function App() {
     prNumber: number;
   } | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [theme, setTheme] = useState<Theme>(getInitialTheme);
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+    try {
+      localStorage.setItem(THEME_STORAGE_KEY, theme);
+    } catch {}
+  }, [theme]);
 
   const { order, reorder, getRank } = usePrOrder();
   const { hide, unhide, isHidden, hiddenSet } = useHiddenPrs();
@@ -171,8 +192,15 @@ export function App() {
   return (
     <div className="app">
       <header className="header">
-        <h1>PR管理</h1>
+        <h1>ChillBox</h1>
         <div className="header-actions">
+          <button
+            type="button"
+            className="theme-toggle"
+            onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+          >
+            {theme === "light" ? <Moon size={18} /> : <Sun size={18} />}
+          </button>
           <button
             type="button"
             className="notification-bell"
