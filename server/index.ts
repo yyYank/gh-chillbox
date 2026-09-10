@@ -141,7 +141,7 @@ app.get("/pr-detail", async (c) => {
       "--repo",
       repo,
       "--json",
-      "number,title,body,files",
+      "number,title,body,files,comments",
     ]);
     const data = JSON.parse(stdout);
     return c.json(data);

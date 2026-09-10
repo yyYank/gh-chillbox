@@ -23,11 +23,18 @@ marked.use({ renderer });
 
 mermaid.initialize({ startOnLoad: false, theme: "default" });
 
+type PrComment = {
+  author: { login: string };
+  body: string;
+  createdAt: string;
+};
+
 type PrDetailData = {
   number: number;
   title: string;
   body: string;
   files: { path: string; additions: number; deletions: number }[];
+  comments: PrComment[];
 };
 
 type Props = {
@@ -47,12 +54,16 @@ export function PrDetail({ repo, prNumber, onBack }: Props) {
   const [bodyOpen, setBodyOpen] = useState(() => {
     try { return localStorage.getItem(`${storagePrefix}:bodyOpen`) !== "false"; } catch { return true; }
   });
+  const [commentsOpen, setCommentsOpen] = useState(() => {
+    try { return localStorage.getItem(`${storagePrefix}:commentsOpen`) !== "false"; } catch { return true; }
+  });
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
   const [quotedText, setQuotedText] = useState<string | null>(null);
   const [floatingBtn, setFloatingBtn] = useState<{ x: number; y: number; text: string } | null>(null);
   const [mermaidModal, setMermaidModal] = useState<string | null>(null);
   const [modalScale, setModalScale] = useState(1);
   const bodyRef = useRef<HTMLDivElement>(null);
+  const commentsRef = useRef<HTMLDivElement>(null);
 
   const handleFileClick = useCallback((path: string, e: React.MouseEvent) => {
     setQuotedText(null);
@@ -74,14 +85,16 @@ export function PrDetail({ repo, prNumber, onBack }: Props) {
     setFloatingBtn(null);
   }, []);
 
-  const handleBodyMouseUp = useCallback(() => {
+  const handleTextMouseUp = useCallback(() => {
     const sel = window.getSelection();
     const text = sel?.toString().trim();
-    if (!text || !bodyRef.current) {
+    if (!text) {
       setFloatingBtn(null);
       return;
     }
-    if (!bodyRef.current.contains(sel!.anchorNode)) {
+    const inBody = bodyRef.current?.contains(sel!.anchorNode);
+    const inComments = commentsRef.current?.contains(sel!.anchorNode);
+    if (!inBody && !inComments) {
       setFloatingBtn(null);
       return;
     }
@@ -243,11 +256,46 @@ export function PrDetail({ repo, prNumber, onBack }: Props) {
                     ref={bodyRef}
                     className="pr-detail-body markdown-body"
                     dangerouslySetInnerHTML={{ __html: renderedBody }}
-                    onMouseUp={handleBodyMouseUp}
+                    onMouseUp={handleTextMouseUp}
                     onClick={handleMermaidClick}
                   />
                 ) : (
                   <p className="pr-detail-empty">本文なし</p>
+                )
+              )}
+            </div>
+
+            <div className="pr-detail-section">
+              <button
+                type="button"
+                className="pr-detail-accordion"
+                onClick={() => {
+                  const next = !commentsOpen;
+                  setCommentsOpen(next);
+                  try { localStorage.setItem(`${storagePrefix}:commentsOpen`, String(next)); } catch {}
+                }}
+              >
+                {commentsOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                コメント ({data.comments.length})
+              </button>
+              {commentsOpen && (
+                data.comments.length > 0 ? (
+                  <div ref={commentsRef} className="pr-detail-comments" onMouseUp={handleTextMouseUp}>
+                    {data.comments.map((comment, i) => (
+                      <div key={i} className="pr-comment">
+                        <div className="pr-comment-header">
+                          <span className="pr-comment-author">{comment.author.login}</span>
+                          <span className="pr-comment-date">{new Date(comment.createdAt).toLocaleString("ja-JP")}</span>
+                        </div>
+                        <div
+                          className="pr-comment-body markdown-body"
+                          dangerouslySetInnerHTML={{ __html: marked.parse(comment.body) as string }}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="pr-detail-empty">コメントなし</p>
                 )
               )}
             </div>

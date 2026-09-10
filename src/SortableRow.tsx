@@ -26,14 +26,15 @@ export function SortableRow({ pr, rank, reviewers, formatDate, onContextMenu, on
     <tr
       ref={setNodeRef}
       style={style}
-      className={pr.isDraft ? "draft" : ""}
+      className={`sortable-row${pr.isDraft ? " draft" : ""}`}
       onContextMenu={onContextMenu}
+      onClick={() => onDetail(pr.number)}
     >
-      <td className="col-drag" {...attributes} {...listeners}>
+      <td className="col-drag" {...attributes} {...listeners} onClick={(e) => e.stopPropagation()}>
         <span className="drag-handle"><GripVertical size={16} /></span>
       </td>
       <td className="col-rank">{rank ?? "—"}</td>
-      <td className="col-number">
+      <td className="col-number" onClick={(e) => e.stopPropagation()}>
         <a href={pr.url} target="_blank" rel="noopener noreferrer">
           #{pr.number}
         </a>
