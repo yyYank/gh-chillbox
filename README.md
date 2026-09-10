@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/logo.png" alt="gh-chillbox" width="120" />
+</p>
+
 # gh-chillbox
 
 A chill place to manage your GitHub notifications, TODOs, reviews, and PRs.

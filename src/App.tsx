@@ -20,6 +20,10 @@ import { SortableRow } from "./SortableRow";
 import { NotificationDrawer } from "./NotificationDrawer";
 import { PrDetail } from "./PrDetail";
 import "./App.css";
+import headerIcon from "./assets/icon.png";
+import headerIconDark from "./assets/icon-dark.png";
+import headerLogo from "./assets/logo.png";
+import headerLogoDark from "./assets/logo-dark.png";
 
 const REPO_STORAGE_KEY = "gh-chillbox:repo";
 const THEME_STORAGE_KEY = "gh-chillbox:theme";
@@ -223,7 +227,7 @@ export function App() {
   return (
     <div className="app">
       <header className="header sticky-header">
-        <h1>ChillBox</h1>
+        <h1><img src={headerLogo} alt="ChillBox" height={24} className="header-logo header-logo-light" /><img src={headerLogoDark} alt="ChillBox" height={24} className="header-logo header-logo-dark" /><img src={headerIcon} alt="" width={28} height={28} className="header-icon header-icon-light" /><img src={headerIconDark} alt="" width={28} height={28} className="header-icon header-icon-dark" /></h1>
         <div className="header-actions">
           <button
             type="button"

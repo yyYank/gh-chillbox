@@ -111,6 +111,44 @@ body {
   font-size: 1.5rem;
   font-weight: 500;
   letter-spacing: -0.02em;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.header-icon {
+  border-radius: 6px;
+}
+
+.header-logo {
+  height: 24px;
+  width: auto;
+}
+
+.header-icon-dark,
+.header-logo-dark {
+  display: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .header-icon-light,
+  :root:not([data-theme="light"]) .header-logo-light {
+    display: none;
+  }
+  :root:not([data-theme="light"]) .header-icon-dark,
+  :root:not([data-theme="light"]) .header-logo-dark {
+    display: inline;
+  }
+}
+
+:root[data-theme="dark"] .header-icon-light,
+:root[data-theme="dark"] .header-logo-light {
+  display: none;
+}
+
+:root[data-theme="dark"] .header-icon-dark,
+:root[data-theme="dark"] .header-logo-dark {
+  display: inline;
 }
 
 /* ===== Buttons ===== */
