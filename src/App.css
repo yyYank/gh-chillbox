@@ -1181,6 +1181,7 @@ th.col-rank {
   border-radius: var(--radius-sm);
   font-size: 0.85rem;
   line-height: 1.6;
+  white-space: pre-wrap;
 }
 
 .chat-message-assistant .chat-message-content {
