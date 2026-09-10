@@ -131,13 +131,19 @@ export function ChatPanel({ selectedFiles, quotedText, repo, prNumber, prTitle, 
       </div>
 
       <form className="chat-input-area" onSubmit={handleSubmit}>
-        <input
+        <textarea
           className="chat-input"
-          type="text"
           placeholder={quotedText ? "引用テキストについて質問…" : selectedFiles.length === 0 ? "ファイルを選択してください" : "質問を入力…"}
           value={input}
           onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && e.metaKey) {
+              e.preventDefault();
+              handleSubmit(e);
+            }
+          }}
           disabled={loading || (selectedFiles.length === 0 && !quotedText)}
+          rows={3}
         />
         <button
           type="submit"
