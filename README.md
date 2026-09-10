@@ -32,6 +32,21 @@ GitHub との通信には既存の `gh` CLI を利用し、GitHub 上のデー�
 - Done / Ignore / Snooze などのローカル状態管理
 - GitHub 側の最新状態を手動で再取得
 - 既存の `gh auth` をそのまま利用
+## 始め方
+
+### 前提条件
+- Node.js 22+
+- pnpm 9+
+- [GitHub CLI (`gh`)](https://cli.github.com/) がインストール・認証済みであること（`gh auth status` で確認）
+
+### 起動
+```sh
+pnpm install
+pnpm dev
+```
+
+ブラウザで http://localhost:5173 を開くと使えます。
+
 ## 技術スタック
 - Vite
 - React
