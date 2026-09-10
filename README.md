@@ -38,6 +38,7 @@ GitHub との通信には既存の `gh` CLI を利用し、GitHub 上のデー�
 - Node.js 22+
 - pnpm 9+
 - [GitHub CLI (`gh`)](https://cli.github.com/) がインストール・認証済みであること（`gh auth status` で確認）
+- [Claude CLI (`claude`)](https://docs.anthropic.com/en/docs/claude-code/overview) がインストール済みであること（Chat 機能で使用）
 
 ### 起動
 ```sh
