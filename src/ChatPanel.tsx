@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, X, HelpCircle } from "lucide-react";
+import { Send, X, HelpCircle, RotateCcw } from "lucide-react";
 import { marked } from "marked";
 
 type Message = {
@@ -79,6 +79,25 @@ export function ChatPanel({ selectedFiles, quotedText, repo, prNumber, prTitle, 
         <span className="chat-help-icon" data-tooltip="Chatを実行するとcliでclaude -p接続します">
           <HelpCircle size={14} />
         </span>
+        <button
+          type="button"
+          className="chat-reset-btn"
+          title="セッションをリセット"
+          disabled={loading || messages.length === 0}
+          onClick={async () => {
+            setMessages([]);
+            try { localStorage.removeItem(storageKey); } catch {}
+            try {
+              await fetch("/api/chat/session", {
+                method: "DELETE",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ repo, prNumber }),
+              });
+            } catch {}
+          }}
+        >
+          <RotateCcw size={14} />
+        </button>
       </div>
 
       <div className="chat-selected-files">

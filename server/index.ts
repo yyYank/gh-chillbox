@@ -216,6 +216,17 @@ app.post("/chat", async (c) => {
   }
 });
 
+app.delete("/chat/session", async (c) => {
+  const body = await c.req.json<{ repo: string; prNumber: number }>();
+  const { repo, prNumber } = body;
+  if (!repo || !prNumber) {
+    return c.json({ error: "repo and prNumber are required" }, 400);
+  }
+  const sessionKey = `${repo}:${prNumber}`;
+  chatSessions.delete(sessionKey);
+  return c.json({ ok: true });
+});
+
 serve({ fetch: app.fetch, port: 3001 }, (info) => {
   console.log(`Server running at http://localhost:${info.port}`);
 });

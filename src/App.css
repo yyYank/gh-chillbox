@@ -1045,6 +1045,27 @@ th.col-rank {
   opacity: 1;
 }
 
+.chat-reset-btn {
+  margin-left: auto;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--text-muted);
+  padding: 4px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  transition: color 0.15s, background 0.15s;
+}
+.chat-reset-btn:hover:not(:disabled) {
+  color: var(--danger);
+  background: var(--surface-alt);
+}
+.chat-reset-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
 .chat-selected-files {
   padding: 10px 20px;
   border-bottom: 1px solid var(--border);
