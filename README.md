@@ -50,20 +50,20 @@ pnpm install
 pnpm dev
 ```
 
-ブラウザで http://localhost:5173 を開くと使えます。
+ブラウザで http://localhost:15173 を開くと使えます。
 
 ## 技術スタック
 - Vite
 - React
 - TypeScript
 - Node.js
-- Server Actions 相当のローカル API
+- Hono（ローカル API サーバー）
 - GitHub CLI (`gh`)
 - `gh api`
 - localStorage
 フロントエンドは Vite + React で構築します。
 GitHub API をブラウザから直接呼ぶのではなく、ローカルで動く Node.js 側の処理を経由して `gh api` や `gh pr` などのコマンドを実行します。
-React 側からは Server Actions のような感覚でローカル API を呼び出し、GitHub の認証情報は `gh` CLI に任せます。
+React 側からは Hono のローカル API を呼び出し、GitHub の認証情報は `gh` CLI に任せます。
 TODO、既読状態、優先度、メモ、Snooze など、GitHub に保存する必要のない個人的な状態は `localStorage` に保存します。
 ## 方針
 GitHub に常に注意を奪われないことを重視します。
