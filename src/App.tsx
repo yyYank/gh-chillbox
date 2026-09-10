@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   DndContext,
   closestCenter,
@@ -26,6 +26,7 @@ import headerLogo from "./assets/logo.png";
 import headerLogoDark from "./assets/logo-dark.png";
 
 const REPO_STORAGE_KEY = "gh-chillbox:repo";
+const REPO_HISTORY_KEY = "gh-chillbox:repo-history";
 const THEME_STORAGE_KEY = "gh-chillbox:theme";
 
 type Theme = "light" | "dark";
@@ -48,12 +49,30 @@ function loadRepo(): string {
   }
 }
 
+function loadRepoHistory(): string[] {
+  try {
+    const raw = localStorage.getItem(REPO_HISTORY_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveRepoHistory(history: string[]) {
+  try {
+    localStorage.setItem(REPO_HISTORY_KEY, JSON.stringify(history));
+  } catch {}
+}
+
 export function App() {
   const [prs, setPrs] = useState<PR[]>([]);
   const [filter, setFilter] = useState<Filter>("reviewer-me");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [repo, setRepo] = useState(loadRepo);
+  const [repoHistory, setRepoHistory] = useState<string[]>(loadRepoHistory);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const repoBarRef = useRef<HTMLFormElement>(null);
   const [contextMenu, setContextMenu] = useState<{
     x: number;
     y: number;
@@ -100,6 +119,16 @@ export function App() {
     return () => window.removeEventListener("popstate", onPopState);
   }, []);
 
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (repoBarRef.current && !repoBarRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
   const { order, reorder, getRank } = usePrOrder();
   const { hide, unhide, isHidden, hiddenSet } = useHiddenPrs();
   const { active, dismissed, unreadCount, fetchNotifications, dismiss, markRead, readIds } =
@@ -127,6 +156,14 @@ export function App() {
       const data = await res.json();
       if (data.error) throw new Error(data.error);
       setPrs(data);
+      const trimmed = repo.trim();
+      if (trimmed) {
+        setRepoHistory((prev) => {
+          const next = [trimmed, ...prev.filter((r) => r !== trimmed)];
+          saveRepoHistory(next);
+          return next;
+        });
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "取得に失敗しました");
     } finally {
@@ -261,14 +298,60 @@ export function App() {
         </div>
       </header>
 
-      <form className="repo-bar" onSubmit={handleRepoSubmit}>
-        <input
-          className="repo-input"
-          type="text"
-          placeholder="owner/repo（例: yyYank/gh-chillbox）"
-          value={repo}
-          onChange={(e) => setRepo(e.target.value)}
-        />
+      <form className="repo-bar" onSubmit={handleRepoSubmit} ref={repoBarRef}>
+        <div className="repo-combo">
+          <input
+            className="repo-input"
+            type="text"
+            placeholder="owner/repo（例: yyYank/gh-chillbox）"
+            value={repo}
+            onChange={(e) => setRepo(e.target.value)}
+            onFocus={() => repoHistory.length > 0 && setDropdownOpen(true)}
+          />
+          {repoHistory.length > 0 && (
+            <button
+              type="button"
+              className="repo-dropdown-toggle"
+              onClick={() => setDropdownOpen(!dropdownOpen)}
+              aria-label="履歴を表示"
+            >
+              ▾
+            </button>
+          )}
+          {dropdownOpen && repoHistory.length > 0 && (
+            <ul className="repo-dropdown">
+              {repoHistory.map((r) => (
+                <li key={r} className="repo-dropdown-item">
+                  <button
+                    type="button"
+                    className="repo-dropdown-select"
+                    onClick={() => {
+                      setRepo(r);
+                      setDropdownOpen(false);
+                    }}
+                  >
+                    {r}
+                  </button>
+                  <button
+                    type="button"
+                    className="repo-dropdown-delete"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setRepoHistory((prev) => {
+                        const next = prev.filter((x) => x !== r);
+                        saveRepoHistory(next);
+                        return next;
+                      });
+                    }}
+                    title="削除"
+                  >
+                    ×
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </form>
 
       {selectedPr !== null ? (
