@@ -1157,12 +1157,27 @@ th.col-rank {
 }
 .pr-detail-layout.has-chat {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
+  grid-template-columns: 50% 6px 1fr;
+  gap: 0;
   align-items: start;
 }
 .pr-detail-layout.has-chat .pr-detail {
   max-width: none;
+  padding-right: 10px;
+}
+
+/* ===== Split resizer ===== */
+.split-resizer {
+  width: 6px;
+  cursor: col-resize;
+  background: var(--border);
+  border-radius: 3px;
+  align-self: stretch;
+  transition: background 0.15s;
+}
+.split-resizer:hover,
+.split-resizer:active {
+  background: var(--accent);
 }
 
 /* ===== Chat panel ===== */

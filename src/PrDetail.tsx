@@ -196,8 +196,45 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
   const selectedArray = [...selectedFiles];
   const hasChat = selectedFiles.size > 0 || !!quotedText;
 
+  const SPLIT_STORAGE_KEY = "gh-chillbox:split-ratio";
+  const layoutRef = useRef<HTMLDivElement>(null);
+  const [splitRatio, setSplitRatio] = useState(() => {
+    try {
+      const stored = localStorage.getItem(SPLIT_STORAGE_KEY);
+      return stored ? parseFloat(stored) : 50;
+    } catch { return 50; }
+  });
+  const draggingRef = useRef(false);
+
+  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    draggingRef.current = true;
+    const onMove = (ev: MouseEvent) => {
+      if (!draggingRef.current || !layoutRef.current) return;
+      const rect = layoutRef.current.getBoundingClientRect();
+      const ratio = ((ev.clientX - rect.left) / rect.width) * 100;
+      const clamped = Math.max(20, Math.min(80, ratio));
+      setSplitRatio(clamped);
+    };
+    const onUp = () => {
+      draggingRef.current = false;
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+      setSplitRatio((r) => {
+        try { localStorage.setItem(SPLIT_STORAGE_KEY, String(r)); } catch {}
+        return r;
+      });
+    };
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  }, []);
+
   return (
-    <div className={`pr-detail-layout${hasChat ? " has-chat" : ""}`}>
+    <div
+      className={`pr-detail-layout${hasChat ? " has-chat" : ""}`}
+      ref={layoutRef}
+      style={hasChat ? { gridTemplateColumns: `${splitRatio}% 6px 1fr` } : undefined}
+    >
       <div className="pr-detail">
         <button type="button" className="pr-detail-back" onClick={onBack}>
           <ArrowLeft size={16} />
@@ -351,6 +388,10 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
           <MessageSquareQuote size={14} />
           引用して質問
         </button>
+      )}
+
+      {hasChat && (
+        <div className="split-resizer" onMouseDown={handleResizeStart} />
       )}
 
       {(selectedFiles.size > 0 || quotedText) && (
