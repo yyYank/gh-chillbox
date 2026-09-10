@@ -206,7 +206,7 @@ app.post("/chat", async (c) => {
   const sessionKey = `${repo}:${prNumber}`;
   const existingSessionId = chatSessions.get(sessionKey);
 
-  const allowedTools = "Bash(gh pr view *),Bash(gh pr diff *),Bash(gh api repos/*/commits/*),Bash(gh api repos/*/compare/*)";
+  const allowedTools = "Bash(gh pr view *),Bash(gh pr diff *),Bash(gh api repos/*/commits/*),Bash(gh api repos/*/compare/*),Bash(gh search *)";
   const args: string[] = ["-p"];
 
   if (existingSessionId) {
