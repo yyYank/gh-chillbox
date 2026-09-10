@@ -41,9 +41,10 @@ type Props = {
   repo: string;
   prNumber: number;
   onBack: () => void;
+  onTitleChange?: (title: string | null) => void;
 };
 
-export function PrDetail({ repo, prNumber, onBack }: Props) {
+export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
   const storagePrefix = `gh-chillbox:${repo}:${prNumber}`;
   const [data, setData] = useState<PrDetailData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -140,6 +141,17 @@ export function PrDetail({ repo, prNumber, onBack }: Props) {
       .catch((e) => setError(e instanceof Error ? e.message : "取得に失敗しました"))
       .finally(() => setLoading(false));
   }, [repo, prNumber]);
+
+  useEffect(() => {
+    if (data?.title) {
+      document.title = `${data.title} #${data.number} - ChillBox`;
+      onTitleChange?.(`${data.title} #${data.number}`);
+    }
+    return () => {
+      document.title = "gh-chillbox";
+      onTitleChange?.(null);
+    };
+  }, [data?.title, data?.number, onTitleChange]);
 
   const rawBodyHtml = data?.body ? marked.parse(data.body) : "";
   const [renderedBody, setRenderedBody] = useState("");

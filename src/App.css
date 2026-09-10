@@ -151,6 +151,13 @@ body {
   display: inline;
 }
 
+.header-pr-title {
+  margin-left: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--muted);
+}
+
 /* ===== Buttons ===== */
 .refresh-btn {
   padding: 8px 20px;

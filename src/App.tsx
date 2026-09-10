@@ -61,6 +61,7 @@ export function App() {
   } | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [theme, setTheme] = useState<Theme>(getInitialTheme);
+  const [prTitle, setPrTitle] = useState<string | null>(null);
   const [selectedPr, setSelectedPr] = useState<number | null>(() => {
     if (location.pathname === "/pr-detail") {
       const id = new URLSearchParams(location.search).get("id");
@@ -227,7 +228,7 @@ export function App() {
   return (
     <div className="app">
       <header className="header sticky-header">
-        <h1><img src={headerLogo} alt="ChillBox" height={24} className="header-logo header-logo-light" /><img src={headerLogoDark} alt="ChillBox" height={24} className="header-logo header-logo-dark" /><img src={headerIcon} alt="" width={28} height={28} className="header-icon header-icon-light" /><img src={headerIconDark} alt="" width={28} height={28} className="header-icon header-icon-dark" /></h1>
+        <h1><img src={headerLogo} alt="ChillBox" height={24} className="header-logo header-logo-light" /><img src={headerLogoDark} alt="ChillBox" height={24} className="header-logo header-logo-dark" /><img src={headerIcon} alt="" width={28} height={28} className="header-icon header-icon-light" /><img src={headerIconDark} alt="" width={28} height={28} className="header-icon header-icon-dark" />{prTitle && <span className="header-pr-title">{prTitle}</span>}</h1>
         <div className="header-actions">
           <button
             type="button"
@@ -275,6 +276,7 @@ export function App() {
           repo={repo.trim()}
           prNumber={selectedPr}
           onBack={navigateToList}
+          onTitleChange={setPrTitle}
         />
       ) : (
         <>
