@@ -151,6 +151,39 @@ app.get("/pr-detail", async (c) => {
   }
 });
 
+function filterDiffByFiles(fullDiff: string, files: string[]): string {
+  const fileSet = new Set(files);
+  const sections = fullDiff.split(/(?=^diff --git )/m);
+  return sections
+    .filter((section) => {
+      const match = section.match(/^diff --git a\/(.+?) b\/(.+)/);
+      if (!match) return false;
+      return fileSet.has(match[1]) || fileSet.has(match[2]);
+    })
+    .join("");
+}
+
+app.get("/pr-diff", async (c) => {
+  const repo = c.req.query("repo");
+  const number = c.req.query("number");
+  const filesParam = c.req.query("files");
+  if (!repo || !number || !filesParam) {
+    return c.json({ error: "repo, number, and files are required" }, 400);
+  }
+
+  const files = filesParam.split(",");
+  try {
+    const { stdout } = await execFileAsync("gh", [
+      "pr", "diff", number, "--repo", repo,
+    ]);
+    const filtered = filterDiffByFiles(stdout, files);
+    return c.json({ diff: filtered, charCount: filtered.length });
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Unknown error";
+    return c.json({ error: message }, 500);
+  }
+});
+
 const chatSessions = new Map<string, string>();
 
 app.post("/chat", async (c) => {
@@ -162,9 +195,10 @@ app.post("/chat", async (c) => {
     question: string;
     prTitle: string;
     prBody: string;
+    includeDiff?: boolean;
   }>();
 
-  const { repo, prNumber, files, quotedText, question, prTitle, prBody } = body;
+  const { repo, prNumber, files, quotedText, question, prTitle, prBody, includeDiff } = body;
   if (!repo || !prNumber || !question || (!files?.length && !quotedText)) {
     return c.json({ error: "repo, prNumber, question, and either files or quotedText are required" }, 400);
   }
@@ -195,6 +229,18 @@ app.post("/chat", async (c) => {
     } else {
       const fileList = files!.map((f) => `- ${f}`).join("\n");
       promptParts.push("## 質問対象の変更ファイル", fileList);
+
+      if (includeDiff && files && files.length > 0) {
+        try {
+          const { stdout } = await execFileAsync("gh", [
+            "pr", "diff", String(prNumber), "--repo", repo,
+          ]);
+          const filtered = filterDiffByFiles(stdout, files);
+          if (filtered) {
+            promptParts.push("", "## 選択ファイルのdiff", "```diff", filtered, "```");
+          }
+        } catch { /* diff取得失敗時は無視してファイル一覧のみで続行 */ }
+      }
     }
 
     promptParts.push("", "## 質問", question);

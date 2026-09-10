@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from "react";
-import { Send, X, HelpCircle, RotateCcw } from "lucide-react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { Send, X, HelpCircle, RotateCcw, AlertTriangle } from "lucide-react";
 import { marked } from "marked";
 
 type Message = {
@@ -29,7 +29,34 @@ export function ChatPanel({ selectedFiles, quotedText, repo, prNumber, prTitle, 
   const [messages, setMessages] = useState<Message[]>(() => loadMessages(storageKey));
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [includeDiff, setIncludeDiff] = useState(false);
+  const [diffCharCount, setDiffCharCount] = useState<number | null>(null);
+  const [diffLoading, setDiffLoading] = useState(false);
   const bodyRef = useRef<HTMLDivElement>(null);
+
+  const fetchDiffSize = useCallback(async (files: string[]) => {
+    if (files.length === 0) { setDiffCharCount(null); return; }
+    setDiffLoading(true);
+    try {
+      const params = new URLSearchParams({ repo, number: String(prNumber), files: files.join(",") });
+      const res = await fetch(`/api/pr-diff?${params}`);
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      setDiffCharCount(data.charCount ?? null);
+    } catch {
+      setDiffCharCount(null);
+    } finally {
+      setDiffLoading(false);
+    }
+  }, [repo, prNumber]);
+
+  useEffect(() => {
+    if (includeDiff && selectedFiles.length > 0) {
+      fetchDiffSize(selectedFiles);
+    } else {
+      setDiffCharCount(null);
+    }
+  }, [includeDiff, selectedFiles, fetchDiffSize]);
 
   useEffect(() => {
     bodyRef.current?.scrollTo({ top: bodyRef.current.scrollHeight, behavior: "smooth" });
@@ -55,6 +82,7 @@ export function ChatPanel({ selectedFiles, quotedText, repo, prNumber, prTitle, 
         payload.quotedText = quotedText;
       } else {
         payload.files = selectedFiles;
+        if (includeDiff) payload.includeDiff = true;
       }
       const res = await fetch("/api/chat", {
         method: "POST",
@@ -120,6 +148,19 @@ export function ChatPanel({ selectedFiles, quotedText, repo, prNumber, prTitle, 
                 <li key={f} className="chat-file-item">{f}</li>
               ))}
             </ul>
+            <label className="chat-diff-toggle">
+              <input type="checkbox" checked={includeDiff} onChange={(e) => setIncludeDiff(e.target.checked)} />
+              PR diffを含める
+              {diffLoading && <span className="chat-diff-loading">取得中…</span>}
+            </label>
+            {includeDiff && diffCharCount !== null && diffCharCount > 15000 && (
+              <div className={`chat-diff-warning ${diffCharCount > 50000 ? "chat-diff-warning-red" : "chat-diff-warning-yellow"}`}>
+                <AlertTriangle size={14} />
+                {diffCharCount > 50000
+                  ? `diff が ${Math.round(diffCharCount / 1000)}k文字あります。分割を検討してください`
+                  : `diff が ${Math.round(diffCharCount / 1000)}k文字あります。指示が埋もれる可能性があります`}
+              </div>
+            )}
           </>
         )}
       </div>

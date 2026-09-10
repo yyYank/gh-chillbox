@@ -1109,6 +1109,45 @@ th.col-rank {
   white-space: nowrap;
 }
 
+.chat-diff-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 6px;
+  cursor: pointer;
+}
+
+.chat-diff-toggle input[type="checkbox"] {
+  cursor: pointer;
+}
+
+.chat-diff-loading {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.chat-diff-warning {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  padding: 6px 10px;
+  border-radius: 6px;
+  margin-top: 6px;
+}
+
+.chat-diff-warning-yellow {
+  background: #fef3cd;
+  color: #856404;
+}
+
+.chat-diff-warning-red {
+  background: #f8d7da;
+  color: #721c24;
+}
+
 .chat-body {
   flex: 1;
   overflow-y: auto;
