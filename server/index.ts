@@ -206,10 +206,11 @@ app.post("/chat", async (c) => {
   const sessionKey = `${repo}:${prNumber}`;
   const existingSessionId = chatSessions.get(sessionKey);
 
+  const allowedTools = "Bash(gh pr view *),Bash(gh pr diff *),Bash(gh api repos/*/commits/*),Bash(gh api repos/*/compare/*)";
   const args: string[] = ["-p"];
 
   if (existingSessionId) {
-    args.push(question, "--resume", existingSessionId, "--output-format", "json");
+    args.push(question, "--resume", existingSessionId, "--output-format", "json", "--allowedTools", allowedTools);
   } else {
     const prUrl = `https://github.com/${repo}/pull/${prNumber}`;
     const promptParts = [
@@ -244,7 +245,7 @@ app.post("/chat", async (c) => {
     }
 
     promptParts.push("", "## 質問", question);
-    args.push(promptParts.join("\n"), "--output-format", "json");
+    args.push(promptParts.join("\n"), "--output-format", "json", "--allowedTools", allowedTools);
   }
 
   try {
@@ -257,6 +258,7 @@ app.post("/chat", async (c) => {
     }
     return c.json({ answer: parsed.result ?? stdout.trim() });
   } catch (e) {
+    console.error("[chat] claude -p failed:", e);
     const message = e instanceof Error ? e.message : "Unknown error";
     return c.json({ error: message }, 500);
   }
