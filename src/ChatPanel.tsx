@@ -89,7 +89,7 @@ export function ChatPanel({ selectedFiles, quotedText, repo, prNumber, prTitle, 
       });
       if (!res.ok) throw new Error(`API error: ${res.status}`);
       const data = await res.json();
-      const label = data.resumed ? "(セッション継続中 — 質問のみ送信されます)\n\n" : "";
+      const label = data.resumed ? "(セッション継続中)\n\n" : "";
       setPreviewContent(label + data.prompt);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "エラーが発生しました";
@@ -229,7 +229,7 @@ export function ChatPanel({ selectedFiles, quotedText, repo, prNumber, prTitle, 
       <form className="chat-input-area" onSubmit={handleSubmit}>
         <textarea
           className="chat-input"
-          placeholder={quotedText ? "引用テキストについて質問…" : selectedFiles.length === 0 ? "ファイルを選択してください" : "質問を入力…"}
+          placeholder={quotedText ? "引用テキストについて質問…" : selectedFiles.length > 0 ? "選択ファイルについて質問…" : "質問を入力…"}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => {
@@ -238,14 +238,14 @@ export function ChatPanel({ selectedFiles, quotedText, repo, prNumber, prTitle, 
               handleSubmit(e);
             }
           }}
-          disabled={loading || (selectedFiles.length === 0 && !quotedText)}
+          disabled={loading}
           rows={3}
         />
         <button
           type="button"
           className="chat-preview-btn"
           title="送信されるプロンプトをプレビュー"
-          disabled={loading || previewLoading || !input.trim() || (selectedFiles.length === 0 && !quotedText)}
+          disabled={loading || previewLoading || !input.trim()}
           onClick={handlePreview}
         >
           <Eye size={16} />
@@ -253,7 +253,7 @@ export function ChatPanel({ selectedFiles, quotedText, repo, prNumber, prTitle, 
         <button
           type="submit"
           className="chat-send-btn"
-          disabled={loading || !input.trim() || (selectedFiles.length === 0 && !quotedText)}
+          disabled={loading || !input.trim()}
         >
           <Send size={16} />
         </button>
