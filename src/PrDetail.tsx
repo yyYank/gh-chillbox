@@ -4,6 +4,7 @@ import mermaid from "mermaid";
 import { ArrowLeft, ChevronDown, ChevronRight, MessageSquareQuote } from "lucide-react";
 import { FileTree } from "./FileTree";
 import { ChatPanel } from "./ChatPanel";
+import { DiffPanel } from "./DiffPanel";
 
 marked.setOptions({ gfm: true, breaks: true });
 
@@ -81,6 +82,7 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
       return raw ? JSON.parse(raw).length > 0 : false;
     } catch { return false; }
   });
+  const [activeTab, setActiveTab] = useState<"chat" | "diff">("chat");
   const [floatingBtn, setFloatingBtn] = useState<{ x: number; y: number; text: string } | null>(null);
   const [mermaidModal, setMermaidModal] = useState<string | null>(null);
   const [modalScale, setModalScale] = useState(1);
@@ -217,6 +219,7 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
   useEffect(() => {
     if (selectedFiles.size > 0 || quotedText) {
       setChatOpen(true);
+      setActiveTab("chat");
     }
   }, [selectedFiles.size, quotedText]);
 
@@ -422,16 +425,38 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
       )}
 
       {hasChat && (
-        <ChatPanel
-          selectedFiles={selectedArray}
-          quotedText={quotedText}
-          repo={repo}
-          prNumber={prNumber}
-          prTitle={data?.title ?? ""}
-          prBody={data?.body ?? ""}
-          onClearSelection={clearSelection}
-          onCloseChat={() => setChatOpen(false)}
-        />
+        <div className="right-pane">
+          <div className="right-pane-tabs">
+            <button
+              type="button"
+              className={`right-pane-tab${activeTab === "chat" ? " active" : ""}`}
+              onClick={() => setActiveTab("chat")}
+            >
+              Chat
+            </button>
+            <button
+              type="button"
+              className={`right-pane-tab${activeTab === "diff" ? " active" : ""}`}
+              onClick={() => setActiveTab("diff")}
+            >
+              Diff
+            </button>
+          </div>
+          {activeTab === "chat" ? (
+            <ChatPanel
+              selectedFiles={selectedArray}
+              quotedText={quotedText}
+              repo={repo}
+              prNumber={prNumber}
+              prTitle={data?.title ?? ""}
+              prBody={data?.body ?? ""}
+              onClearSelection={clearSelection}
+              onCloseChat={() => setChatOpen(false)}
+            />
+          ) : (
+            <DiffPanel repo={repo} prNumber={prNumber} />
+          )}
+        </div>
       )}
     </div>
   );

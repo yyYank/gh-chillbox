@@ -136,7 +136,6 @@ export function ChatPanel({ selectedFiles, quotedText, repo, prNumber, prTitle, 
   return (
     <div className="chat-panel">
       <div className="chat-panel-header">
-        <span className="chat-panel-title">Chat</span>
         <span className="chat-help-icon" data-tooltip="Chatを実行するとcliでclaude -p接続します">
           <HelpCircle size={14} />
         </span>

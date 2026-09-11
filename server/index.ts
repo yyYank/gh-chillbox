@@ -207,17 +207,18 @@ app.get("/pr-diff", async (c) => {
   const repo = c.req.query("repo");
   const number = c.req.query("number");
   const filesParam = c.req.query("files");
-  if (!repo || !number || !filesParam) {
-    return c.json({ error: "repo, number, and files are required" }, 400);
+  if (!repo || !number) {
+    return c.json({ error: "repo and number are required" }, 400);
   }
 
-  const files = filesParam.split(",");
   try {
     const { stdout } = await execFileAsync("gh", [
       "pr", "diff", number, "--repo", repo,
     ]);
-    const filtered = filterDiffByFiles(stdout, files);
-    return c.json({ diff: filtered, charCount: filtered.length });
+    const result = filesParam
+      ? filterDiffByFiles(stdout, filesParam.split(","))
+      : stdout;
+    return c.json({ diff: result, charCount: result.length });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Unknown error";
     return c.json({ error: message }, 500);

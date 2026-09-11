@@ -1212,8 +1212,8 @@ th.col-rank {
   background: var(--accent);
 }
 
-/* ===== Chat panel ===== */
-.chat-panel {
+/* ===== Right pane (tabs wrapper) ===== */
+.right-pane {
   position: sticky;
   top: 80px;
   display: flex;
@@ -1222,6 +1222,50 @@ th.col-rank {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   height: calc(100vh - 100px);
+  overflow: hidden;
+}
+
+.right-pane-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.right-pane-tab {
+  flex: 1;
+  padding: 10px 16px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+  position: relative;
+}
+.right-pane-tab:hover {
+  color: var(--text);
+  background: var(--surface-alt);
+}
+.right-pane-tab.active {
+  color: var(--accent);
+}
+.right-pane-tab.active::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 16px;
+  right: 16px;
+  height: 2px;
+  background: var(--accent);
+  border-radius: 1px;
+}
+
+/* ===== Chat panel ===== */
+.chat-panel {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
   overflow: hidden;
 }
 
@@ -1547,6 +1591,112 @@ th.col-rank {
   white-space: pre-wrap;
   word-break: break-word;
   color: var(--text);
+}
+
+/* ===== Diff panel ===== */
+.diff-panel-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+}
+
+.diff-panel-status {
+  padding: 48px 20px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+.diff-panel-error {
+  color: var(--danger);
+}
+
+.diff-file {
+  margin-bottom: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.diff-file-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--surface-alt);
+  border-bottom: 1px solid var(--border);
+  font-size: 0.8rem;
+  font-family: "SF Mono", "Fira Code", "Fira Mono", monospace;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.diff-file-path {
+  font-weight: 600;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.diff-file-stats {
+  display: flex;
+  gap: 8px;
+  font-size: 0.75rem;
+  flex-shrink: 0;
+  margin-left: 12px;
+}
+.diff-stat-add { color: var(--success, #22863a); }
+.diff-stat-del { color: var(--danger, #cb2431); }
+
+.diff-file-body {
+  font-family: "SF Mono", "Fira Code", "Fira Mono", monospace;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  overflow-x: auto;
+}
+
+.diff-line {
+  display: flex;
+  white-space: pre;
+  min-height: 1.5em;
+}
+
+.diff-line-marker {
+  flex-shrink: 0;
+  width: 20px;
+  text-align: center;
+  user-select: none;
+  color: var(--text-muted);
+}
+
+.diff-line-content {
+  flex: 1;
+  padding-right: 12px;
+}
+
+.diff-line-add {
+  background: var(--diff-add-bg, rgba(40, 167, 69, 0.12));
+}
+.diff-line-add .diff-line-marker {
+  color: var(--success, #22863a);
+}
+
+.diff-line-del {
+  background: var(--diff-del-bg, rgba(203, 36, 49, 0.12));
+}
+.diff-line-del .diff-line-marker {
+  color: var(--danger, #cb2431);
+}
+
+.diff-line-hunk {
+  background: var(--surface-alt);
+  color: var(--text-muted);
+  font-style: italic;
+  padding: 2px 0;
+}
+.diff-line-hunk .diff-line-content {
+  padding-left: 4px;
 }
 
 /* ===== Quote floating button ===== */
