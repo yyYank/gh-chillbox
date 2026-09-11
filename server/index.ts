@@ -106,6 +106,16 @@ app.get("/notifications", async (c) => {
           }
         }
 
+        let prState: "open" | "closed" | "merged" = "open";
+        try {
+          const { stdout: prStdout } = await execFileAsync("gh", [
+            "pr", "view", String(prNumber), "--repo", repo, "--json", "state", "--jq", ".state",
+          ]);
+          const s = prStdout.trim().toUpperCase();
+          if (s === "MERGED") prState = "merged";
+          else if (s === "CLOSED") prState = "closed";
+        } catch { /* default to open */ }
+
         return {
           id: n.id,
           type: n.reason,
@@ -115,6 +125,7 @@ app.get("/notifications", async (c) => {
           actor,
           createdAt: n.updated_at,
           url,
+          prState,
         };
       }),
     );

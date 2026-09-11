@@ -72,6 +72,19 @@ export function useNotifications(repo: string) {
     });
   }, []);
 
+  const dismissClosed = useCallback(() => {
+    const closedIds = notifications
+      .filter((n) => !dismissedIds.has(n.id) && (n.prState === "closed" || n.prState === "merged"))
+      .map((n) => n.id);
+    if (closedIds.length === 0) return;
+    setDismissedIds((prev) => {
+      const next = new Set(prev);
+      for (const id of closedIds) next.add(id);
+      saveJson(DISMISSED_KEY, [...next]);
+      return next;
+    });
+  }, [notifications, dismissedIds]);
+
   const markRead = useCallback((id: string) => {
     setReadIds((prev) => {
       const next = new Set(prev);
@@ -91,6 +104,7 @@ export function useNotifications(repo: string) {
     unreadCount,
     fetchNotifications,
     dismiss,
+    dismissClosed,
     markRead,
     readIds,
     loading,

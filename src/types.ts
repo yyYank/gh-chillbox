@@ -21,4 +21,5 @@ export type AppNotification = {
   actor: string;
   createdAt: string;
   url: string;
+  prState?: "open" | "closed" | "merged";
 };

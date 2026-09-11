@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Eraser, CheckCircle } from "lucide-react";
+import { Eraser, CheckCircle, Trash2 } from "lucide-react";
 import type { AppNotification } from "./types";
 
 type Props = {
@@ -9,6 +9,7 @@ type Props = {
   dismissed: AppNotification[];
   readIds: Set<string>;
   onDismiss: (id: string) => void;
+  onDismissClosed: () => void;
   onMarkRead: (id: string) => void;
 };
 
@@ -64,11 +65,13 @@ export function NotificationDrawer({
   dismissed,
   readIds,
   onDismiss,
+  onDismissClosed,
   onMarkRead,
 }: Props) {
   const [tab, setTab] = useState<"active" | "dismissed">("active");
 
   const items = tab === "active" ? active : dismissed;
+  const closedCount = active.filter((n) => n.prState === "closed" || n.prState === "merged").length;
 
   return (
     <>
@@ -103,6 +106,19 @@ export function NotificationDrawer({
             削除済み ({dismissed.length})
           </button>
         </div>
+
+        {tab === "active" && closedCount > 0 && (
+          <div className="drawer-bulk-actions">
+            <button
+              type="button"
+              className="dismiss-closed-btn"
+              onClick={onDismissClosed}
+            >
+              <Trash2 size={14} />
+              クローズ済PRの通知をまとめて消す ({closedCount})
+            </button>
+          </div>
+        )}
 
         <div className="drawer-body">
           {items.length === 0 && (

@@ -131,7 +131,7 @@ export function App() {
 
   const { order, reorder, getRank } = usePrOrder();
   const { hide, unhide, isHidden, hiddenSet } = useHiddenPrs();
-  const { active, dismissed, unreadCount, fetchNotifications, dismiss, markRead, readIds } =
+  const { active, dismissed, unreadCount, fetchNotifications, dismiss, dismissClosed, markRead, readIds } =
     useNotifications(repo);
 
   const sensors = useSensors(
@@ -556,6 +556,7 @@ export function App() {
         dismissed={dismissed}
         readIds={readIds}
         onDismiss={dismiss}
+        onDismissClosed={dismissClosed}
         onMarkRead={markRead}
       />
     </div>
