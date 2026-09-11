@@ -277,7 +277,7 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
               {data.title}{" "}
               <a
                 className="pr-detail-number"
-                href={`https://github.com/${repo}/pull/${data.number}`}
+                href={`https://github.com/${repo}/pull/${data.number}/changes`}
                 target="_blank"
                 rel="noopener noreferrer"
               >

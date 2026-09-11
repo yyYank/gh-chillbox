@@ -265,7 +265,7 @@ export function App() {
   return (
     <div className="app">
       <header className="header sticky-header">
-        <h1><img src={headerLogo} alt="ChillBox" height={24} className="header-logo header-logo-light" /><img src={headerLogoDark} alt="ChillBox" height={24} className="header-logo header-logo-dark" /><img src={headerIcon} alt="" width={28} height={28} className="header-icon header-icon-light" /><img src={headerIconDark} alt="" width={28} height={28} className="header-icon header-icon-dark" />{prTitle && <span className="header-pr-title">{prTitle}</span>}</h1>
+        <h1><img src={headerLogo} alt="ChillBox" height={24} className="header-logo header-logo-light" /><img src={headerLogoDark} alt="ChillBox" height={24} className="header-logo header-logo-dark" /><img src={headerIcon} alt="" width={28} height={28} className="header-icon header-icon-light" /><img src={headerIconDark} alt="" width={28} height={28} className="header-icon header-icon-dark" />{prTitle && selectedPr !== null && <span className="header-pr-title">{prTitle.replace(/ #\d+$/, '')} <a href={`https://github.com/${repo.trim()}/pull/${selectedPr}/changes`} target="_blank" rel="noopener noreferrer">#{selectedPr}</a></span>}</h1>
         <div className="header-actions">
           <button
             type="button"
