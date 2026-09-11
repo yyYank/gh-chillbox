@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Send, X, HelpCircle, RotateCcw, AlertTriangle } from "lucide-react";
+import { Send, X, HelpCircle, RotateCcw, AlertTriangle, Eye } from "lucide-react";
 import { marked } from "marked";
 
 type Message = {
@@ -32,6 +32,8 @@ export function ChatPanel({ selectedFiles, quotedText, repo, prNumber, prTitle, 
   const [includeDiff, setIncludeDiff] = useState(false);
   const [diffCharCount, setDiffCharCount] = useState<number | null>(null);
   const [diffLoading, setDiffLoading] = useState(false);
+  const [previewContent, setPreviewContent] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
   const bodyRef = useRef<HTMLDivElement>(null);
 
   const fetchDiffSize = useCallback(async (files: string[]) => {
@@ -65,6 +67,36 @@ export function ChatPanel({ selectedFiles, quotedText, repo, prNumber, prTitle, 
   useEffect(() => {
     try { localStorage.setItem(storageKey, JSON.stringify(messages)); } catch {}
   }, [messages, storageKey]);
+
+  const handlePreview = async () => {
+    const question = input.trim();
+    if (!question || (selectedFiles.length === 0 && !quotedText)) return;
+
+    setPreviewLoading(true);
+    try {
+      const payload: Record<string, unknown> = { repo, prNumber, question, prTitle, prBody };
+      if (quotedText) {
+        payload.quotedText = quotedText;
+      } else {
+        payload.files = selectedFiles;
+        if (includeDiff) payload.includeDiff = true;
+      }
+      const res = await fetch("/api/chat/preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error(`API error: ${res.status}`);
+      const data = await res.json();
+      const label = data.resumed ? "(セッション継続中 — 質問のみ送信されます)\n\n" : "";
+      setPreviewContent(label + data.prompt);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "エラーが発生しました";
+      setPreviewContent(`エラー: ${msg}`);
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -206,6 +238,15 @@ export function ChatPanel({ selectedFiles, quotedText, repo, prNumber, prTitle, 
           rows={3}
         />
         <button
+          type="button"
+          className="chat-preview-btn"
+          title="送信されるプロンプトをプレビュー"
+          disabled={loading || previewLoading || !input.trim() || (selectedFiles.length === 0 && !quotedText)}
+          onClick={handlePreview}
+        >
+          <Eye size={16} />
+        </button>
+        <button
           type="submit"
           className="chat-send-btn"
           disabled={loading || !input.trim() || (selectedFiles.length === 0 && !quotedText)}
@@ -213,6 +254,20 @@ export function ChatPanel({ selectedFiles, quotedText, repo, prNumber, prTitle, 
           <Send size={16} />
         </button>
       </form>
+
+      {previewContent !== null && (
+        <div className="chat-preview-overlay" onClick={() => setPreviewContent(null)}>
+          <div className="chat-preview-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="chat-preview-header">
+              <span>プロンプト プレビュー</span>
+              <button type="button" className="chat-preview-close" onClick={() => setPreviewContent(null)}>
+                <X size={16} />
+              </button>
+            </div>
+            <pre className="chat-preview-body">{previewContent}</pre>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

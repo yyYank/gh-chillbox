@@ -226,19 +226,77 @@ app.get("/pr-diff", async (c) => {
 
 const chatSessions = new Map<string, string>();
 
-app.post("/chat", async (c) => {
-  const body = await c.req.json<{
-    repo: string;
-    prNumber: number;
-    files?: string[];
-    quotedText?: string;
-    question: string;
-    prTitle: string;
-    prBody: string;
-    includeDiff?: boolean;
-  }>();
+type ChatBody = {
+  repo: string;
+  prNumber: number;
+  files?: string[];
+  quotedText?: string;
+  question: string;
+  prTitle: string;
+  prBody: string;
+  includeDiff?: boolean;
+};
 
+async function buildPrompt(body: ChatBody): Promise<string> {
   const { repo, prNumber, files, quotedText, question, prTitle, prBody, includeDiff } = body;
+  const prUrl = `https://github.com/${repo}/pull/${prNumber}`;
+  const promptParts = [
+    `GitHub PR: ${prTitle} (${prUrl})`,
+    `リポジトリ: ${repo}  PR #${prNumber}`,
+    "",
+    "## PR本文",
+    prBody || "(なし)",
+    "",
+  ];
+
+  if (quotedText) {
+    promptParts.push(
+      "## 引用テキスト（PR本文から選択）",
+      `> ${quotedText.replace(/\n/g, "\n> ")}`,
+    );
+  } else {
+    const fileList = files!.map((f) => `- ${f}`).join("\n");
+    promptParts.push("## 質問対象の変更ファイル", fileList);
+
+    if (includeDiff && files && files.length > 0) {
+      try {
+        const { stdout } = await execFileAsync("gh", [
+          "pr", "diff", String(prNumber), "--repo", repo,
+        ]);
+        const filtered = filterDiffByFiles(stdout, files);
+        if (filtered) {
+          promptParts.push("", "## 選択ファイルのdiff", "```diff", filtered, "```");
+        }
+      } catch { /* diff取得失敗時は無視してファイル一覧のみで続行 */ }
+    }
+  }
+
+  promptParts.push("", "## 質問", question);
+  return promptParts.join("\n");
+}
+
+app.post("/chat/preview", async (c) => {
+  const body = await c.req.json<ChatBody>();
+  const { repo, prNumber, files, quotedText, question } = body;
+  if (!repo || !prNumber || !question || (!files?.length && !quotedText)) {
+    return c.json({ error: "repo, prNumber, question, and either files or quotedText are required" }, 400);
+  }
+
+  const sessionKey = `${repo}:${prNumber}`;
+  const hasSession = chatSessions.has(sessionKey);
+
+  if (hasSession) {
+    return c.json({ prompt: question, resumed: true });
+  }
+
+  const prompt = await buildPrompt(body);
+  return c.json({ prompt, resumed: false });
+});
+
+app.post("/chat", async (c) => {
+  const body = await c.req.json<ChatBody>();
+
+  const { repo, prNumber, files, quotedText, question } = body;
   if (!repo || !prNumber || !question || (!files?.length && !quotedText)) {
     return c.json({ error: "repo, prNumber, question, and either files or quotedText are required" }, 400);
   }
@@ -252,40 +310,8 @@ app.post("/chat", async (c) => {
   if (existingSessionId) {
     args.push(question, "--resume", existingSessionId, "--output-format", "json", "--allowedTools", allowedTools);
   } else {
-    const prUrl = `https://github.com/${repo}/pull/${prNumber}`;
-    const promptParts = [
-      `GitHub PR: ${prTitle} (${prUrl})`,
-      `リポジトリ: ${repo}  PR #${prNumber}`,
-      "",
-      "## PR本文",
-      prBody || "(なし)",
-      "",
-    ];
-
-    if (quotedText) {
-      promptParts.push(
-        "## 引用テキスト（PR本文から選択）",
-        `> ${quotedText.replace(/\n/g, "\n> ")}`,
-      );
-    } else {
-      const fileList = files!.map((f) => `- ${f}`).join("\n");
-      promptParts.push("## 質問対象の変更ファイル", fileList);
-
-      if (includeDiff && files && files.length > 0) {
-        try {
-          const { stdout } = await execFileAsync("gh", [
-            "pr", "diff", String(prNumber), "--repo", repo,
-          ]);
-          const filtered = filterDiffByFiles(stdout, files);
-          if (filtered) {
-            promptParts.push("", "## 選択ファイルのdiff", "```diff", filtered, "```");
-          }
-        } catch { /* diff取得失敗時は無視してファイル一覧のみで続行 */ }
-      }
-    }
-
-    promptParts.push("", "## 質問", question);
-    args.push(promptParts.join("\n"), "--output-format", "json", "--allowedTools", allowedTools);
+    const prompt = await buildPrompt(body);
+    args.push(prompt, "--output-format", "json", "--allowedTools", allowedTools);
   }
 
   try {
