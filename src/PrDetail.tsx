@@ -75,6 +75,12 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
   });
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
   const [quotedText, setQuotedText] = useState<string | null>(null);
+  const [chatOpen, setChatOpen] = useState(() => {
+    try {
+      const raw = localStorage.getItem(`gh-chillbox:chat:${repo}:${prNumber}`);
+      return raw ? JSON.parse(raw).length > 0 : false;
+    } catch { return false; }
+  });
   const [floatingBtn, setFloatingBtn] = useState<{ x: number; y: number; text: string } | null>(null);
   const [mermaidModal, setMermaidModal] = useState<string | null>(null);
   const [modalScale, setModalScale] = useState(1);
@@ -208,8 +214,14 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
     return () => document.removeEventListener("keydown", onKey);
   }, [mermaidModal]);
 
+  useEffect(() => {
+    if (selectedFiles.size > 0 || quotedText) {
+      setChatOpen(true);
+    }
+  }, [selectedFiles.size, quotedText]);
+
   const selectedArray = [...selectedFiles];
-  const hasChat = selectedFiles.size > 0 || !!quotedText;
+  const hasChat = chatOpen;
 
   const SPLIT_STORAGE_KEY = "gh-chillbox:split-ratio";
   const layoutRef = useRef<HTMLDivElement>(null);
@@ -409,7 +421,7 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
         <div className="split-resizer" onMouseDown={handleResizeStart} />
       )}
 
-      {(selectedFiles.size > 0 || quotedText) && (
+      {hasChat && (
         <ChatPanel
           selectedFiles={selectedArray}
           quotedText={quotedText}
@@ -418,6 +430,7 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
           prTitle={data?.title ?? ""}
           prBody={data?.body ?? ""}
           onClearSelection={clearSelection}
+          onCloseChat={() => setChatOpen(false)}
         />
       )}
     </div>

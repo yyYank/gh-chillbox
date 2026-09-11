@@ -15,6 +15,7 @@ type Props = {
   prTitle: string;
   prBody: string;
   onClearSelection: () => void;
+  onCloseChat: () => void;
 };
 
 function loadMessages(key: string): Message[] {
@@ -24,7 +25,7 @@ function loadMessages(key: string): Message[] {
   } catch { return []; }
 }
 
-export function ChatPanel({ selectedFiles, quotedText, repo, prNumber, prTitle, prBody, onClearSelection }: Props) {
+export function ChatPanel({ selectedFiles, quotedText, repo, prNumber, prTitle, prBody, onClearSelection, onCloseChat }: Props) {
   const storageKey = `gh-chillbox:chat:${repo}:${prNumber}`;
   const [messages, setMessages] = useState<Message[]>(() => loadMessages(storageKey));
   const [input, setInput] = useState("");
@@ -70,7 +71,7 @@ export function ChatPanel({ selectedFiles, quotedText, repo, prNumber, prTitle, 
 
   const handlePreview = async () => {
     const question = input.trim();
-    if (!question || (selectedFiles.length === 0 && !quotedText)) return;
+    if (!question) return;
 
     setPreviewLoading(true);
     try {
@@ -101,7 +102,7 @@ export function ChatPanel({ selectedFiles, quotedText, repo, prNumber, prTitle, 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const question = input.trim();
-    if (!question || (selectedFiles.length === 0 && !quotedText)) return;
+    if (!question) return;
 
     const userMsg: Message = { role: "user", content: question };
     setMessages((prev) => [...prev, userMsg]);
@@ -154,48 +155,51 @@ export function ChatPanel({ selectedFiles, quotedText, repo, prNumber, prTitle, 
                 body: JSON.stringify({ repo, prNumber }),
               });
             } catch {}
+            onCloseChat();
           }}
         >
           <RotateCcw size={14} />
         </button>
       </div>
 
-      <div className="chat-selected-files">
-        {quotedText ? (
-          <>
-            <span className="chat-selected-label">引用テキスト</span>
-            <button type="button" className="chat-clear-btn" onClick={onClearSelection} title="引用解除">
-              <X size={14} />
-            </button>
-            <blockquote className="chat-quoted-text">{quotedText}</blockquote>
-          </>
-        ) : (
-          <>
-            <span className="chat-selected-label">選択中のファイル ({selectedFiles.length})</span>
-            <button type="button" className="chat-clear-btn" onClick={onClearSelection} title="選択解除">
-              <X size={14} />
-            </button>
-            <ul className="chat-file-list">
-              {selectedFiles.map((f) => (
-                <li key={f} className="chat-file-item">{f}</li>
-              ))}
-            </ul>
-            <label className="chat-diff-toggle">
-              <input type="checkbox" checked={includeDiff} onChange={(e) => setIncludeDiff(e.target.checked)} />
-              PR diffを含める
-              {diffLoading && <span className="chat-diff-loading">取得中…</span>}
-            </label>
-            {includeDiff && diffCharCount !== null && diffCharCount > 15000 && (
-              <div className={`chat-diff-warning ${diffCharCount > 50000 ? "chat-diff-warning-red" : "chat-diff-warning-yellow"}`}>
-                <AlertTriangle size={14} />
-                {diffCharCount > 50000
-                  ? `diff が ${Math.round(diffCharCount / 1000)}k文字あります。分割を検討してください`
-                  : `diff が ${Math.round(diffCharCount / 1000)}k文字あります。指示が埋もれる可能性があります`}
-              </div>
-            )}
-          </>
-        )}
-      </div>
+      {(quotedText || selectedFiles.length > 0) && (
+        <div className="chat-selected-files">
+          {quotedText ? (
+            <>
+              <span className="chat-selected-label">引用テキスト</span>
+              <button type="button" className="chat-clear-btn" onClick={onClearSelection} title="引用解除">
+                <X size={14} />
+              </button>
+              <blockquote className="chat-quoted-text">{quotedText}</blockquote>
+            </>
+          ) : (
+            <>
+              <span className="chat-selected-label">選択中のファイル ({selectedFiles.length})</span>
+              <button type="button" className="chat-clear-btn" onClick={onClearSelection} title="選択解除">
+                <X size={14} />
+              </button>
+              <ul className="chat-file-list">
+                {selectedFiles.map((f) => (
+                  <li key={f} className="chat-file-item">{f}</li>
+                ))}
+              </ul>
+              <label className="chat-diff-toggle">
+                <input type="checkbox" checked={includeDiff} onChange={(e) => setIncludeDiff(e.target.checked)} />
+                PR diffを含める
+                {diffLoading && <span className="chat-diff-loading">取得中…</span>}
+              </label>
+              {includeDiff && diffCharCount !== null && diffCharCount > 15000 && (
+                <div className={`chat-diff-warning ${diffCharCount > 50000 ? "chat-diff-warning-red" : "chat-diff-warning-yellow"}`}>
+                  <AlertTriangle size={14} />
+                  {diffCharCount > 50000
+                    ? `diff が ${Math.round(diffCharCount / 1000)}k文字あります。分割を検討してください`
+                    : `diff が ${Math.round(diffCharCount / 1000)}k文字あります。指示が埋もれる可能性があります`}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
 
       <div className="chat-body" ref={bodyRef}>
         {messages.length === 0 && (

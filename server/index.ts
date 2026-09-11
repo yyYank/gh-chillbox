@@ -237,68 +237,95 @@ type ChatBody = {
   includeDiff?: boolean;
 };
 
-async function buildPrompt(body: ChatBody): Promise<string> {
-  const { repo, prNumber, files, quotedText, question, prTitle, prBody, includeDiff } = body;
-  const prUrl = `https://github.com/${repo}/pull/${prNumber}`;
-  const promptParts = [
-    `GitHub PR: ${prTitle} (${prUrl})`,
-    `リポジトリ: ${repo}  PR #${prNumber}`,
-    "",
-    "## PR本文",
-    prBody || "(なし)",
-    "",
-  ];
+async function buildContextParts(body: ChatBody): Promise<string[]> {
+  const { repo, prNumber, files, quotedText, includeDiff } = body;
+  const parts: string[] = [];
 
   if (quotedText) {
-    promptParts.push(
+    parts.push(
       "## 引用テキスト（PR本文から選択）",
       `> ${quotedText.replace(/\n/g, "\n> ")}`,
     );
-  } else {
-    const fileList = files!.map((f) => `- ${f}`).join("\n");
-    promptParts.push("## 質問対象の変更ファイル", fileList);
+  } else if (files && files.length > 0) {
+    const fileList = files.map((f) => `- ${f}`).join("\n");
+    parts.push("## 質問対象の変更ファイル", fileList);
 
-    if (includeDiff && files && files.length > 0) {
+    if (includeDiff) {
       try {
         const { stdout } = await execFileAsync("gh", [
           "pr", "diff", String(prNumber), "--repo", repo,
         ]);
         const filtered = filterDiffByFiles(stdout, files);
         if (filtered) {
-          promptParts.push("", "## 選択ファイルのdiff", "```diff", filtered, "```");
+          parts.push("", "## 選択ファイルのdiff", "```diff", filtered, "```");
         }
       } catch { /* diff取得失敗時は無視してファイル一覧のみで続行 */ }
     }
   }
 
-  promptParts.push("", "## 質問", question);
-  return promptParts.join("\n");
+  return parts;
+}
+
+async function buildInitialPrompt(body: ChatBody): Promise<string> {
+  const { repo, prNumber, question, prTitle, prBody } = body;
+  const prUrl = `https://github.com/${repo}/pull/${prNumber}`;
+  const parts = [
+    `GitHub PR: ${prTitle} (${prUrl})`,
+    `リポジトリ: ${repo}  PR #${prNumber}`,
+    "",
+    "## PR本文",
+    prBody || "(なし)",
+    "",
+    ...await buildContextParts(body),
+    "",
+    "## 質問",
+    question,
+  ];
+  return parts.join("\n");
+}
+
+async function buildFollowUpPrompt(body: ChatBody): Promise<string> {
+  const { question } = body;
+  const contextParts = await buildContextParts(body);
+
+  if (contextParts.length === 0) {
+    return question;
+  }
+
+  const parts = [
+    ...contextParts,
+    "",
+    "## 質問",
+    question,
+  ];
+  return parts.join("\n");
 }
 
 app.post("/chat/preview", async (c) => {
   const body = await c.req.json<ChatBody>();
-  const { repo, prNumber, files, quotedText, question } = body;
-  if (!repo || !prNumber || !question || (!files?.length && !quotedText)) {
-    return c.json({ error: "repo, prNumber, question, and either files or quotedText are required" }, 400);
+  const { repo, prNumber, question } = body;
+  if (!repo || !prNumber || !question) {
+    return c.json({ error: "repo, prNumber, and question are required" }, 400);
   }
 
   const sessionKey = `${repo}:${prNumber}`;
   const hasSession = chatSessions.has(sessionKey);
 
   if (hasSession) {
-    return c.json({ prompt: question, resumed: true });
+    const prompt = await buildFollowUpPrompt(body);
+    return c.json({ prompt, resumed: true });
   }
 
-  const prompt = await buildPrompt(body);
+  const prompt = await buildInitialPrompt(body);
   return c.json({ prompt, resumed: false });
 });
 
 app.post("/chat", async (c) => {
   const body = await c.req.json<ChatBody>();
 
-  const { repo, prNumber, files, quotedText, question } = body;
-  if (!repo || !prNumber || !question || (!files?.length && !quotedText)) {
-    return c.json({ error: "repo, prNumber, question, and either files or quotedText are required" }, 400);
+  const { repo, prNumber, question } = body;
+  if (!repo || !prNumber || !question) {
+    return c.json({ error: "repo, prNumber, and question are required" }, 400);
   }
 
   const sessionKey = `${repo}:${prNumber}`;
@@ -308,9 +335,10 @@ app.post("/chat", async (c) => {
   const args: string[] = ["-p"];
 
   if (existingSessionId) {
-    args.push(question, "--resume", existingSessionId, "--output-format", "json", "--allowedTools", allowedTools);
+    const prompt = await buildFollowUpPrompt(body);
+    args.push(prompt, "--resume", existingSessionId, "--output-format", "json", "--allowedTools", allowedTools);
   } else {
-    const prompt = await buildPrompt(body);
+    const prompt = await buildInitialPrompt(body);
     args.push(prompt, "--output-format", "json", "--allowedTools", allowedTools);
   }
 
