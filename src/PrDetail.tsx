@@ -5,6 +5,7 @@ import { ArrowLeft, ChevronDown, ChevronRight, MessageSquareQuote } from "lucide
 import { FileTree } from "./FileTree";
 import { ChatPanel } from "./ChatPanel";
 import { DiffPanel } from "./DiffPanel";
+import { ChangeSurface } from "./ChangeSurface";
 
 marked.setOptions({ gfm: true, breaks: true });
 
@@ -82,7 +83,7 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
       return raw ? JSON.parse(raw).length > 0 : false;
     } catch { return false; }
   });
-  const [activeTab, setActiveTab] = useState<"chat" | "diff">("chat");
+  const [activeTab, setActiveTab] = useState<"chat" | "diff" | "insight">("chat");
   const [floatingBtn, setFloatingBtn] = useState<{ x: number; y: number; text: string } | null>(null);
   const [mermaidModal, setMermaidModal] = useState<string | null>(null);
   const [modalScale, setModalScale] = useState(1);
@@ -453,6 +454,13 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
             >
               Diff
             </button>
+            <button
+              type="button"
+              className={`right-pane-tab${activeTab === "insight" ? " active" : ""}`}
+              onClick={() => setActiveTab("insight")}
+            >
+              Insight
+            </button>
           </div>
           {activeTab === "chat" ? (
             <ChatPanel
@@ -465,8 +473,12 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
               onClearSelection={clearSelection}
               onCloseChat={() => setChatOpen(false)}
             />
-          ) : (
+          ) : activeTab === "diff" ? (
             <DiffPanel repo={repo} prNumber={prNumber} onFileHeaderClick={handleDiffFileHeaderClick} />
+          ) : (
+            <div className="insight-panel">
+              <ChangeSurface files={data?.files ?? []} />
+            </div>
           )}
         </div>
       )}
