@@ -126,6 +126,35 @@ app.get("/notifications", async (c) => {
   }
 });
 
+app.get("/image-proxy", async (c) => {
+  const url = c.req.query("url");
+  if (!url) return c.json({ error: "url is required" }, 400);
+
+  const allowed =
+    url.startsWith("https://user-images.githubusercontent.com/") ||
+    url.startsWith("https://private-user-images.githubusercontent.com/") ||
+    url.startsWith("https://github.com/user-attachments/assets/");
+  if (!allowed) return c.json({ error: "url not allowed" }, 403);
+
+  try {
+    const { stdout: token } = await execFileAsync("gh", ["auth", "token"]);
+    const res = await fetch(url, {
+      headers: { Authorization: `token ${token.trim()}` },
+      redirect: "follow",
+    });
+    if (!res.ok) return c.json({ error: `upstream ${res.status}` }, 502);
+
+    const contentType = res.headers.get("content-type") || "application/octet-stream";
+    const buf = await res.arrayBuffer();
+    return new Response(buf, {
+      headers: { "Content-Type": contentType, "Cache-Control": "public, max-age=3600" },
+    });
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Unknown error";
+    return c.json({ error: message }, 502);
+  }
+});
+
 app.get("/pr-detail", async (c) => {
   const repo = c.req.query("repo");
   const number = c.req.query("number");

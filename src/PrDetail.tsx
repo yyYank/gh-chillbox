@@ -11,6 +11,21 @@ function escapeHtml(text: string) {
   return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
+const GITHUB_IMAGE_HOSTS = [
+  "https://user-images.githubusercontent.com/",
+  "https://private-user-images.githubusercontent.com/",
+  "https://github.com/user-attachments/assets/",
+];
+
+function proxyImageUrls(html: string): string {
+  return html.replace(/<img\s+([^>]*?)src="(https:\/\/[^"]+)"([^>]*?)>/g, (_match, before, src, after) => {
+    if (GITHUB_IMAGE_HOSTS.some((h) => src.startsWith(h))) {
+      return `<img ${before}src="/api/image-proxy?url=${encodeURIComponent(src)}"${after}>`;
+    }
+    return _match;
+  });
+}
+
 const renderer = new marked.Renderer();
 const originalCode = renderer.code.bind(renderer);
 renderer.code = function (token: Parameters<typeof originalCode>[0]) {
@@ -153,7 +168,7 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
     };
   }, [data?.title, data?.number, onTitleChange]);
 
-  const rawBodyHtml = data?.body ? marked.parse(data.body) : "";
+  const rawBodyHtml = data?.body ? proxyImageUrls(marked.parse(data.body) as string) : "";
   const [renderedBody, setRenderedBody] = useState("");
 
   useEffect(() => {
@@ -338,7 +353,7 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
                         </div>
                         <div
                           className="pr-comment-body markdown-body"
-                          dangerouslySetInnerHTML={{ __html: marked.parse(comment.body) as string }}
+                          dangerouslySetInnerHTML={{ __html: proxyImageUrls(marked.parse(comment.body) as string) }}
                         />
                       </div>
                     ))}
