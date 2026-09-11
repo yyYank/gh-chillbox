@@ -6,6 +6,7 @@ import { FileTree } from "./FileTree";
 import { ChatPanel } from "./ChatPanel";
 import { DiffPanel } from "./DiffPanel";
 import { ChangeSurface } from "./ChangeSurface";
+import { AstAnalysis } from "./AstAnalysis";
 
 marked.setOptions({ gfm: true, breaks: true });
 
@@ -84,6 +85,7 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
     } catch { return false; }
   });
   const [activeTab, setActiveTab] = useState<"chat" | "diff" | "insight">("chat");
+  const [insightTab, setInsightTab] = useState<"surface" | "ast">("surface");
   const [floatingBtn, setFloatingBtn] = useState<{ x: number; y: number; text: string } | null>(null);
   const [mermaidModal, setMermaidModal] = useState<string | null>(null);
   const [modalScale, setModalScale] = useState(1);
@@ -477,7 +479,27 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
             <DiffPanel repo={repo} prNumber={prNumber} onFileHeaderClick={handleDiffFileHeaderClick} />
           ) : (
             <div className="insight-panel">
-              <ChangeSurface files={data?.files ?? []} />
+              <div className="insight-sub-tabs">
+                <button
+                  type="button"
+                  className={`insight-sub-tab${insightTab === "surface" ? " active" : ""}`}
+                  onClick={() => setInsightTab("surface")}
+                >
+                  Change Surface
+                </button>
+                <button
+                  type="button"
+                  className={`insight-sub-tab${insightTab === "ast" ? " active" : ""}`}
+                  onClick={() => setInsightTab("ast")}
+                >
+                  AST Analysis
+                </button>
+              </div>
+              {insightTab === "surface" ? (
+                <ChangeSurface files={data?.files ?? []} />
+              ) : (
+                <AstAnalysis repo={repo} prNumber={prNumber} />
+              )}
             </div>
           )}
         </div>

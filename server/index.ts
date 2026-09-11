@@ -370,6 +370,23 @@ app.delete("/chat/session", async (c) => {
   return c.json({ ok: true });
 });
 
+app.get("/ast-analysis", async (c) => {
+  const repo = c.req.query("repo");
+  const number = c.req.query("number");
+  if (!repo || !number) {
+    return c.json({ error: "repo and number are required" }, 400);
+  }
+
+  try {
+    const { analyzepr } = await import("./ast-analyzer");
+    const result = await analyzepr(repo, parseInt(number, 10));
+    return c.json(result);
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Unknown error";
+    return c.json({ error: message }, 500);
+  }
+});
+
 serve({ fetch: app.fetch, port: 3001 }, (info) => {
   console.log(`Server running at http://localhost:${info.port}`);
 });

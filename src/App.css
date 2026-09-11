@@ -2027,3 +2027,173 @@ th.col-rank {
 .mermaid-modal-close:hover {
   background: var(--hover-bg);
 }
+
+/* Insight sub-tabs */
+.insight-sub-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border);
+  padding: 0 8px;
+  flex-shrink: 0;
+}
+.insight-sub-tab {
+  padding: 6px 12px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+  position: relative;
+  transition: color 0.15s;
+}
+.insight-sub-tab:hover {
+  color: var(--text);
+}
+.insight-sub-tab.active {
+  color: var(--accent);
+}
+.insight-sub-tab.active::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 8px;
+  right: 8px;
+  height: 2px;
+  background: var(--accent);
+  border-radius: 1px;
+}
+
+/* AST Analysis */
+.ast-analysis {
+  padding: 12px;
+}
+.ast-analysis-loading,
+.ast-analysis-error,
+.ast-analysis-empty {
+  padding: 24px 12px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+.ast-analysis-error {
+  color: var(--danger, #f87171);
+}
+.ast-analysis-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.ast-analysis-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.ast-analysis-count {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+.ast-analysis-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ast-analysis-file-group {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.ast-analysis-file-path {
+  padding: 6px 10px;
+  font-size: 0.75rem;
+  font-family: var(--font-mono, monospace);
+  color: var(--text-muted);
+  background: var(--surface-alt);
+  border-bottom: 1px solid var(--border);
+}
+.ast-analysis-symbol-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px;
+  font-size: 0.82rem;
+}
+.ast-analysis-symbol-row:not(:last-child) {
+  border-bottom: 1px solid var(--border);
+}
+.ast-analysis-symbol-dot {
+  font-size: 0.6rem;
+  flex-shrink: 0;
+}
+.ast-analysis-symbol-name {
+  font-family: var(--font-mono, monospace);
+  font-weight: 500;
+  color: var(--text);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ast-analysis-symbol-kind {
+  font-size: 0.72rem;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+.ast-analysis-symbol-lines {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+/* AST Analysis - Flow & Relations */
+.ast-analysis-flow-section {
+  margin-bottom: 12px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-alt);
+}
+.ast-analysis-flow-title,
+.ast-analysis-relations-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+}
+.ast-analysis-flow-chain {
+  padding: 4px 0;
+  font-family: var(--font-mono, monospace);
+  font-size: 0.82rem;
+}
+.ast-analysis-flow-arrow {
+  color: var(--text-muted);
+}
+.ast-analysis-flow-name {
+  font-weight: 500;
+}
+.ast-analysis-relations-section {
+  margin-bottom: 12px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.ast-analysis-relation-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 0;
+  font-size: 0.8rem;
+}
+.ast-analysis-relation-name {
+  font-family: var(--font-mono, monospace);
+  font-weight: 500;
+}
+.ast-analysis-relation-label {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-style: italic;
+}
