@@ -88,6 +88,7 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
   const [modalScale, setModalScale] = useState(1);
   const bodyRef = useRef<HTMLDivElement>(null);
   const commentsRef = useRef<HTMLDivElement>(null);
+  const treeWrapRef = useRef<HTMLDivElement>(null);
 
   const handleFileClick = useCallback((path: string, e: React.MouseEvent) => {
     setQuotedText(null);
@@ -216,6 +217,17 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
     return () => document.removeEventListener("keydown", onKey);
   }, [mermaidModal]);
 
+  const handleDiffFileHeaderClick = useCallback((path: string) => {
+    if (!filesOpen) {
+      setFilesOpen(true);
+      try { localStorage.setItem(`${storagePrefix}:filesOpen`, "true"); } catch {}
+    }
+    requestAnimationFrame(() => {
+      const el = treeWrapRef.current?.querySelector(`[data-filepath="${CSS.escape(path)}"]`);
+      el?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    });
+  }, [filesOpen, storagePrefix]);
+
   useEffect(() => {
     if (selectedFiles.size > 0 || quotedText) {
       setChatOpen(true);
@@ -305,7 +317,7 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
                 )}
               </button>
               {filesOpen && (
-                <div className="pr-detail-tree-wrap">
+                <div className="pr-detail-tree-wrap" ref={treeWrapRef}>
                   <FileTree
                     files={data.files}
                     storagePrefix={storagePrefix}
@@ -454,7 +466,7 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
               onCloseChat={() => setChatOpen(false)}
             />
           ) : (
-            <DiffPanel repo={repo} prNumber={prNumber} />
+            <DiffPanel repo={repo} prNumber={prNumber} onFileHeaderClick={handleDiffFileHeaderClick} />
           )}
         </div>
       )}

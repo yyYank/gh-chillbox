@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from "react";
-import { Search, FolderOpen, FileText } from "lucide-react";
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { Search, FolderOpen, FileText, ChevronDown, ChevronRight } from "lucide-react";
 import { filterDiffFiles, type DiffFileEntry } from "./diff-filters";
 
 type DiffLine = {
@@ -57,14 +57,42 @@ function parseDiff(raw: string): DiffFile[] {
 type Props = {
   repo: string;
   prNumber: number;
+  onFileHeaderClick?: (path: string) => void;
 };
 
-export function DiffPanel({ repo, prNumber }: Props) {
+function loadCollapsed(repo: string, prNumber: number): Set<string> {
+  try {
+    const raw = localStorage.getItem(`gh-chillbox:${repo}:${prNumber}:diff-collapsed`);
+    return raw ? new Set(JSON.parse(raw)) : new Set();
+  } catch { return new Set(); }
+}
+
+function saveCollapsed(repo: string, prNumber: number, collapsed: Set<string>) {
+  try {
+    localStorage.setItem(`gh-chillbox:${repo}:${prNumber}:diff-collapsed`, JSON.stringify([...collapsed]));
+  } catch {}
+}
+
+export function DiffPanel({ repo, prNumber, onFileHeaderClick }: Props) {
   const [diff, setDiff] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pathQuery, setPathQuery] = useState("");
   const [textQuery, setTextQuery] = useState("");
+  const [collapsedFiles, setCollapsedFiles] = useState<Set<string>>(() => loadCollapsed(repo, prNumber));
+
+  const toggleCollapse = useCallback((path: string) => {
+    setCollapsedFiles((prev) => {
+      const next = new Set(prev);
+      if (next.has(path)) {
+        next.delete(path);
+      } else {
+        next.add(path);
+      }
+      saveCollapsed(repo, prNumber, next);
+      return next;
+    });
+  }, [repo, prNumber]);
 
   useEffect(() => {
     setLoading(true);
@@ -134,29 +162,49 @@ export function DiffPanel({ repo, prNumber }: Props) {
         {filteredFiles.length === 0 ? (
           <div className="diff-panel-status">一致するファイルがありません</div>
         ) : (
-          filteredFiles.map((file, i) => (
-            <div key={i} className="diff-file">
-              <div className="diff-file-header">
-                <span className="diff-file-path">{file.path}</span>
-                <span className="diff-file-stats">
-                  {file.additions > 0 && <span className="diff-stat-add">+{file.additions}</span>}
-                  {file.deletions > 0 && <span className="diff-stat-del">-{file.deletions}</span>}
-                </span>
-              </div>
-              <div className="diff-file-body">
-                {file.lines.map((line, j) => (
-                  <div key={j} className={`diff-line diff-line-${line.type}`}>
-                    <span className="diff-line-marker">
-                      {line.type === "add" ? "+" : line.type === "del" ? "-" : line.type === "hunk" ? "" : " "}
-                    </span>
-                    <span className="diff-line-content">
-                      {line.type === "hunk" ? line.content : line.content || " "}
-                    </span>
+          filteredFiles.map((file, i) => {
+            const collapsed = collapsedFiles.has(file.path);
+            return (
+              <div key={i} className="diff-file">
+                <div
+                  className="diff-file-header"
+                  onClick={() => {
+                    onFileHeaderClick?.(file.path);
+                  }}
+                >
+                  <button
+                    type="button"
+                    className="diff-collapse-toggle"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleCollapse(file.path);
+                    }}
+                  >
+                    {collapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
+                  </button>
+                  <span className="diff-file-path">{file.path}</span>
+                  <span className="diff-file-stats">
+                    {file.additions > 0 && <span className="diff-stat-add">+{file.additions}</span>}
+                    {file.deletions > 0 && <span className="diff-stat-del">-{file.deletions}</span>}
+                  </span>
+                </div>
+                {!collapsed && (
+                  <div className="diff-file-body">
+                    {file.lines.map((line, j) => (
+                      <div key={j} className={`diff-line diff-line-${line.type}`}>
+                        <span className="diff-line-marker">
+                          {line.type === "add" ? "+" : line.type === "del" ? "-" : line.type === "hunk" ? "" : " "}
+                        </span>
+                        <span className="diff-line-content">
+                          {line.type === "hunk" ? line.content : line.content || " "}
+                        </span>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                )}
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
     </div>

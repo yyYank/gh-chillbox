@@ -101,6 +101,7 @@ function FolderNode({ node, depth, parentPath, storagePrefix, selectedFiles, onF
                 key={f.path}
                 className={`tree-file${selected ? " tree-file-selected" : ""}`}
                 style={{ paddingLeft: `${(depth + 1) * 16 + 12}px` }}
+                data-filepath={f.path}
                 onClick={(e) => onFileClick?.(f.path, e)}
               >
                 <FileText size={14} className="tree-icon-file" />
@@ -150,6 +151,7 @@ export function FileTree({ files, storagePrefix, selectedFiles, onFileClick }: P
             key={f.path}
             className={`tree-file${selected ? " tree-file-selected" : ""}`}
             style={{ paddingLeft: "12px" }}
+            data-filepath={f.path}
             onClick={(e) => onFileClick?.(f.path, e)}
           >
             <FileText size={14} className="tree-icon-file" />
