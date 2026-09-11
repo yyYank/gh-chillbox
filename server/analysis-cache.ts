@@ -13,7 +13,11 @@ export function getAnalysisCache(fullRepo: string, sha: string): AstAnalysisResu
   const file = cacheFile(owner, repo, sha);
   if (!fs.existsSync(file)) return null;
   try {
-    return JSON.parse(fs.readFileSync(file, "utf-8"));
+    const data = JSON.parse(fs.readFileSync(file, "utf-8"));
+    if (!data || !Array.isArray(data.symbols) || !Array.isArray(data.relations)) {
+      return null;
+    }
+    return data;
   } catch {
     return null;
   }
