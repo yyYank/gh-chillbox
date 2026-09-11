@@ -45,21 +45,31 @@ export async function analyzepr(
 
   const fileChanges = parseDiffToChangedLines(diffText);
   const supportedFiles = fileChanges.filter((f) => isSupported(f.file));
-
-  if (supportedFiles.length === 0) {
-    const empty: AstAnalysisResult = { symbols: [], relations: [] };
-    setAnalysisCache(repo, sha, empty);
-    return empty;
-  }
-
-  const repoDir = await ensureRepo(repo);
-  await checkoutSha(repoDir, sha);
+  const unsupportedFiles = fileChanges.filter((f) => !isSupported(f.file));
 
   const allSymbols: ChangedSymbol[] = [];
   const allRelations: SymbolRelation[] = [];
 
+  for (const fc of unsupportedFiles) {
+    allSymbols.push({
+      id: `${fc.file}:(file)`,
+      name: fc.file.split("/").pop() || fc.file,
+      kind: "unknown",
+      file: fc.file,
+      startLine: 0,
+      endLine: 0,
+      changedLines: fc.changedLines,
+    });
+  }
+
+  let cachedRepoDir = "";
+  if (supportedFiles.length > 0) {
+    cachedRepoDir = await ensureRepo(repo);
+    await checkoutSha(cachedRepoDir, sha);
+  }
+
   for (const fc of supportedFiles) {
-    const fullPath = path.join(repoDir, fc.file);
+    const fullPath = path.join(cachedRepoDir, fc.file);
 
     if (isGoFile(fc.file)) {
       const { symbols: fileSymbols, relations: fileRelations } = await extractSymbolsFromGoFile(fullPath);

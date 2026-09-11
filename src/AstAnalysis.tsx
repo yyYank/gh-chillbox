@@ -36,7 +36,7 @@ const KIND_LABELS: Record<SymbolKind, string> = {
   interface: "Interface",
   type: "Type",
   struct: "Struct",
-  unknown: "Unknown",
+  unknown: "File",
 };
 
 const KIND_COLORS: Record<SymbolKind, string> = {
@@ -232,9 +232,11 @@ export function AstAnalysis({ repo, prNumber }: Props) {
                 >
                   {KIND_LABELS[sym.kind]}
                 </span>
-                <span className="ast-analysis-symbol-lines">
-                  L{sym.startLine}-{sym.endLine}
-                </span>
+                {sym.kind !== "unknown" && (
+                  <span className="ast-analysis-symbol-lines">
+                    L{sym.startLine}-{sym.endLine}
+                  </span>
+                )}
               </div>
             ))}
           </div>
