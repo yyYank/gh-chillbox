@@ -9,4 +9,7 @@ export default defineConfig({
       "/api": "http://localhost:3001",
     },
   },
+  test: {
+    include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
+  },
 });

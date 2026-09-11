@@ -1,4 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { Search, FolderOpen, FileText } from "lucide-react";
+import { filterDiffFiles, type DiffFileEntry } from "./diff-filters";
 
 type DiffLine = {
   type: "add" | "del" | "context" | "hunk";
@@ -10,6 +12,7 @@ type DiffFile = {
   additions: number;
   deletions: number;
   lines: DiffLine[];
+  rawContent: string;
 };
 
 function parseDiff(raw: string): DiffFile[] {
@@ -47,7 +50,7 @@ function parseDiff(raw: string): DiffFile[] {
       }
     }
 
-    return { path, additions, deletions, lines };
+    return { path, additions, deletions, lines, rawContent: section };
   });
 }
 
@@ -60,6 +63,8 @@ export function DiffPanel({ repo, prNumber }: Props) {
   const [diff, setDiff] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [pathQuery, setPathQuery] = useState("");
+  const [textQuery, setTextQuery] = useState("");
 
   useEffect(() => {
     setLoading(true);
@@ -75,37 +80,85 @@ export function DiffPanel({ repo, prNumber }: Props) {
       .finally(() => setLoading(false));
   }, [repo, prNumber]);
 
+  const allFiles = useMemo(() => (diff ? parseDiff(diff) : []), [diff]);
+
+  const filterEntries: DiffFileEntry[] = useMemo(
+    () => allFiles.map((f) => ({ path: f.path, rawContent: f.rawContent })),
+    [allFiles],
+  );
+
+  const filteredPaths = useMemo(() => {
+    const result = filterDiffFiles(filterEntries, pathQuery, textQuery);
+    return new Set(result.map((f) => f.path));
+  }, [filterEntries, pathQuery, textQuery]);
+
+  const filteredFiles = useMemo(
+    () => allFiles.filter((f) => filteredPaths.has(f.path)),
+    [allFiles, filteredPaths],
+  );
+
   if (loading) return <div className="diff-panel-status">diff を読み込み中…</div>;
   if (error) return <div className="diff-panel-status diff-panel-error">{error}</div>;
   if (!diff) return <div className="diff-panel-status">差分なし</div>;
 
-  const files = parseDiff(diff);
-
   return (
-    <div className="diff-panel-content">
-      {files.map((file, i) => (
-        <div key={i} className="diff-file">
-          <div className="diff-file-header">
-            <span className="diff-file-path">{file.path}</span>
-            <span className="diff-file-stats">
-              {file.additions > 0 && <span className="diff-stat-add">+{file.additions}</span>}
-              {file.deletions > 0 && <span className="diff-stat-del">-{file.deletions}</span>}
-            </span>
-          </div>
-          <div className="diff-file-body">
-            {file.lines.map((line, j) => (
-              <div key={j} className={`diff-line diff-line-${line.type}`}>
-                <span className="diff-line-marker">
-                  {line.type === "add" ? "+" : line.type === "del" ? "-" : line.type === "hunk" ? "" : " "}
-                </span>
-                <span className="diff-line-content">
-                  {line.type === "hunk" ? line.content : line.content || " "}
+    <div className="diff-panel">
+      <div className="diff-filter-bar">
+        <div className="diff-filter-input-wrap">
+          <FolderOpen size={14} className="diff-filter-icon" />
+          <input
+            type="text"
+            className="diff-filter-input"
+            placeholder="パス / ファイル名で絞り込み…"
+            value={pathQuery}
+            onChange={(e) => setPathQuery(e.target.value)}
+          />
+        </div>
+        <div className="diff-filter-input-wrap">
+          <Search size={14} className="diff-filter-icon" />
+          <input
+            type="text"
+            className="diff-filter-input"
+            placeholder="テキストで絞り込み…"
+            value={textQuery}
+            onChange={(e) => setTextQuery(e.target.value)}
+          />
+        </div>
+        <span className="diff-filter-count">
+          <FileText size={12} />
+          {filteredFiles.length}/{allFiles.length}
+        </span>
+      </div>
+
+      <div className="diff-panel-content">
+        {filteredFiles.length === 0 ? (
+          <div className="diff-panel-status">一致するファイルがありません</div>
+        ) : (
+          filteredFiles.map((file, i) => (
+            <div key={i} className="diff-file">
+              <div className="diff-file-header">
+                <span className="diff-file-path">{file.path}</span>
+                <span className="diff-file-stats">
+                  {file.additions > 0 && <span className="diff-stat-add">+{file.additions}</span>}
+                  {file.deletions > 0 && <span className="diff-stat-del">-{file.deletions}</span>}
                 </span>
               </div>
-            ))}
-          </div>
-        </div>
-      ))}
+              <div className="diff-file-body">
+                {file.lines.map((line, j) => (
+                  <div key={j} className={`diff-line diff-line-${line.type}`}>
+                    <span className="diff-line-marker">
+                      {line.type === "add" ? "+" : line.type === "del" ? "-" : line.type === "hunk" ? "" : " "}
+                    </span>
+                    <span className="diff-line-content">
+                      {line.type === "hunk" ? line.content : line.content || " "}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
     </div>
   );
 }

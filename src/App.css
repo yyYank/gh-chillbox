@@ -1594,6 +1594,65 @@ th.col-rank {
 }
 
 /* ===== Diff panel ===== */
+.diff-panel {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+}
+
+.diff-filter-bar {
+  display: flex;
+  gap: 6px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  flex-shrink: 0;
+  align-items: center;
+}
+
+.diff-filter-input-wrap {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.diff-filter-icon {
+  position: absolute;
+  left: 8px;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.diff-filter-input {
+  width: 100%;
+  padding: 6px 8px 6px 28px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.78rem;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.diff-filter-input:focus {
+  border-color: var(--accent);
+}
+.diff-filter-input::placeholder {
+  color: var(--text-muted);
+}
+
+.diff-filter-count {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
 .diff-panel-content {
   flex: 1;
   overflow-y: auto;
