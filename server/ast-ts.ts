@@ -118,11 +118,29 @@ export type ExtractedRelation = {
   kind: SymbolRelation["kind"];
 };
 
-export function extractRelationsFromFile(filePath: string): ExtractedRelation[] {
+export type HttpCall = {
+  caller: string;
+  path: string;
+  file: string;
+};
+
+export type HttpRoute = {
+  handler: string;
+  path: string;
+  file: string;
+};
+
+export function extractRelationsFromFile(
+  filePath: string,
+  globalSymbolNames?: Set<string>,
+): ExtractedRelation[] {
   const project = new Project({ compilerOptions: { jsx: 2 } });
   const sourceFile = project.addSourceFileAtPath(filePath);
   const symbols = extractSymbolsFromFile(filePath);
-  const symbolNames = new Set(symbols.map((s) => s.name));
+  const localNames = new Set(symbols.map((s) => s.name));
+  const matchNames = globalSymbolNames
+    ? new Set([...localNames, ...globalSymbolNames])
+    : localNames;
   const relations: ExtractedRelation[] = [];
   const seen = new Set<string>();
 
@@ -150,13 +168,13 @@ export function extractRelationsFromFile(filePath: string): ExtractedRelation[] 
 
     if (Node.isIdentifier(expr)) {
       const name = expr.getText();
-      if (symbolNames.has(name) && name !== caller) {
+      if (matchNames.has(name) && name !== caller) {
         const kind = isCustomHook(name) ? "hook-use" : "call";
         addRelation(caller, name, kind);
       }
     } else if (Node.isPropertyAccessExpression(expr)) {
       const methodName = expr.getName();
-      if (symbolNames.has(methodName) && methodName !== caller) {
+      if (matchNames.has(methodName) && methodName !== caller) {
         addRelation(caller, methodName, "method-call");
       }
     }
@@ -164,7 +182,7 @@ export function extractRelationsFromFile(filePath: string): ExtractedRelation[] 
 
   for (const jsx of sourceFile.getDescendantsOfKind(SyntaxKind.JsxOpeningElement)) {
     const tagName = jsx.getTagNameNode().getText();
-    if (symbolNames.has(tagName)) {
+    if (matchNames.has(tagName)) {
       const line = jsx.getStartLineNumber();
       const caller = findContainingSymbol(line);
       if (caller && caller !== tagName) {
@@ -175,7 +193,7 @@ export function extractRelationsFromFile(filePath: string): ExtractedRelation[] 
 
   for (const jsx of sourceFile.getDescendantsOfKind(SyntaxKind.JsxSelfClosingElement)) {
     const tagName = jsx.getTagNameNode().getText();
-    if (symbolNames.has(tagName)) {
+    if (matchNames.has(tagName)) {
       const line = jsx.getStartLineNumber();
       const caller = findContainingSymbol(line);
       if (caller && caller !== tagName) {
@@ -185,4 +203,144 @@ export function extractRelationsFromFile(filePath: string): ExtractedRelation[] 
   }
 
   return relations;
+}
+
+const HTTP_METHODS = new Set(["get", "post", "put", "delete", "patch"]);
+
+function extractUrlPath(node: Node): string | null {
+  if (Node.isStringLiteral(node)) {
+    const val = node.getLiteralValue();
+    if (val.startsWith("/")) return val;
+  }
+  if (Node.isTemplateExpression(node)) {
+    const head = node.getHead().getLiteralText();
+    if (head.startsWith("/")) {
+      const spans = node.getTemplateSpans();
+      let path = head;
+      for (const span of spans) {
+        path += "*" + span.getLiteral().getLiteralText();
+      }
+      return path;
+    }
+  }
+  if (Node.isNoSubstitutionTemplateLiteral(node)) {
+    const val = node.getLiteralValue();
+    if (val.startsWith("/")) return val;
+  }
+  return null;
+}
+
+export function normalizePath(p: string): string {
+  return p.replace(/\/+$/, "").replace(/:[^/]+/g, "*").replace(/\*/g, "*").toLowerCase();
+}
+
+export function matchPaths(a: string, b: string): boolean {
+  const na = normalizePath(a);
+  const nb = normalizePath(b);
+  if (na === nb) return true;
+  const segA = na.split("/").filter(Boolean);
+  const segB = nb.split("/").filter(Boolean);
+  const shorter = segA.length <= segB.length ? segA : segB;
+  const longer = segA.length <= segB.length ? segB : segA;
+  if (shorter.length === 0) return false;
+  for (let i = 0; i < shorter.length; i++) {
+    if (shorter[i] === "*" || longer[i] === "*") continue;
+    if (shorter[i] !== longer[i]) return false;
+  }
+  return true;
+}
+
+export function extractHttpFromFile(
+  filePath: string,
+): { calls: HttpCall[]; routes: HttpRoute[] } {
+  const project = new Project({ compilerOptions: { jsx: 2 } });
+  const sourceFile = project.addSourceFileAtPath(filePath);
+  const symbols = extractSymbolsFromFile(filePath);
+  const calls: HttpCall[] = [];
+  const routes: HttpRoute[] = [];
+
+  function findContaining(line: number): string | undefined {
+    for (const sym of symbols) {
+      if (line >= sym.startLine && line <= sym.endLine) return sym.name;
+    }
+    return undefined;
+  }
+
+  for (const call of sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression)) {
+    const expr = call.getExpression();
+    const args = call.getArguments();
+    if (args.length === 0) continue;
+
+    const urlPath = extractUrlPath(args[0]);
+    if (!urlPath) continue;
+    const line = call.getStartLineNumber();
+
+    if (Node.isIdentifier(expr)) {
+      const caller = findContaining(line);
+      if (caller) {
+        calls.push({ caller, path: urlPath, file: filePath });
+      }
+    } else if (Node.isPropertyAccessExpression(expr)) {
+      const methodName = expr.getName().toLowerCase();
+
+      if (HTTP_METHODS.has(methodName)) {
+        const handlerArg = args[args.length - 1];
+        const hasHandlerArg = args.length >= 2 && (
+          Node.isIdentifier(handlerArg) ||
+          Node.isArrowFunction(handlerArg) ||
+          Node.isFunctionExpression(handlerArg)
+        );
+
+        if (hasHandlerArg) {
+          let handlerName: string | undefined;
+          if (Node.isIdentifier(handlerArg)) {
+            handlerName = handlerArg.getText();
+          }
+          if (handlerName) {
+            routes.push({ handler: handlerName, path: urlPath, file: filePath });
+          } else {
+            const caller = findContaining(line);
+            if (caller) {
+              routes.push({ handler: caller, path: urlPath, file: filePath });
+            }
+          }
+        } else {
+          const caller = findContaining(line);
+          if (caller) {
+            calls.push({ caller, path: urlPath, file: filePath });
+          }
+        }
+      } else {
+        const caller = findContaining(line);
+        if (caller) {
+          calls.push({ caller, path: urlPath, file: filePath });
+        }
+      }
+    }
+  }
+
+  return { calls, routes };
+}
+
+export function extractServerActionExports(filePath: string): string[] {
+  const project = new Project({ compilerOptions: { jsx: 2 } });
+  const sourceFile = project.addSourceFileAtPath(filePath);
+  const text = sourceFile.getFullText();
+  if (!text.includes('"use server"') && !text.includes("'use server'")) return [];
+
+  const names: string[] = [];
+  for (const fn of sourceFile.getFunctions()) {
+    const name = fn.getName();
+    if (name && fn.isExported()) names.push(name);
+  }
+  for (const stmt of sourceFile.getVariableStatements()) {
+    if (!stmt.isExported()) continue;
+    for (const decl of stmt.getDeclarations()) {
+      const init = decl.getInitializer();
+      if (init && (Node.isArrowFunction(init) || Node.isFunctionExpression(init))) {
+        names.push(decl.getName());
+      }
+    }
+  }
+  return names;
 }

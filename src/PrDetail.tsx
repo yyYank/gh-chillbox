@@ -7,6 +7,7 @@ import { ChatPanel } from "./ChatPanel";
 import { DiffPanel } from "./DiffPanel";
 import { ChangeSurface } from "./ChangeSurface";
 import { AstAnalysis } from "./AstAnalysis";
+import { CallGraph } from "./CallGraph";
 
 marked.setOptions({ gfm: true, breaks: true });
 
@@ -85,7 +86,7 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
     } catch { return false; }
   });
   const [activeTab, setActiveTab] = useState<"chat" | "diff" | "insight">("chat");
-  const [insightTab, setInsightTab] = useState<"surface" | "ast">("surface");
+  const [insightTab, setInsightTab] = useState<"surface" | "ast" | "callgraph">("surface");
   const [floatingBtn, setFloatingBtn] = useState<{ x: number; y: number; text: string } | null>(null);
   const [mermaidModal, setMermaidModal] = useState<string | null>(null);
   const [modalScale, setModalScale] = useState(1);
@@ -494,11 +495,20 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
                 >
                   AST Analysis
                 </button>
+                <button
+                  type="button"
+                  className={`insight-sub-tab${insightTab === "callgraph" ? " active" : ""}`}
+                  onClick={() => setInsightTab("callgraph")}
+                >
+                  Call Graph
+                </button>
               </div>
               {insightTab === "surface" ? (
                 <ChangeSurface files={data?.files ?? []} />
-              ) : (
+              ) : insightTab === "ast" ? (
                 <AstAnalysis repo={repo} prNumber={prNumber} />
+              ) : (
+                <CallGraph repo={repo} prNumber={prNumber} />
               )}
             </div>
           )}

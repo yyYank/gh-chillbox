@@ -12,7 +12,7 @@ export type SymbolKind =
 export type SymbolRelation = {
   from: string;
   to: string;
-  kind: "call" | "component-use" | "hook-use" | "method-call";
+  kind: "call" | "component-use" | "hook-use" | "method-call" | "http-infer";
 };
 
 export type ChangedSymbol = {

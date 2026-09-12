@@ -2,7 +2,7 @@ import path from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { parseDiffToChangedLines } from "./diff-parser";
-import { extractSymbolsFromFile as extractTsSymbols, extractRelationsFromFile as extractTsRelations } from "./ast-ts";
+import { extractSymbolsFromFile as extractTsSymbols, extractRelationsFromFile as extractTsRelations, extractHttpFromFile, matchPaths, extractServerActionExports, type HttpCall, type HttpRoute } from "./ast-ts";
 import { extractSymbolsFromGoFile } from "./ast-go";
 import { ensureRepo, checkoutSha } from "./repo-cache";
 import { getAnalysisCache, setAnalysisCache } from "./analysis-cache";
@@ -68,6 +68,8 @@ export async function analyzepr(
     await checkoutSha(cachedRepoDir, sha);
   }
 
+  // Pass 1: symbol収集
+  const tsFiles: { fc: typeof supportedFiles[0]; fullPath: string }[] = [];
   for (const fc of supportedFiles) {
     const fullPath = path.join(cachedRepoDir, fc.file);
 
@@ -92,7 +94,6 @@ export async function analyzepr(
       allRelations.push(...fileRelations);
     } else if (isTsFile(fc.file)) {
       const fileSymbols = extractTsSymbols(fullPath);
-      const fileRelations = extractTsRelations(fullPath);
       for (const sym of fileSymbols) {
         const overlapping = fc.changedLines.filter(
           (line) => line >= sym.startLine && line <= sym.endLine,
@@ -109,7 +110,40 @@ export async function analyzepr(
           });
         }
       }
-      allRelations.push(...fileRelations);
+      tsFiles.push({ fc, fullPath });
+    }
+  }
+
+  // Pass 2: server action export名を収集してglobalSymbolNamesに追加
+  const globalSymbolNames = new Set(allSymbols.map((s) => s.name));
+  for (const { fullPath } of tsFiles) {
+    try {
+      const actions = extractServerActionExports(fullPath);
+      for (const name of actions) globalSymbolNames.add(name);
+    } catch { /* skip */ }
+  }
+
+  // Pass 3: グローバルsymbol名セットでクロスファイルrelation検出
+  for (const { fullPath } of tsFiles) {
+    const fileRelations = extractTsRelations(fullPath, globalSymbolNames);
+    allRelations.push(...fileRelations);
+  }
+
+  // Pass 4: HTTPエンドポイントのprefix matchで間接接続を推定
+  const allHttpCalls: HttpCall[] = [];
+  const allHttpRoutes: HttpRoute[] = [];
+  for (const { fullPath } of tsFiles) {
+    try {
+      const { calls, routes } = extractHttpFromFile(fullPath);
+      allHttpCalls.push(...calls);
+      allHttpRoutes.push(...routes);
+    } catch { /* skip */ }
+  }
+  for (const call of allHttpCalls) {
+    for (const route of allHttpRoutes) {
+      if (call.caller !== route.handler && matchPaths(call.path, route.path)) {
+        allRelations.push({ from: call.caller, to: route.handler, kind: "http-infer" });
+      }
     }
   }
 
