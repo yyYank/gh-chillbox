@@ -5,7 +5,6 @@ import { parseDiffToChangedLines } from "./diff-parser";
 import { extractSymbolsFromFile as extractTsSymbols, extractRelationsFromFile as extractTsRelations, extractHttpFromFile, matchPaths, extractServerActionExports, type HttpCall, type HttpRoute } from "./ast-ts";
 import { extractSymbolsFromGoFile } from "./ast-go";
 import { ensureRepo, checkoutSha } from "./repo-cache";
-import { getAnalysisCache, setAnalysisCache } from "./analysis-cache";
 import type { ChangedSymbol, SymbolRelation, AstAnalysisResult } from "./ast-types";
 
 const execFileAsync = promisify(execFile);
@@ -35,9 +34,6 @@ export async function analyzepr(
     "--json", "headRefOid",
   ]);
   const { headRefOid: sha } = JSON.parse(prJson);
-
-  const cached = getAnalysisCache(repo, sha);
-  if (cached) return cached;
 
   const { stdout: diffText } = await execFileAsync("gh", [
     "pr", "diff", String(prNumber), "--repo", repo,
@@ -153,6 +149,5 @@ export async function analyzepr(
   );
 
   const result: AstAnalysisResult = { symbols: allSymbols, relations: relevantRelations };
-  setAnalysisCache(repo, sha, result);
   return result;
 }
