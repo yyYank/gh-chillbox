@@ -1,8 +1,9 @@
 import { describe, it, expect } from "vitest";
 import path from "node:path";
-import { extractSymbolsFromFile, extractRelationsFromFile } from "./ast-ts";
+import { extractSymbolsFromFile, extractRelationsFromFile, extractHttpFromFile, inferRoutePathFromFilePath } from "./ast-ts";
 
 const FIXTURE = path.resolve(__dirname, "test-fixtures/sample.tsx");
+const ROUTE_FIXTURE = path.resolve(__dirname, "test-fixtures/app/api/users/route.ts");
 
 describe("extractSymbolsFromFile", () => {
   it("React Custom Hookを検出する", () => {
@@ -84,5 +85,40 @@ describe("extractRelationsFromFile", () => {
     const relations = extractRelationsFromFile(FIXTURE);
     const keys = relations.map((r) => `${r.from}:${r.to}:${r.kind}`);
     expect(new Set(keys).size).toBe(keys.length);
+  });
+});
+
+describe("inferRoutePathFromFilePath", () => {
+  it("App Router route.tsからAPIパスを推定する", () => {
+    expect(inferRoutePathFromFilePath("apps/wizfan-ops/app/api/users/route.ts")).toBe("/api/users");
+  });
+
+  it("動的セグメント[id]を:idに変換する", () => {
+    expect(inferRoutePathFromFilePath("apps/wizfan-ops/app/api/users/[id]/route.ts")).toBe("/api/users/:id");
+  });
+
+  it("ルートグループ(auth)を除去する", () => {
+    expect(inferRoutePathFromFilePath("apps/web/app/(auth)/api/login/route.ts")).toBe("/api/login");
+  });
+
+  it("route.ts以外のファイルはnullを返す", () => {
+    expect(inferRoutePathFromFilePath("apps/web/app/api/users/page.tsx")).toBeNull();
+  });
+
+  it("/app/を含まないパスはnullを返す", () => {
+    expect(inferRoutePathFromFilePath("src/lib/utils.ts")).toBeNull();
+  });
+});
+
+describe("extractHttpFromFile（App Router route.ts）", () => {
+  it("route.tsのexport関数からHTTPルートを検出する", () => {
+    const { routes } = extractHttpFromFile(ROUTE_FIXTURE);
+    expect(routes.length).toBeGreaterThanOrEqual(3);
+    const get = routes.find((r) => r.handler === "GET");
+    expect(get).toBeDefined();
+    const post = routes.find((r) => r.handler === "POST");
+    expect(post).toBeDefined();
+    const del = routes.find((r) => r.handler === "DELETE");
+    expect(del).toBeDefined();
   });
 });

@@ -7,6 +7,7 @@ import (
 	"go/parser"
 	"go/token"
 	"os"
+	"strings"
 )
 
 type Symbol struct {
@@ -22,28 +23,96 @@ type Relation struct {
 	Kind string `json:"kind"`
 }
 
-type Result struct {
-	Symbols   []Symbol   `json:"symbols"`
-	Relations []Relation `json:"relations"`
+type HttpRoute struct {
+	Method  string `json:"method"`
+	Path    string `json:"path"`
+	Handler string `json:"handler"`
+	Line    int    `json:"line"`
+}
+
+type FileResult struct {
+	Symbols    []Symbol    `json:"symbols"`
+	Relations  []Relation  `json:"relations"`
+	HttpRoutes []HttpRoute `json:"httpRoutes"`
+}
+
+type BatchInput struct {
+	Files           []string `json:"files"`
+	ExternalSymbols []string `json:"externalSymbols"`
+}
+
+var httpMethods = map[string]bool{
+	"Get": true, "Post": true, "Put": true, "Delete": true, "Patch": true,
+	"GET": true, "POST": true, "PUT": true, "DELETE": true, "PATCH": true,
+	"Handle": true, "HandleFunc": true,
+}
+
+var httpMethodMap = map[string]string{
+	"Get": "GET", "Post": "POST", "Put": "PUT", "Delete": "DELETE", "Patch": "PATCH",
+	"GET": "GET", "POST": "POST", "PUT": "PUT", "DELETE": "DELETE", "PATCH": "PATCH",
+	"Handle": "ANY", "HandleFunc": "ANY",
 }
 
 func main() {
-	if len(os.Args) < 2 {
-		fmt.Fprintf(os.Stderr, "usage: ast-go-parser <file.go>\n")
+	var input BatchInput
+
+	if len(os.Args) >= 2 {
+		input.Files = []string{os.Args[1]}
+		var externalSymbols []string
+		dec := json.NewDecoder(os.Stdin)
+		if err := dec.Decode(&externalSymbols); err == nil {
+			input.ExternalSymbols = externalSymbols
+		}
+	} else {
+		dec := json.NewDecoder(os.Stdin)
+		if err := dec.Decode(&input); err != nil {
+			fmt.Fprintf(os.Stderr, "usage: ast-go-parser <file.go> or pipe BatchInput JSON to stdin\n")
+			os.Exit(1)
+		}
+	}
+
+	if len(input.Files) == 0 {
+		fmt.Fprintf(os.Stderr, "no files specified\n")
 		os.Exit(1)
 	}
 
-	filePath := os.Args[1]
+	results := make(map[string]FileResult, len(input.Files))
+	for _, filePath := range input.Files {
+		result := parseFile(filePath, input.ExternalSymbols)
+		results[filePath] = result
+	}
+
+	if len(input.Files) == 1 {
+		enc := json.NewEncoder(os.Stdout)
+		enc.SetIndent("", "  ")
+		if err := enc.Encode(results[input.Files[0]]); err != nil {
+			fmt.Fprintf(os.Stderr, "json error: %v\n", err)
+			os.Exit(1)
+		}
+	} else {
+		enc := json.NewEncoder(os.Stdout)
+		enc.SetIndent("", "  ")
+		if err := enc.Encode(results); err != nil {
+			fmt.Fprintf(os.Stderr, "json error: %v\n", err)
+			os.Exit(1)
+		}
+	}
+}
+
+func parseFile(filePath string, externalSymbols []string) FileResult {
 	fset := token.NewFileSet()
 
 	f, err := parser.ParseFile(fset, filePath, nil, parser.ParseComments)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "parse error: %v\n", err)
-		os.Exit(1)
+		return FileResult{Symbols: []Symbol{}, Relations: []Relation{}, HttpRoutes: []HttpRoute{}}
 	}
 
 	var symbols []Symbol
 	symbolSet := map[string]bool{}
+
+	for _, name := range externalSymbols {
+		symbolSet[name] = true
+	}
 
 	ast.Inspect(f, func(n ast.Node) bool {
 		switch decl := n.(type) {
@@ -90,6 +159,7 @@ func main() {
 
 	var relations []Relation
 	seen := map[string]bool{}
+	var httpRoutes []HttpRoute
 
 	ast.Inspect(f, func(n ast.Node) bool {
 		call, ok := n.(*ast.CallExpr)
@@ -99,13 +169,10 @@ func main() {
 
 		line := fset.Position(call.Pos()).Line
 		caller := findContainingSymbol(symbols, line)
-		if caller == "" {
-			return true
-		}
 
 		switch fn := call.Fun.(type) {
 		case *ast.Ident:
-			if symbolSet[fn.Name] && fn.Name != caller {
+			if caller != "" && symbolSet[fn.Name] && fn.Name != caller {
 				key := caller + ":" + fn.Name + ":call"
 				if !seen[key] {
 					seen[key] = true
@@ -114,7 +181,24 @@ func main() {
 			}
 		case *ast.SelectorExpr:
 			methodName := fn.Sel.Name
-			if symbolSet[methodName] && methodName != caller {
+
+			if httpMethods[methodName] && len(call.Args) >= 2 {
+				if pathArg, ok := call.Args[0].(*ast.BasicLit); ok {
+					pathVal := strings.Trim(pathArg.Value, `"`)
+					if strings.HasPrefix(pathVal, "/") {
+						handlerName := extractHandlerName(call.Args[len(call.Args)-1])
+						method := httpMethodMap[methodName]
+						httpRoutes = append(httpRoutes, HttpRoute{
+							Method:  method,
+							Path:    pathVal,
+							Handler: handlerName,
+							Line:    line,
+						})
+					}
+				}
+			}
+
+			if caller != "" && symbolSet[methodName] && methodName != caller {
 				key := caller + ":" + methodName + ":method-call"
 				if !seen[key] {
 					seen[key] = true
@@ -129,14 +213,11 @@ func main() {
 	if relations == nil {
 		relations = []Relation{}
 	}
-
-	result := Result{Symbols: symbols, Relations: relations}
-	enc := json.NewEncoder(os.Stdout)
-	enc.SetIndent("", "  ")
-	if err := enc.Encode(result); err != nil {
-		fmt.Fprintf(os.Stderr, "json error: %v\n", err)
-		os.Exit(1)
+	if httpRoutes == nil {
+		httpRoutes = []HttpRoute{}
 	}
+
+	return FileResult{Symbols: symbols, Relations: relations, HttpRoutes: httpRoutes}
 }
 
 func findContainingSymbol(symbols []Symbol, line int) string {
@@ -147,6 +228,16 @@ func findContainingSymbol(symbols []Symbol, line int) string {
 		if line >= sym.StartLine && line <= sym.EndLine {
 			return sym.Name
 		}
+	}
+	return ""
+}
+
+func extractHandlerName(expr ast.Expr) string {
+	switch e := expr.(type) {
+	case *ast.Ident:
+		return e.Name
+	case *ast.SelectorExpr:
+		return e.Sel.Name
 	}
 	return ""
 }

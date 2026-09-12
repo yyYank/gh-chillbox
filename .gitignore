@@ -10,3 +10,4 @@ yarn-error.log*
 *.tsbuildinfo
 .env
 .env.*
+server/tools/ast-go-parser-bin

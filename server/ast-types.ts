@@ -25,6 +25,13 @@ export type ChangedSymbol = {
   changedLines: number[];
 };
 
+export type GoHttpRoute = {
+  method: string;
+  path: string;
+  handler: string;
+  line: number;
+};
+
 export type AstAnalysisResult = {
   symbols: ChangedSymbol[];
   relations: SymbolRelation[];
