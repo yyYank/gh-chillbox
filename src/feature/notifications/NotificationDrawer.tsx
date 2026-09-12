@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Eraser, CheckCircle, Trash2 } from "lucide-react";
-import type { AppNotification } from "./types";
+import type { AppNotification } from "../../types";
 
 type Props = {
   open: boolean;

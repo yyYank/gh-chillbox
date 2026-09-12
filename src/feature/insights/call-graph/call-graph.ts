@@ -1,4 +1,4 @@
-import { scoreFile, type Layer } from "./change-surface";
+import { scoreFile, type Layer } from "../change-surface/change-surface";
 
 export type GraphNodeType =
   | "component"

@@ -3,11 +3,11 @@ import { marked } from "marked";
 import mermaid from "mermaid";
 import { ArrowLeft, ChevronDown, ChevronRight, MessageSquareQuote } from "lucide-react";
 import { FileTree } from "./FileTree";
-import { ChatPanel } from "./ChatPanel";
-import { DiffPanel } from "./DiffPanel";
-import { ChangeSurface } from "./ChangeSurface";
-import { AstAnalysis } from "./AstAnalysis";
-import { CallGraph } from "./CallGraph";
+import { ChatPanel } from "../chat/ChatPanel";
+import { DiffPanel } from "../pr-diff/DiffPanel";
+import { ChangeSurface } from "../insights/change-surface/ChangeSurface";
+import { AstAnalysis } from "../insights/ast-analysis/AstAnalysis";
+import { CallGraph } from "../insights/call-graph/CallGraph";
 
 marked.setOptions({ gfm: true, breaks: true });
 

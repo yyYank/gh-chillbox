@@ -14,11 +14,11 @@ import {
 import { Bell, RotateCcw, Sun, Moon } from "lucide-react";
 import type { PR, Filter } from "./types";
 import { usePrOrder, useHiddenPrs } from "./useLocalData";
-import { useNotifications } from "./useNotifications";
-import { ContextMenu } from "./ContextMenu";
-import { SortableRow } from "./SortableRow";
-import { NotificationDrawer } from "./NotificationDrawer";
-import { PrDetail } from "./PrDetail";
+import { useNotifications } from "./feature/notifications/useNotifications";
+import { ContextMenu } from "./feature/pull-requests/ContextMenu";
+import { SortableRow } from "./feature/pull-requests/SortableRow";
+import { NotificationDrawer } from "./feature/notifications/NotificationDrawer";
+import { PrDetail } from "./feature/pr-detail/PrDetail";
 import "./App.css";
 import headerIcon from "./assets/icon.png";
 import headerIconDark from "./assets/icon-dark.png";

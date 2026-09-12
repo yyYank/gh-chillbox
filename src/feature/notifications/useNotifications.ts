@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import type { AppNotification } from "./types";
+import type { AppNotification } from "../../types";
 
 const NOTIFICATIONS_KEY = "gh-chillbox:notifications";
 const DISMISSED_KEY = "gh-chillbox:notifications-dismissed";

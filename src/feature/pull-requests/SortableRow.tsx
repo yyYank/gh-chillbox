@@ -1,7 +1,7 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, ChevronRight } from "lucide-react";
-import type { PR } from "./types";
+import type { PR } from "../../types";
 
 type Props = {
   pr: PR;
