@@ -114,11 +114,11 @@ describe("extractHttpFromFile（App Router route.ts）", () => {
   it("route.tsのexport関数からHTTPルートを検出する", () => {
     const { routes } = extractHttpFromFile(ROUTE_FIXTURE);
     expect(routes.length).toBeGreaterThanOrEqual(3);
-    const get = routes.find((r) => r.handler === "GET");
+    const get = routes.find((r) => r.handler === "GET /api/users");
     expect(get).toBeDefined();
-    const post = routes.find((r) => r.handler === "POST");
+    const post = routes.find((r) => r.handler === "POST /api/users");
     expect(post).toBeDefined();
-    const del = routes.find((r) => r.handler === "DELETE");
+    const del = routes.find((r) => r.handler === "DELETE /api/users");
     expect(del).toBeDefined();
   });
 });

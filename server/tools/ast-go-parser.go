@@ -99,6 +99,16 @@ func main() {
 	}
 }
 
+func extractReceiverType(expr ast.Expr) string {
+	switch t := expr.(type) {
+	case *ast.StarExpr:
+		return extractReceiverType(t.X)
+	case *ast.Ident:
+		return t.Name
+	}
+	return ""
+}
+
 func parseFile(filePath string, externalSymbols []string) FileResult {
 	fset := token.NewFileSet()
 
@@ -108,10 +118,13 @@ func parseFile(filePath string, externalSymbols []string) FileResult {
 	}
 
 	var symbols []Symbol
-	symbolSet := map[string]bool{}
+	bareNameSet := map[string]bool{}
 
 	for _, name := range externalSymbols {
-		symbolSet[name] = true
+		bareNameSet[name] = true
+		if idx := strings.LastIndex(name, "."); idx != -1 {
+			bareNameSet[name[idx+1:]] = true
+		}
 	}
 
 	ast.Inspect(f, func(n ast.Node) bool {
@@ -121,6 +134,10 @@ func parseFile(filePath string, externalSymbols []string) FileResult {
 			name := decl.Name.Name
 			if decl.Recv != nil && len(decl.Recv.List) > 0 {
 				kind = "method"
+				recvType := extractReceiverType(decl.Recv.List[0].Type)
+				if recvType != "" {
+					name = recvType + "." + decl.Name.Name
+				}
 			}
 			symbols = append(symbols, Symbol{
 				Name:      name,
@@ -128,7 +145,7 @@ func parseFile(filePath string, externalSymbols []string) FileResult {
 				StartLine: fset.Position(decl.Pos()).Line,
 				EndLine:   fset.Position(decl.End()).Line,
 			})
-			symbolSet[name] = true
+			bareNameSet[decl.Name.Name] = true
 		case *ast.GenDecl:
 			for _, spec := range decl.Specs {
 				switch s := spec.(type) {
@@ -146,7 +163,7 @@ func parseFile(filePath string, externalSymbols []string) FileResult {
 						StartLine: fset.Position(s.Pos()).Line,
 						EndLine:   fset.Position(s.End()).Line,
 					})
-					symbolSet[s.Name.Name] = true
+					bareNameSet[s.Name.Name] = true
 				}
 			}
 		}
@@ -172,7 +189,7 @@ func parseFile(filePath string, externalSymbols []string) FileResult {
 
 		switch fn := call.Fun.(type) {
 		case *ast.Ident:
-			if caller != "" && symbolSet[fn.Name] && fn.Name != caller {
+			if caller != "" && bareNameSet[fn.Name] && fn.Name != caller {
 				key := caller + ":" + fn.Name + ":call"
 				if !seen[key] {
 					seen[key] = true
@@ -198,7 +215,7 @@ func parseFile(filePath string, externalSymbols []string) FileResult {
 				}
 			}
 
-			if caller != "" && symbolSet[methodName] && methodName != caller {
+			if caller != "" && bareNameSet[methodName] {
 				key := caller + ":" + methodName + ":method-call"
 				if !seen[key] {
 					seen[key] = true

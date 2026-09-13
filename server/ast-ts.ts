@@ -222,6 +222,17 @@ function extractUrlPath(node: Node): string | null {
       }
       return path;
     }
+    const spans = node.getTemplateSpans();
+    for (let i = 0; i < spans.length; i++) {
+      const lit = spans[i].getLiteral().getLiteralText();
+      if (lit.startsWith("/")) {
+        let path = lit;
+        for (let j = i + 1; j < spans.length; j++) {
+          path += "*" + spans[j].getLiteral().getLiteralText();
+        }
+        return path;
+      }
+    }
   }
   if (Node.isNoSubstitutionTemplateLiteral(node)) {
     const val = node.getLiteralValue();
@@ -234,6 +245,14 @@ export function normalizePath(p: string): string {
   return p.replace(/\/+$/, "").replace(/:[^/]+/g, "*").replace(/\*/g, "*").toLowerCase();
 }
 
+function matchSegments(a: string[], b: string[], offset: number): boolean {
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] === "*" || b[offset + i] === "*") continue;
+    if (a[i] !== b[offset + i]) return false;
+  }
+  return true;
+}
+
 export function matchPaths(a: string, b: string): boolean {
   const na = normalizePath(a);
   const nb = normalizePath(b);
@@ -243,11 +262,10 @@ export function matchPaths(a: string, b: string): boolean {
   const shorter = segA.length <= segB.length ? segA : segB;
   const longer = segA.length <= segB.length ? segB : segA;
   if (shorter.length === 0) return false;
-  for (let i = 0; i < shorter.length; i++) {
-    if (shorter[i] === "*" || longer[i] === "*") continue;
-    if (shorter[i] !== longer[i]) return false;
-  }
-  return true;
+  if (matchSegments(shorter, longer, 0)) return true;
+  const suffixOffset = longer.length - shorter.length;
+  if (suffixOffset > 0 && matchSegments(shorter, longer, suffixOffset)) return true;
+  return false;
 }
 
 const APP_ROUTER_METHODS = new Set(["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"]);
@@ -276,7 +294,7 @@ export function extractHttpFromFile(
     for (const fn of sourceFile.getFunctions()) {
       const name = fn.getName();
       if (name && fn.isExported() && APP_ROUTER_METHODS.has(name)) {
-        routes.push({ handler: name, path: routePath, file: filePath });
+        routes.push({ handler: `${name} ${routePath}`, path: routePath, file: filePath });
       }
     }
     for (const stmt of sourceFile.getVariableStatements()) {
@@ -284,7 +302,7 @@ export function extractHttpFromFile(
       for (const decl of stmt.getDeclarations()) {
         const name = decl.getName();
         if (APP_ROUTER_METHODS.has(name)) {
-          routes.push({ handler: name, path: routePath, file: filePath });
+          routes.push({ handler: `${name} ${routePath}`, path: routePath, file: filePath });
         }
       }
     }
@@ -502,7 +520,10 @@ export function analyzeTsFile(
     for (const fn of sourceFile.getFunctions()) {
       const name = fn.getName();
       if (name && fn.isExported() && APP_ROUTER_METHODS.has(name)) {
-        httpRoutes.push({ handler: name, path: routePath, file: filePath });
+        const displayName = `${name} ${routePath}`;
+        const idx = symbols.findIndex((s) => s.name === name);
+        if (idx !== -1) symbols[idx].name = displayName;
+        httpRoutes.push({ handler: displayName, path: routePath, file: filePath });
       }
     }
     for (const stmt of sourceFile.getVariableStatements()) {
@@ -510,7 +531,10 @@ export function analyzeTsFile(
       for (const decl of stmt.getDeclarations()) {
         const name = decl.getName();
         if (APP_ROUTER_METHODS.has(name)) {
-          httpRoutes.push({ handler: name, path: routePath, file: filePath });
+          const displayName = `${name} ${routePath}`;
+          const idx = symbols.findIndex((s) => s.name === name);
+          if (idx !== -1) symbols[idx].name = displayName;
+          httpRoutes.push({ handler: displayName, path: routePath, file: filePath });
         }
       }
     }

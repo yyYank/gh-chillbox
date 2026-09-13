@@ -30,7 +30,7 @@ describe("extractSymbolsFromGoFile", () => {
 
   it("methodを検出する", async () => {
     const { symbols } = await extractSymbolsFromGoFile(FIXTURE);
-    const m = symbols.find((s) => s.name === "UpdateName");
+    const m = symbols.find((s) => s.name === "User.UpdateName");
     expect(m).toBeDefined();
     expect(m!.kind).toBe("method");
   });

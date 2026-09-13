@@ -6,7 +6,7 @@ import { parseDiffToChangedLines } from "./diff-parser";
 import { analyzeTsFile, matchPaths, type HttpCall, type HttpRoute } from "./ast-ts";
 import { batchExtractGoFiles } from "./ast-go";
 import { ensureRepo, checkoutSha } from "./repo-cache";
-import type { ChangedSymbol, SymbolRelation, GoHttpRoute, AstAnalysisResult } from "./ast-types";
+import type { ChangedSymbol, SymbolKind, SymbolRelation, AstAnalysisResult } from "./ast-types";
 
 const execFileAsync = promisify(execFile);
 
@@ -165,13 +165,40 @@ export async function analyzepr(
     else if (isTsFile(fc.file)) changedTsFiles.push({ fc, fullPath });
   }
 
-  // Go: 変更ファイルのsymbol収集 + 全ファイルのrelation/HTTPルート収集
-  const allGoHttpRoutes: GoHttpRoute[] = [];
-  for (const [, result] of goPass2Results) {
-    allRelations.push(...result.relations);
-    allGoHttpRoutes.push(...result.httpRoutes);
+  // シンボル参照テーブル: bareName → [{name (修飾名), kind, file}]
+  type SymInfo = { name: string; kind: SymbolKind; file: string };
+  const symbolLookup = new Map<string, SymInfo[]>();
+
+  function addToLookup(symName: string, kind: SymbolKind, file: string) {
+    const dotIdx = symName.lastIndexOf(".");
+    const bareName = dotIdx !== -1 ? symName.slice(dotIdx + 1) : symName;
+    const info: SymInfo = { name: symName, kind, file };
+    let arr = symbolLookup.get(bareName);
+    if (!arr) { arr = []; symbolLookup.set(bareName, arr); }
+    if (!arr.some((i) => i.name === symName && i.file === file)) arr.push(info);
+    if (dotIdx !== -1) {
+      let qArr = symbolLookup.get(symName);
+      if (!qArr) { qArr = []; symbolLookup.set(symName, qArr); }
+      if (!qArr.some((i) => i.name === symName && i.file === file)) qArr.push(info);
+    }
   }
 
+  // Go: 全ファイルからrelation/HTTPルート収集 + lookup構築
+  const allHttpCalls: HttpCall[] = [];
+  const allHttpRoutes: HttpRoute[] = [];
+
+  for (const [goFile, result] of goPass2Results) {
+    const relFile = path.relative(cachedRepoDir, goFile);
+    allRelations.push(...result.relations);
+    for (const route of result.httpRoutes) {
+      allHttpRoutes.push({ handler: route.handler, path: route.path, file: relFile });
+    }
+    for (const sym of result.symbols) {
+      addToLookup(sym.name, sym.kind, relFile);
+    }
+  }
+
+  // Go: 変更ファイルのsymbol収集
   for (const { fc, fullPath } of changedGoFiles) {
     const result = goPass2Results.get(fullPath);
     if (!result) continue;
@@ -193,16 +220,18 @@ export async function analyzepr(
     }
   }
 
-  // TS: 変更ファイルのsymbol収集 + 全ファイルのrelation/HTTP収集
-  const allHttpCalls: HttpCall[] = [];
-  const allHttpRoutes: HttpRoute[] = [];
-
-  for (const [, analysis] of tsAnalysisCache) {
+  // TS: 全ファイルのrelation/HTTP収集 + lookup構築
+  for (const [tsFile, analysis] of tsAnalysisCache) {
+    const relFile = path.relative(cachedRepoDir, tsFile);
     allRelations.push(...analysis.relations);
     allHttpCalls.push(...analysis.httpCalls);
     allHttpRoutes.push(...analysis.httpRoutes);
+    for (const sym of analysis.symbols) {
+      addToLookup(sym.name, sym.kind, relFile);
+    }
   }
 
+  // TS: 変更ファイルのsymbol収集
   for (const { fc, fullPath } of changedTsFiles) {
     const analysis = tsAnalysisCache.get(fullPath);
     if (!analysis) continue;
@@ -224,11 +253,7 @@ export async function analyzepr(
     }
   }
 
-  // Go HTTPルートもマッチング対象に統合
-  for (const goRoute of allGoHttpRoutes) {
-    allHttpRoutes.push({ handler: goRoute.handler, path: goRoute.path, file: "" });
-  }
-
+  // HTTPマッチング: fetch → route
   for (const call of allHttpCalls) {
     for (const route of allHttpRoutes) {
       if (call.caller !== route.handler && matchPaths(call.path, route.path)) {
@@ -237,22 +262,71 @@ export async function analyzepr(
     }
   }
 
-  // diffフィルタリング
+  // bare name → 修飾名 解決
+  function resolveRelations(rels: SymbolRelation[]): SymbolRelation[] {
+    const resolved: SymbolRelation[] = [];
+    for (const rel of rels) {
+      const toInfos = symbolLookup.get(rel.to);
+      if (!toInfos || toInfos.some((m) => m.name === rel.to)) {
+        resolved.push(rel);
+        continue;
+      }
+      const fromDot = rel.from.indexOf(".");
+      const fromType = fromDot !== -1 ? rel.from.slice(0, fromDot) : "";
+      for (const info of toInfos) {
+        const toDot = info.name.indexOf(".");
+        const toType = toDot !== -1 ? info.name.slice(0, toDot) : "";
+        if (fromType && toType && fromType === toType) continue;
+        resolved.push({ from: rel.from, to: info.name, kind: rel.kind });
+      }
+    }
+    return resolved;
+  }
+
+  const resolvedRelations = resolveRelations(allRelations);
+
+  // diffフィルタリング（2パス: 変更シンボル → 1ホップ拡張）
   const changedNames = new Set(allSymbols.map((s) => s.name));
-  const relevantRelations = allRelations.filter(
+  let relevantRelations = resolvedRelations.filter(
     (r) => changedNames.has(r.from) || changedNames.has(r.to),
   );
 
-  // context node
+  // Pass 1: コンテキストノード作成 + 名前を拡張
   const existingNames = new Set(allSymbols.map((s) => s.name));
   for (const rel of relevantRelations) {
     for (const name of [rel.from, rel.to]) {
       if (!existingNames.has(name)) {
+        const infos = symbolLookup.get(name);
+        const info = infos?.find((i) => i.name === name);
         allSymbols.push({
           id: `(context):${name}`,
           name,
-          kind: "unknown",
-          file: "",
+          kind: info?.kind ?? "unknown",
+          file: info?.file ?? "",
+          startLine: 0,
+          endLine: 0,
+          changedLines: [],
+        });
+        existingNames.add(name);
+        changedNames.add(name);
+      }
+    }
+  }
+
+  // Pass 2: 拡張された名前で再フィルタ
+  relevantRelations = resolvedRelations.filter(
+    (r) => changedNames.has(r.from) || changedNames.has(r.to),
+  );
+  for (const rel of relevantRelations) {
+    for (const name of [rel.from, rel.to]) {
+      if (!existingNames.has(name)) {
+        const infos = symbolLookup.get(name);
+        const info = infos?.find((i) => i.name === name);
+        allSymbols.push({
+          id: `(context):${name}`,
+          name,
+          kind: info?.kind ?? "unknown",
+          file: info?.file ?? "",
           startLine: 0,
           endLine: 0,
           changedLines: [],
