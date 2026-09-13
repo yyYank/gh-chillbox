@@ -297,5 +297,11 @@ function buildChains(roots: GraphNode[], nodes: GraphNode[], edges: GraphEdge[])
     walk(root.id, []);
   }
 
-  return chains;
+  const seen = new Set<string>();
+  return chains.filter((chain) => {
+    const key = chain.map((n) => n.id).join("\0");
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }

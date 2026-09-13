@@ -2310,7 +2310,6 @@ th.col-rank {
 }
 .cg-box {
   min-width: 120px;
-  max-width: 180px;
   padding: 10px 12px;
   border: 1px solid var(--border);
   border-left: 3px solid var(--accent);
@@ -2348,8 +2347,6 @@ th.col-rank {
   font-weight: 600;
   color: var(--text);
   font-family: var(--font-mono, monospace);
-  overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
 }
 

@@ -224,8 +224,8 @@ export async function analyzepr(
   for (const [tsFile, analysis] of tsAnalysisCache) {
     const relFile = path.relative(cachedRepoDir, tsFile);
     allRelations.push(...analysis.relations);
-    allHttpCalls.push(...analysis.httpCalls);
-    allHttpRoutes.push(...analysis.httpRoutes);
+    allHttpCalls.push(...analysis.httpCalls.map((c) => ({ ...c, file: relFile })));
+    allHttpRoutes.push(...analysis.httpRoutes.map((r) => ({ ...r, file: relFile })));
     for (const sym of analysis.symbols) {
       addToLookup(sym.name, sym.kind, relFile);
     }
@@ -253,21 +253,24 @@ export async function analyzepr(
     }
   }
 
-  // HTTPマッチング: fetch → route
-  for (const call of allHttpCalls) {
-    for (const route of allHttpRoutes) {
-      if (call.caller === route.handler) continue;
-      if (call.method && route.method && call.method.toUpperCase() !== route.method.toUpperCase()) continue;
-      if (!matchPaths(call.path, route.path)) continue;
-      allRelations.push({ from: call.caller, to: route.handler, kind: "http-infer" });
-    }
-  }
-
   function deriveApp(file: string): string {
     const parts = file.split("/");
     if ((parts[0] === "apps" || parts[0] === "packages") && parts.length > 1) return parts[1];
     if (parts.length >= 2 && (parts[0] === "internal" || parts[0] === "cmd" || parts[0] === "pkg")) return parts[1];
     return parts[0] || "";
+  }
+
+  // HTTPマッチング: fetch → route（異なるアプリ間のみ）
+  for (const call of allHttpCalls) {
+    for (const route of allHttpRoutes) {
+      if (call.caller === route.handler) continue;
+      if (call.method && route.method && call.method.toUpperCase() !== route.method.toUpperCase()) continue;
+      const callApp = call.file ? deriveApp(call.file) : "";
+      const routeApp = route.file ? deriveApp(route.file) : "";
+      if (callApp && routeApp && callApp === routeApp) continue;
+      if (!matchPaths(call.path, route.path)) continue;
+      allRelations.push({ from: call.caller, to: route.handler, kind: "http-infer" });
+    }
   }
 
   // bare name → 修飾名 解決
@@ -307,29 +310,41 @@ export async function analyzepr(
   const resolvedRelations = resolveRelations(allRelations);
 
   // diffフィルタリング（2パス: 変更シンボル → 1ホップ拡張）
+  const changedApps = new Set(allSymbols.filter((s) => s.changedLines.length > 0).map((s) => deriveApp(s.file)));
+  const isTestFile = (file: string) => /\.test\.[jt]sx?$|\.spec\.[jt]sx?$|_test\.go$|(?:^|\/)__tests__\//.test(file);
+
   const changedNames = new Set(allSymbols.map((s) => s.name));
   let relevantRelations = resolvedRelations.filter(
     (r) => changedNames.has(r.from) || changedNames.has(r.to),
   );
+
+  function addContextNode(name: string): boolean {
+    const infos = symbolLookup.get(name);
+    const info = infos?.find((i) => i.name === name);
+    const file = info?.file ?? "";
+    if (file && !changedApps.has(deriveApp(file))) return false;
+    if (file && isTestFile(file)) return false;
+    allSymbols.push({
+      id: `(context):${name}`,
+      name,
+      kind: info?.kind ?? "unknown",
+      file,
+      startLine: 0,
+      endLine: 0,
+      changedLines: [],
+    });
+    return true;
+  }
 
   // Pass 1: コンテキストノード作成 + 名前を拡張
   const existingNames = new Set(allSymbols.map((s) => s.name));
   for (const rel of relevantRelations) {
     for (const name of [rel.from, rel.to]) {
       if (!existingNames.has(name)) {
-        const infos = symbolLookup.get(name);
-        const info = infos?.find((i) => i.name === name);
-        allSymbols.push({
-          id: `(context):${name}`,
-          name,
-          kind: info?.kind ?? "unknown",
-          file: info?.file ?? "",
-          startLine: 0,
-          endLine: 0,
-          changedLines: [],
-        });
-        existingNames.add(name);
-        changedNames.add(name);
+        if (addContextNode(name)) {
+          existingNames.add(name);
+          changedNames.add(name);
+        }
       }
     }
   }
@@ -341,18 +356,9 @@ export async function analyzepr(
   for (const rel of relevantRelations) {
     for (const name of [rel.from, rel.to]) {
       if (!existingNames.has(name)) {
-        const infos = symbolLookup.get(name);
-        const info = infos?.find((i) => i.name === name);
-        allSymbols.push({
-          id: `(context):${name}`,
-          name,
-          kind: info?.kind ?? "unknown",
-          file: info?.file ?? "",
-          startLine: 0,
-          endLine: 0,
-          changedLines: [],
-        });
-        existingNames.add(name);
+        if (addContextNode(name)) {
+          existingNames.add(name);
+        }
       }
     }
   }
