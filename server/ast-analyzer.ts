@@ -191,7 +191,7 @@ export async function analyzepr(
     const relFile = path.relative(cachedRepoDir, goFile);
     allRelations.push(...result.relations);
     for (const route of result.httpRoutes) {
-      allHttpRoutes.push({ handler: route.handler, path: route.path, file: relFile });
+      allHttpRoutes.push({ handler: route.handler, method: route.method, path: route.path, file: relFile });
     }
     for (const sym of result.symbols) {
       addToLookup(sym.name, sym.kind, relFile);
@@ -256,10 +256,18 @@ export async function analyzepr(
   // HTTPマッチング: fetch → route
   for (const call of allHttpCalls) {
     for (const route of allHttpRoutes) {
-      if (call.caller !== route.handler && matchPaths(call.path, route.path)) {
-        allRelations.push({ from: call.caller, to: route.handler, kind: "http-infer" });
-      }
+      if (call.caller === route.handler) continue;
+      if (call.method && route.method && call.method.toUpperCase() !== route.method.toUpperCase()) continue;
+      if (!matchPaths(call.path, route.path)) continue;
+      allRelations.push({ from: call.caller, to: route.handler, kind: "http-infer" });
     }
+  }
+
+  function deriveApp(file: string): string {
+    const parts = file.split("/");
+    if ((parts[0] === "apps" || parts[0] === "packages") && parts.length > 1) return parts[1];
+    if (parts.length >= 2 && (parts[0] === "internal" || parts[0] === "cmd" || parts[0] === "pkg")) return parts[1];
+    return parts[0] || "";
   }
 
   // bare name → 修飾名 解決
@@ -271,9 +279,22 @@ export async function analyzepr(
         resolved.push(rel);
         continue;
       }
+
+      const fromInfos = symbolLookup.get(rel.from);
+      const fromFile = fromInfos?.[0]?.file ?? "";
+      const fromApp = deriveApp(fromFile);
+
       const fromDot = rel.from.indexOf(".");
       const fromType = fromDot !== -1 ? rel.from.slice(0, fromDot) : "";
-      for (const info of toInfos) {
+
+      const sameAppInfos = fromApp ? toInfos.filter((i) => deriveApp(i.file) === fromApp) : toInfos;
+      const candidates = sameAppInfos.length > 0 ? sameAppInfos : [];
+      if (candidates.length === 0) {
+        resolved.push(rel);
+        continue;
+      }
+
+      for (const info of candidates) {
         const toDot = info.name.indexOf(".");
         const toType = toDot !== -1 ? info.name.slice(0, toDot) : "";
         if (fromType && toType && fromType === toType) continue;

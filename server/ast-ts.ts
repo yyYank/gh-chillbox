@@ -120,12 +120,14 @@ export type ExtractedRelation = {
 
 export type HttpCall = {
   caller: string;
+  method?: string;
   path: string;
   file: string;
 };
 
 export type HttpRoute = {
   handler: string;
+  method?: string;
   path: string;
   file: string;
 };
@@ -264,7 +266,7 @@ export function matchPaths(a: string, b: string): boolean {
   if (shorter.length === 0) return false;
   if (matchSegments(shorter, longer, 0)) return true;
   const suffixOffset = longer.length - shorter.length;
-  if (suffixOffset > 0 && matchSegments(shorter, longer, suffixOffset)) return true;
+  if (suffixOffset === 1 && matchSegments(shorter, longer, suffixOffset)) return true;
   return false;
 }
 
@@ -523,7 +525,7 @@ export function analyzeTsFile(
         const displayName = `${name} ${routePath}`;
         const idx = symbols.findIndex((s) => s.name === name);
         if (idx !== -1) symbols[idx].name = displayName;
-        httpRoutes.push({ handler: displayName, path: routePath, file: filePath });
+        httpRoutes.push({ handler: displayName, method: name, path: routePath, file: filePath });
       }
     }
     for (const stmt of sourceFile.getVariableStatements()) {
@@ -534,7 +536,7 @@ export function analyzeTsFile(
           const displayName = `${name} ${routePath}`;
           const idx = symbols.findIndex((s) => s.name === name);
           if (idx !== -1) symbols[idx].name = displayName;
-          httpRoutes.push({ handler: displayName, path: routePath, file: filePath });
+          httpRoutes.push({ handler: displayName, method: name, path: routePath, file: filePath });
         }
       }
     }
@@ -561,14 +563,14 @@ export function analyzeTsFile(
         if (hasHandlerArg) {
           let handlerName: string | undefined;
           if (Node.isIdentifier(handlerArg)) handlerName = handlerArg.getText();
-          if (handlerName) httpRoutes.push({ handler: handlerName, path: urlPath, file: filePath });
+          if (handlerName) httpRoutes.push({ handler: handlerName, method: methodName.toUpperCase(), path: urlPath, file: filePath });
           else {
             const caller = findContainingSymbol(line);
-            if (caller) httpRoutes.push({ handler: caller, path: urlPath, file: filePath });
+            if (caller) httpRoutes.push({ handler: caller, method: methodName.toUpperCase(), path: urlPath, file: filePath });
           }
         } else {
           const caller = findContainingSymbol(line);
-          if (caller) httpCalls.push({ caller, path: urlPath, file: filePath });
+          if (caller) httpCalls.push({ caller, method: methodName.toUpperCase(), path: urlPath, file: filePath });
         }
       } else {
         const caller = findContainingSymbol(line);
