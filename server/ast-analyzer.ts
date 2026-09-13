@@ -296,7 +296,7 @@ export async function analyzepr(
       const fromType = fromDot !== -1 ? rel.from.slice(0, fromDot) : "";
 
       const sameAppInfos = fromApp ? toInfos.filter((i) => deriveApp(i.file) === fromApp) : toInfos;
-      const candidates = sameAppInfos.length > 0 ? sameAppInfos : [];
+      const candidates = sameAppInfos.length > 0 ? sameAppInfos : toInfos;
       if (candidates.length === 0) {
         resolved.push(rel);
         continue;
@@ -341,23 +341,8 @@ export async function analyzepr(
     return true;
   }
 
-  // Pass 1: コンテキストノード作成 + 名前を拡張
+  // 1-hop: 変更シンボルの直接の呼び出し先/元のみコンテキストノードとして追加
   const existingNames = new Set(allSymbols.map((s) => s.name));
-  for (const rel of relevantRelations) {
-    for (const name of [rel.from, rel.to]) {
-      if (!existingNames.has(name)) {
-        if (addContextNode(name)) {
-          existingNames.add(name);
-          changedNames.add(name);
-        }
-      }
-    }
-  }
-
-  // Pass 2: 拡張された名前で再フィルタ
-  relevantRelations = resolvedRelations.filter(
-    (r) => changedNames.has(r.from) || changedNames.has(r.to),
-  );
   for (const rel of relevantRelations) {
     for (const name of [rel.from, rel.to]) {
       if (!existingNames.has(name)) {
