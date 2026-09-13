@@ -27,6 +27,11 @@ function isTsFile(filePath: string): boolean {
   return TS_EXTENSIONS.has(path.extname(filePath));
 }
 
+export function isTestOrMockFile(filePath: string): boolean {
+  return /\.test\.[jt]sx?$|\.spec\.[jt]sx?$|_test\.go$|(?:^|\/)(?:__tests__|test-fixtures|tests?)\//i.test(filePath)
+    || /(?:^|\/)mock_[^/]+\.go$/.test(filePath);
+}
+
 export function detectModules(changedFiles: string[]): string[] {
   const modules = new Set<string>();
   const modulePatterns = ["apps", "packages", "cmd", "internal"];
@@ -83,8 +88,8 @@ export async function analyzepr(
   ]);
 
   const fileChanges = parseDiffToChangedLines(diffText);
-  const supportedFiles = fileChanges.filter((f) => isSupported(f.file));
-  const unsupportedFiles = fileChanges.filter((f) => !isSupported(f.file));
+  const supportedFiles = fileChanges.filter((f) => isSupported(f.file) && !isTestOrMockFile(f.file));
+  const unsupportedFiles = fileChanges.filter((f) => !isSupported(f.file) && !isTestOrMockFile(f.file));
 
   const allSymbols: ChangedSymbol[] = [];
   const allRelations: SymbolRelation[] = [];
@@ -113,8 +118,8 @@ export async function analyzepr(
   const allModuleTsFiles: string[] = [];
   for (const mod of modules) {
     const moduleDir = mod === "." ? cachedRepoDir : path.join(cachedRepoDir, mod);
-    allModuleGoFiles.push(...walkDir(moduleDir, GO_EXTENSIONS));
-    allModuleTsFiles.push(...walkDir(moduleDir, TS_EXTENSIONS));
+    allModuleGoFiles.push(...walkDir(moduleDir, GO_EXTENSIONS).filter((f) => !isTestOrMockFile(f)));
+    allModuleTsFiles.push(...walkDir(moduleDir, TS_EXTENSIONS).filter((f) => !isTestOrMockFile(f)));
   }
 
   // Go: バッチPass 1 — 全Goファイルからsymbol名を収集（1プロセス）
@@ -311,7 +316,6 @@ export async function analyzepr(
 
   // diffフィルタリング（2パス: 変更シンボル → 1ホップ拡張）
   const changedApps = new Set(allSymbols.filter((s) => s.changedLines.length > 0).map((s) => deriveApp(s.file)));
-  const isTestFile = (file: string) => /\.test\.[jt]sx?$|\.spec\.[jt]sx?$|_test\.go$|(?:^|\/)__tests__\//.test(file);
 
   const changedNames = new Set(allSymbols.map((s) => s.name));
   let relevantRelations = resolvedRelations.filter(
@@ -322,8 +326,9 @@ export async function analyzepr(
     const infos = symbolLookup.get(name);
     const info = infos?.find((i) => i.name === name);
     const file = info?.file ?? "";
-    if (file && !changedApps.has(deriveApp(file))) return false;
-    if (file && isTestFile(file)) return false;
+    if (!file) return false;
+    if (!changedApps.has(deriveApp(file))) return false;
+    if (isTestOrMockFile(file)) return false;
     allSymbols.push({
       id: `(context):${name}`,
       name,
@@ -363,8 +368,10 @@ export async function analyzepr(
     }
   }
 
+  const finalSymbolNames = new Set(allSymbols.map((s) => s.name));
   const seen = new Set<string>();
   const dedupedRelations = relevantRelations.filter((r) => {
+    if (!finalSymbolNames.has(r.from) || !finalSymbolNames.has(r.to)) return false;
     const key = `${r.from}:${r.to}:${r.kind}`;
     if (seen.has(key)) return false;
     seen.add(key);

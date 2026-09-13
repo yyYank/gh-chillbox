@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import path from "node:path";
-import { extractSymbolsFromFile, extractRelationsFromFile, extractHttpFromFile, inferRoutePathFromFilePath } from "./ast-ts";
+import { extractSymbolsFromFile, extractRelationsFromFile, extractHttpFromFile, inferRoutePathFromFilePath, matchPaths } from "./ast-ts";
 
 const FIXTURE = path.resolve(__dirname, "test-fixtures/sample.tsx");
 const ROUTE_FIXTURE = path.resolve(__dirname, "test-fixtures/app/api/users/route.ts");
@@ -90,11 +90,11 @@ describe("extractRelationsFromFile", () => {
 
 describe("inferRoutePathFromFilePath", () => {
   it("App Router route.tsからAPIパスを推定する", () => {
-    expect(inferRoutePathFromFilePath("apps/wizfan-ops/app/api/users/route.ts")).toBe("/api/users");
+    expect(inferRoutePathFromFilePath("apps/my-app/app/api/users/route.ts")).toBe("/api/users");
   });
 
   it("動的セグメント[id]を:idに変換する", () => {
-    expect(inferRoutePathFromFilePath("apps/wizfan-ops/app/api/users/[id]/route.ts")).toBe("/api/users/:id");
+    expect(inferRoutePathFromFilePath("apps/my-app/app/api/users/[id]/route.ts")).toBe("/api/users/:id");
   });
 
   it("ルートグループ(auth)を除去する", () => {
@@ -120,5 +120,32 @@ describe("extractHttpFromFile（App Router route.ts）", () => {
     expect(post).toBeDefined();
     const del = routes.find((r) => r.handler === "DELETE /api/users");
     expect(del).toBeDefined();
+  });
+});
+
+describe("matchPaths", () => {
+  it("完全一致するパスはtrueを返す", () => {
+    expect(matchPaths("/api/users", "/api/users")).toBe(true);
+  });
+
+  it("ワイルドカード同士はマッチする", () => {
+    expect(matchPaths("/api/users/:id", "/api/users/*")).toBe(true);
+  });
+
+  it("1セグメント差のサフィックスマッチはtrueを返す", () => {
+    expect(matchPaths("/identity/users/:id", "/rest/identity/users/:id")).toBe(true);
+  });
+
+  it("2セグメント以上の差はfalseを返す", () => {
+    expect(matchPaths("/users/:id", "/api/v1/users/:id")).toBe(false);
+  });
+
+  it("全く異なるパスはfalseを返す", () => {
+    expect(matchPaths("/api/ops/users", "/api/stream-proxy")).toBe(false);
+    expect(matchPaths("/api/ops/users/deletion", "/api/cms/events")).toBe(false);
+  });
+
+  it("空パスはfalseを返す", () => {
+    expect(matchPaths("/", "/api/users")).toBe(false);
   });
 });
