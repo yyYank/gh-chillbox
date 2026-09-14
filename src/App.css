@@ -2401,43 +2401,46 @@ th.col-rank {
 .cg-tree-branch {
   display: flex;
   flex-direction: column;
-  position: relative;
 }
 .cg-tree-branch-item {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   position: relative;
-  padding: 2px 0;
+  padding-left: 16px;
+  padding-top: 4px;
+  padding-bottom: 4px;
 }
+/* L字線: 上→ノード中心の縦線 + 水平線 */
 .cg-tree-branch-item::before {
   content: "";
   position: absolute;
   left: 0;
   top: 0;
-  bottom: 50%;
-  width: 12px;
+  height: 30px;
+  width: 16px;
   border-left: 1px solid var(--text-muted);
   border-bottom: 1px solid var(--text-muted);
 }
-.cg-tree-branch-item:not(:first-child)::before {
-  top: -2px;
-}
+/* 最初の子: 上からの縦線なし、水平線のみ */
 .cg-tree-branch-item:first-child::before {
-  top: 50%;
-  bottom: 50%;
-  border-bottom: 1px solid var(--text-muted);
   border-left: none;
 }
-.cg-tree-branch-item:not(.cg-tree-branch-last)::after {
+/* 下への縦線: ノード中心→下端 */
+.cg-tree-branch-item::after {
   content: "";
   position: absolute;
   left: 0;
-  top: 50%;
-  bottom: -2px;
+  top: 30px;
+  bottom: 0;
   border-left: 1px solid var(--text-muted);
 }
-.cg-tree-branch-item .cg-arrow {
-  margin-left: 12px;
+/* 最後の子: 下への縦線なし */
+.cg-tree-branch-last::after {
+  display: none;
+}
+/* 矢印をブランチ線の水平線に揃える */
+.cg-tree-branch-item > .cg-arrow {
+  margin-top: 18px;
 }
 
 /* Reading Order */
