@@ -518,6 +518,7 @@ export function analyzeTsFile(
   const httpRoutes: HttpRoute[] = [];
 
   const routePath = inferRoutePathFromFilePath(filePath);
+  const tsRouteRenames = new Map<string, string>();
   if (routePath) {
     for (const fn of sourceFile.getFunctions()) {
       const name = fn.getName();
@@ -525,6 +526,7 @@ export function analyzeTsFile(
         const displayName = `${name} ${routePath}`;
         const idx = symbols.findIndex((s) => s.name === name);
         if (idx !== -1) symbols[idx].name = displayName;
+        tsRouteRenames.set(name, displayName);
         httpRoutes.push({ handler: displayName, method: name, path: routePath, file: filePath });
       }
     }
@@ -536,9 +538,16 @@ export function analyzeTsFile(
           const displayName = `${name} ${routePath}`;
           const idx = symbols.findIndex((s) => s.name === name);
           if (idx !== -1) symbols[idx].name = displayName;
+          tsRouteRenames.set(name, displayName);
           httpRoutes.push({ handler: displayName, method: name, path: routePath, file: filePath });
         }
       }
+    }
+    for (const rel of relations) {
+      const newFrom = tsRouteRenames.get(rel.from);
+      const newTo = tsRouteRenames.get(rel.to);
+      if (newFrom) rel.from = newFrom;
+      if (newTo) rel.to = newTo;
     }
   }
 

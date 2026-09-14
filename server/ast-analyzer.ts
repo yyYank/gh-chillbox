@@ -324,17 +324,22 @@ export async function analyzepr(
     return parts[0] || "";
   }
 
-  // HTTPマッチング: fetch → route（異なるアプリ間のみ → moduleConnectionsへ分離）
+  // HTTPマッチング: fetch → route（同一アプリ→relations、異なるアプリ→moduleConnections）
   const allModuleConnections: SymbolRelation[] = [];
   for (const call of allHttpCalls) {
     for (const route of allHttpRoutes) {
       if (call.caller === route.handler) continue;
       if (call.method && route.method && call.method.toUpperCase() !== route.method.toUpperCase()) continue;
+      if (!matchPaths(call.path, route.path)) continue;
       const callApp = call.file ? deriveApp(call.file) : "";
       const routeApp = route.file ? deriveApp(route.file) : "";
-      if (callApp && routeApp && callApp === routeApp) continue;
-      if (!matchPaths(call.path, route.path)) continue;
-      allModuleConnections.push({ from: call.caller, to: route.handler, kind: "http-infer" });
+      if (callApp && routeApp && callApp === routeApp) {
+        const segments = call.path.split("/").filter(Boolean);
+        if (segments.length < 2) continue;
+        allRelations.push({ from: call.caller, to: route.handler, kind: "http-infer" });
+      } else {
+        allModuleConnections.push({ from: call.caller, to: route.handler, kind: "http-infer" });
+      }
     }
   }
 
