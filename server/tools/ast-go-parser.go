@@ -105,6 +105,8 @@ func extractReceiverType(expr ast.Expr) string {
 		return extractReceiverType(t.X)
 	case *ast.Ident:
 		return t.Name
+	case *ast.SelectorExpr:
+		return t.Sel.Name
 	}
 	return ""
 }

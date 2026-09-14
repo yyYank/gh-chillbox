@@ -302,14 +302,25 @@ export async function analyzepr(
     }
   }
 
-  // bare name → 修飾名 解決
+  // bare name → 修飾名 解決 (interface→concrete 解決を含む)
   function resolveRelations(rels: SymbolRelation[]): SymbolRelation[] {
+    const directEdges = new Set(rels.map((r) => `${r.from}\t${r.to}`));
     const resolved: SymbolRelation[] = [];
     for (const rel of rels) {
-      const toInfos = symbolLookup.get(rel.to);
-      if (!toInfos || toInfos.some((m) => m.name === rel.to)) {
+      let toInfos = symbolLookup.get(rel.to);
+      if (toInfos && toInfos.some((m) => m.name === rel.to)) {
         resolved.push(rel);
         continue;
+      }
+      if (!toInfos) {
+        const dotIdx = rel.to.lastIndexOf(".");
+        if (dotIdx !== -1) {
+          toInfos = symbolLookup.get(rel.to.slice(dotIdx + 1));
+        }
+        if (!toInfos) {
+          resolved.push(rel);
+          continue;
+        }
       }
 
       const fromInfos = symbolLookup.get(rel.from);
@@ -330,6 +341,7 @@ export async function analyzepr(
         const toDot = info.name.indexOf(".");
         const toType = toDot !== -1 ? info.name.slice(0, toDot) : "";
         if (fromType && toType && fromType === toType) continue;
+        if (directEdges.has(`${info.name}\t${rel.from}`)) continue;
         resolved.push({ from: rel.from, to: info.name, kind: rel.kind });
       }
     }
