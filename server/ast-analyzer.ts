@@ -214,6 +214,53 @@ export async function analyzepr(
     }
   }
 
+  // Swagger: operationId → METHOD /path でgoHandlerRenamesを上書き（swagger優先）
+  const swaggerDirs = [cachedRepoDir, path.join(cachedRepoDir, "docs")];
+  const openapiDir = path.join(cachedRepoDir, "openapi");
+  if (fs.existsSync(openapiDir)) {
+    try {
+      for (const sub of fs.readdirSync(openapiDir)) {
+        const subPath = path.join(openapiDir, sub);
+        if (fs.statSync(subPath).isDirectory()) swaggerDirs.push(subPath);
+      }
+    } catch {}
+  }
+  const methodNames = new Map<string, string[]>();
+  for (const [, result] of goPass2Results) {
+    for (const sym of result.symbols) {
+      if (sym.kind === "method") {
+        const dotIdx = sym.name.lastIndexOf(".");
+        if (dotIdx !== -1) {
+          const mn = sym.name.slice(dotIdx + 1);
+          const arr = methodNames.get(mn) ?? [];
+          arr.push(sym.name);
+          methodNames.set(mn, arr);
+        }
+      }
+    }
+  }
+  for (const dir of swaggerDirs) {
+    for (const fname of ["swagger.json", "openapi.json"]) {
+      const fp = path.join(dir, fname);
+      if (!fs.existsSync(fp)) continue;
+      try {
+        const spec = JSON.parse(fs.readFileSync(fp, "utf-8"));
+        for (const [pathStr, methods] of Object.entries(spec.paths ?? {})) {
+          for (const [method, detail] of Object.entries(methods as Record<string, any>)) {
+            if (!["get","post","put","delete","patch"].includes(method)) continue;
+            const opId = detail?.operationId;
+            if (!opId) continue;
+            const displayName = `${method.toUpperCase()} ${pathStr}`;
+            const exact = methodNames.get(opId);
+            if (exact && exact.length === 1) {
+              goHandlerRenames.set(exact[0], displayName);
+            }
+          }
+        }
+      } catch {}
+    }
+  }
+
   // Go: 変更ファイルのsymbol収集
   for (const { fc, fullPath } of changedGoFiles) {
     const result = goPass2Results.get(fullPath);
@@ -233,17 +280,6 @@ export async function analyzepr(
           endLine: sym.endLine,
           changedLines: overlapping,
         });
-      }
-    }
-  }
-
-  // Go: HTTPルートのハンドラ名をrelation内でも表示名に置換
-  if (goHandlerRenames.size > 0) {
-    for (let i = 0; i < allRelations.length; i++) {
-      const r = allRelations[i];
-      const newTo = goHandlerRenames.get(r.to);
-      if (newTo) {
-        allRelations[i] = { ...r, to: newTo };
       }
     }
   }
@@ -349,6 +385,18 @@ export async function analyzepr(
   }
 
   const resolvedRelations = resolveRelations(allRelations);
+
+  // Go: HTTPルートのハンドラ名をrelation内でも表示名に置換（resolveRelations後に実行）
+  if (goHandlerRenames.size > 0) {
+    for (let i = 0; i < resolvedRelations.length; i++) {
+      const r = resolvedRelations[i];
+      const newFrom = goHandlerRenames.get(r.from);
+      const newTo = goHandlerRenames.get(r.to);
+      if (newFrom || newTo) {
+        resolvedRelations[i] = { from: newFrom ?? r.from, to: newTo ?? r.to, kind: r.kind };
+      }
+    }
+  }
 
   // diffフィルタリング（2パス: 変更シンボル → 1ホップ拡張）
   const changedApps = new Set(allSymbols.filter((s) => s.changedLines.length > 0).map((s) => deriveApp(s.file)));

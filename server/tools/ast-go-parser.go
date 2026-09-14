@@ -214,6 +214,25 @@ func parseFile(filePath string, externalSymbols []string) FileResult {
 			}
 		}
 
+		if funcDecl.Doc != nil {
+			for _, comment := range funcDecl.Doc.List {
+				if idx := strings.Index(comment.Text, "@Router"); idx != -1 {
+					rest := strings.TrimSpace(comment.Text[idx+7:])
+					parts := strings.Fields(rest)
+					if len(parts) >= 2 {
+						routePath := parts[0]
+						routeMethod := strings.ToUpper(strings.Trim(parts[1], "[]"))
+						httpRoutes = append(httpRoutes, HttpRoute{
+							Method:  routeMethod,
+							Path:    routePath,
+							Handler: callerName,
+							Line:    fset.Position(funcDecl.Pos()).Line,
+						})
+					}
+				}
+			}
+		}
+
 		ast.Inspect(funcDecl.Body, func(n ast.Node) bool {
 			call, ok := n.(*ast.CallExpr)
 			if !ok {
