@@ -14,7 +14,8 @@ fi
 
 SYM_COUNT=$(echo "$JSON" | python3 -c "import json,sys; print(len(json.load(sys.stdin).get('symbols',[])))")
 REL_COUNT=$(echo "$JSON" | python3 -c "import json,sys; print(len(json.load(sys.stdin).get('relations',[])))")
-echo "symbols: ${SYM_COUNT}, relations: ${REL_COUNT}"
+MC_COUNT=$(echo "$JSON" | python3 -c "import json,sys; print(len(json.load(sys.stdin).get('moduleConnections',[])))")
+echo "symbols: ${SYM_COUNT}, relations: ${REL_COUNT}, moduleConnections: ${MC_COUNT}"
 
 if [ -n "$FILTER" ]; then
   echo "--- relations matching '${FILTER}' ---"
@@ -28,6 +29,17 @@ for r in matched:
 if not matched:
     print('(no match)')
 "
+  echo "--- moduleConnections matching '${FILTER}' ---"
+  echo "$JSON" | python3 -c "
+import json,sys
+f='${FILTER}'
+mc=json.load(sys.stdin).get('moduleConnections',[])
+matched=[r for r in mc if f in r.get('from','') or f in r.get('to','')]
+for r in matched:
+    print(r['from'],'⇢',r['to'],'('+r.get('kind','')+')')
+if not matched:
+    print('(no match)')
+"
 else
   echo "--- all relations ---"
   echo "$JSON" | python3 -c "
@@ -35,5 +47,14 @@ import json,sys
 rels=json.load(sys.stdin).get('relations',[])
 for r in rels:
     print(r['from'],'→',r['to'],'('+r.get('kind','')+')')
+"
+  echo "--- all moduleConnections ---"
+  echo "$JSON" | python3 -c "
+import json,sys
+mc=json.load(sys.stdin).get('moduleConnections',[])
+for r in mc:
+    print(r['from'],'⇢',r['to'],'('+r.get('kind','')+')')
+if not mc:
+    print('(none)')
 "
 fi

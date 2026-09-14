@@ -3,7 +3,7 @@ import path from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { parseDiffToChangedLines } from "./diff-parser";
-import { analyzeTsFile, matchPaths, type HttpCall, type HttpRoute } from "./ast-ts";
+import { analyzeTsFile, matchPaths, normalizePath, type HttpCall, type HttpRoute } from "./ast-ts";
 import { batchExtractGoFiles } from "./ast-go";
 import { ensureRepo, checkoutSha } from "./repo-cache";
 import type { ChangedSymbol, SymbolKind, SymbolRelation, AstAnalysisResult } from "./ast-types";
@@ -326,19 +326,35 @@ export async function analyzepr(
 
   // HTTPマッチング: fetch → route（同一アプリ→relations、異なるアプリ→moduleConnections）
   const allModuleConnections: SymbolRelation[] = [];
+  const mcContextAdded = new Set<string>();
   for (const call of allHttpCalls) {
     for (const route of allHttpRoutes) {
       if (call.caller === route.handler) continue;
       if (call.method && route.method && call.method.toUpperCase() !== route.method.toUpperCase()) continue;
-      if (!matchPaths(call.path, route.path)) continue;
       const callApp = call.file ? deriveApp(call.file) : "";
       const routeApp = route.file ? deriveApp(route.file) : "";
       if (callApp && routeApp && callApp === routeApp) {
+        if (!matchPaths(call.path, route.path)) continue;
         const segments = call.path.split("/").filter(Boolean);
         if (segments.length < 2) continue;
         allRelations.push({ from: call.caller, to: route.handler, kind: "http-infer" });
       } else {
+        const callNorm = normalizePath(call.path).replace(/^\/(rest|api|v[0-9]+)\//, "/");
+        const routeNorm = normalizePath(route.path).replace(/^\/(rest|api|v[0-9]+)\//, "/");
+        if (callNorm !== routeNorm) continue;
         allModuleConnections.push({ from: call.caller, to: route.handler, kind: "http-infer" });
+        if (route.file && !mcContextAdded.has(route.handler)) {
+          mcContextAdded.add(route.handler);
+          allSymbols.push({
+            id: `(mc-context):${route.handler}`,
+            name: route.handler,
+            kind: "function",
+            file: route.file,
+            startLine: 0,
+            endLine: 0,
+            changedLines: [],
+          });
+        }
       }
     }
   }

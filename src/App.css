@@ -2389,6 +2389,86 @@ th.col-rank {
   font-size: 1rem;
 }
 
+/* Module Connections */
+.mc-group {
+  margin-bottom: 16px;
+}
+.mc-group-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 6px;
+}
+.mc-group-app {
+  color: var(--text);
+  font-weight: 700;
+}
+.mc-group-arrow {
+  color: var(--text-muted);
+}
+.mc-row {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 4px 10px;
+}
+.mc-node {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.mc-symbol {
+  font-size: 0.78rem;
+  font-weight: 600;
+  font-family: var(--font-mono, monospace);
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mc-file {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  font-family: var(--font-mono, monospace);
+  white-space: nowrap;
+}
+.mc-method-badge {
+  display: inline-block;
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: #fff;
+  padding: 1px 5px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  line-height: 1.4;
+}
+.mc-edge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px;
+  flex-shrink: 0;
+}
+.mc-edge-arrow {
+  color: var(--accent);
+  font-size: 1rem;
+  opacity: 0.7;
+}
+.mc-edge-kind {
+  font-size: 0.6rem;
+  color: var(--text-muted);
+  background: var(--surface-alt);
+  padding: 1px 5px;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
 /* Tree layout */
 .cg-tree-row {
   display: flex;

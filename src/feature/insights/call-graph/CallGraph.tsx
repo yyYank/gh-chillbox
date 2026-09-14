@@ -318,6 +318,34 @@ type ModuleConnectionsCandidateProps = {
   moduleConnections: SymbolRelation[];
 };
 
+const HTTP_METHOD_COLORS: Record<string, string> = {
+  GET: "#34d399",
+  POST: "#60a5fa",
+  PATCH: "#fbbf24",
+  PUT: "#a78bfa",
+  DELETE: "#f87171",
+};
+
+const KIND_LABELS: Record<string, string> = {
+  "http-infer": "HTTP",
+  call: "call",
+  "method-call": "method",
+  "component-use": "component",
+  "hook-use": "hook",
+};
+
+function extractHttpMethod(name: string): string | null {
+  const match = name.match(/^(GET|POST|PUT|PATCH|DELETE)\s/);
+  return match ? match[1] : null;
+}
+
+type McGrouped = {
+  key: string;
+  fromApp: string;
+  toApp: string;
+  items: { mc: SymbolRelation; fromFile: string; toFile: string }[];
+};
+
 function ModuleConnectionsCandidate({ symbols, moduleConnections }: ModuleConnectionsCandidateProps) {
   if (moduleConnections.length === 0) {
     return <div className="cg-status">モジュール間接続の候補なし</div>;
@@ -325,45 +353,68 @@ function ModuleConnectionsCandidate({ symbols, moduleConnections }: ModuleConnec
 
   const symbolMap = new Map(symbols.map((s) => [s.name, s]));
 
+  const groups: McGrouped[] = [];
+  const groupMap = new Map<string, McGrouped>();
+  for (const mc of moduleConnections) {
+    const fromSym = symbolMap.get(mc.from);
+    const toSym = symbolMap.get(mc.to);
+    const fromApp = fromSym ? deriveAppName(fromSym.file) : "unknown";
+    const toApp = toSym ? deriveAppName(toSym.file) : "unknown";
+    const key = `${fromApp}→${toApp}`;
+    let group = groupMap.get(key);
+    if (!group) {
+      group = { key, fromApp, toApp, items: [] };
+      groupMap.set(key, group);
+      groups.push(group);
+    }
+    group.items.push({
+      mc,
+      fromFile: fromSym ? shortenFile(fromSym.file) : "",
+      toFile: toSym ? shortenFile(toSym.file) : "",
+    });
+  }
+
   return (
     <div className="cg-module-connections">
-      {moduleConnections.map((mc, i) => {
-        const fromSym = symbolMap.get(mc.from);
-        const toSym = symbolMap.get(mc.to);
-        const fromApp = fromSym ? deriveAppName(fromSym.file) : "unknown";
-        const toApp = toSym ? deriveAppName(toSym.file) : "unknown";
-        const fromFile = fromSym ? shortenFile(fromSym.file) : "";
-        const toFile = toSym ? shortenFile(toSym.file) : "";
-        return (
-          <div key={i} className="cg-flow-row">
-            <div className="cg-layer-group">
-              <div className="cg-layer-label">{fromApp}</div>
-              <div className="cg-layer-nodes">
-                <div className="cg-node-with-arrow">
-                  <div className="cg-box cg-box-changed" style={{ borderLeftColor: "#fbbf24" }}>
-                    <div className="cg-box-app">{fromApp}</div>
-                    <div className="cg-box-file">{fromFile}</div>
-                    <div className="cg-box-symbol">{mc.from}()</div>
-                  </div>
-                  <div className="cg-arrow cg-arrow-inferred">⇢</div>
-                </div>
-              </div>
-            </div>
-            <div className="cg-layer-group">
-              <div className="cg-layer-label">{toApp}</div>
-              <div className="cg-layer-nodes">
-                <div className="cg-node-with-arrow">
-                  <div className="cg-box cg-box-context" style={{ borderLeftColor: "#38bdf8" }}>
-                    <div className="cg-box-app">{toApp}</div>
-                    <div className="cg-box-file">{toFile}</div>
-                    <div className="cg-box-symbol">{mc.to}()</div>
-                  </div>
-                </div>
-              </div>
-            </div>
+      {groups.map((group) => (
+        <div key={group.key} className="mc-group">
+          <div className="mc-group-header">
+            <span className="mc-group-app">{group.fromApp}</span>
+            <span className="mc-group-arrow">→</span>
+            <span className="mc-group-app">{group.toApp}</span>
           </div>
-        );
-      })}
+          {group.items.map((item, i) => {
+            const fromMethod = extractHttpMethod(item.mc.from);
+            const toMethod = extractHttpMethod(item.mc.to);
+            return (
+              <div key={i} className="mc-row">
+                <div className="mc-node">
+                  {fromMethod && (
+                    <span className="mc-method-badge" style={{ background: HTTP_METHOD_COLORS[fromMethod] ?? "#6b7280" }}>
+                      {fromMethod}
+                    </span>
+                  )}
+                  <span className="mc-symbol">{item.mc.from}</span>
+                  <span className="mc-file">{item.fromFile}</span>
+                </div>
+                <div className="mc-edge">
+                  <span className="mc-edge-arrow">⇢</span>
+                  <span className="mc-edge-kind">{KIND_LABELS[item.mc.kind] ?? item.mc.kind}</span>
+                </div>
+                <div className="mc-node">
+                  {toMethod && (
+                    <span className="mc-method-badge" style={{ background: HTTP_METHOD_COLORS[toMethod] ?? "#6b7280" }}>
+                      {toMethod}
+                    </span>
+                  )}
+                  <span className="mc-symbol">{item.mc.to}</span>
+                  <span className="mc-file">{item.toFile}</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ))}
     </div>
   );
 }
