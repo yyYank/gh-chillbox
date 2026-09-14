@@ -265,7 +265,8 @@ export async function analyzepr(
     return parts[0] || "";
   }
 
-  // HTTPマッチング: fetch → route（異なるアプリ間のみ）
+  // HTTPマッチング: fetch → route（異なるアプリ間のみ → moduleConnectionsへ分離）
+  const allModuleConnections: SymbolRelation[] = [];
   for (const call of allHttpCalls) {
     for (const route of allHttpRoutes) {
       if (call.caller === route.handler) continue;
@@ -274,7 +275,7 @@ export async function analyzepr(
       const routeApp = route.file ? deriveApp(route.file) : "";
       if (callApp && routeApp && callApp === routeApp) continue;
       if (!matchPaths(call.path, route.path)) continue;
-      allRelations.push({ from: call.caller, to: route.handler, kind: "http-infer" });
+      allModuleConnections.push({ from: call.caller, to: route.handler, kind: "http-infer" });
     }
   }
 
@@ -353,15 +354,24 @@ export async function analyzepr(
     }
   }
 
-  const finalSymbolNames = new Set(allSymbols.map((s) => s.name));
+  const finalSymbolMap = new Map(allSymbols.map((s) => [s.name, s]));
   const seen = new Set<string>();
-  const dedupedRelations = relevantRelations.filter((r) => {
-    if (!finalSymbolNames.has(r.from) || !finalSymbolNames.has(r.to)) return false;
+  const dedupedRelations: SymbolRelation[] = [];
+  for (const r of relevantRelations) {
+    const fromSym = finalSymbolMap.get(r.from);
+    const toSym = finalSymbolMap.get(r.to);
+    if (!fromSym || !toSym) continue;
     const key = `${r.from}:${r.to}:${r.kind}`;
-    if (seen.has(key)) return false;
+    if (seen.has(key)) continue;
     seen.add(key);
-    return true;
-  });
+    const fromApp = deriveApp(fromSym.file);
+    const toApp = deriveApp(toSym.file);
+    if (fromApp && toApp && fromApp !== toApp) {
+      allModuleConnections.push(r);
+    } else {
+      dedupedRelations.push(r);
+    }
+  }
 
-  return { symbols: allSymbols, relations: dedupedRelations };
+  return { symbols: allSymbols, relations: dedupedRelations, moduleConnections: allModuleConnections };
 }

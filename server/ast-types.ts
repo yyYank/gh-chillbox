@@ -35,4 +35,5 @@ export type GoHttpRoute = {
 export type AstAnalysisResult = {
   symbols: ChangedSymbol[];
   relations: SymbolRelation[];
+  moduleConnections: SymbolRelation[];
 };

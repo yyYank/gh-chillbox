@@ -59,23 +59,6 @@ function toFlowNode(node: GraphNode): FlowNode {
   };
 }
 
-type LayerGroup = {
-  label: string;
-  nodes: FlowNode[];
-};
-
-function groupByLayer(chain: FlowNode[]): LayerGroup[] {
-  const groups: LayerGroup[] = [];
-  let current: LayerGroup | null = null;
-  for (const node of chain) {
-    if (!current || current.label !== node.appName) {
-      current = { label: node.appName, nodes: [] };
-      groups.push(current);
-    }
-    current.nodes.push(node);
-  }
-  return groups;
-}
 
 const NODE_TYPE_COLORS: Record<string, string> = {
   component: "#34d399",
@@ -102,8 +85,10 @@ export function CallGraph({ repo, prNumber }: Props) {
   const [relations, setRelations] = useState<SymbolRelation[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [moduleConnections, setModuleConnections] = useState<SymbolRelation[]>([]);
   const [hops, setHops] = useState(1);
   const [includeTests, setIncludeTests] = useState(false);
+  const [activeTab, setActiveTab] = useState<"callgraph" | "module-connections">("callgraph");
 
   useEffect(() => {
     setLoading(true);
@@ -118,6 +103,7 @@ export function CallGraph({ repo, prNumber }: Props) {
         if (d.error) throw new Error(d.error);
         setSymbols(d.symbols ?? []);
         setRelations(d.relations ?? []);
+        setModuleConnections(d.moduleConnections ?? []);
       })
       .catch((e) => setError(e instanceof Error ? e.message : "解析に失敗しました"))
       .finally(() => setLoading(false));
@@ -144,13 +130,34 @@ export function CallGraph({ repo, prNumber }: Props) {
   const confidenceMap = buildEdgeConfidenceMap(edges);
 
   const roots = findRoots(nodes, edges);
-  const chains = buildChains(roots, nodes, edges);
+  const trees = buildTrees(roots, nodes, edges);
 
-  const hasFlow = chains.some((c) => c.length > 1);
+  const hasFlow = trees.some((t) => t.children.length > 0);
   const testCount = symbols.filter((s) => isTestFile(s.file)).length;
 
   return (
     <div className="cg-container">
+      <div className="cg-tab-bar">
+        <button
+          type="button"
+          className={`cg-tab${activeTab === "callgraph" ? " cg-tab-active" : ""}`}
+          onClick={() => setActiveTab("callgraph")}
+        >
+          Call Graph
+        </button>
+        <button
+          type="button"
+          className={`cg-tab${activeTab === "module-connections" ? " cg-tab-active" : ""}`}
+          onClick={() => setActiveTab("module-connections")}
+        >
+          Module Connections Candidate{moduleConnections.length > 0 ? ` (${moduleConnections.length})` : ""}
+        </button>
+      </div>
+
+      {activeTab === "module-connections" ? (
+        <ModuleConnectionsCandidate symbols={symbols} moduleConnections={moduleConnections} />
+      ) : (
+      <>
       <div className="cg-header">
         <span className="cg-title">Change Flow</span>
         <div className="cg-controls">
@@ -185,44 +192,9 @@ export function CallGraph({ repo, prNumber }: Props) {
 
       {hasFlow ? (
         <div className="cg-flow-scroll">
-          {chains.filter((c) => c.length > 1).map((chain, ci) => {
-            const flowNodes = chain.map(toFlowNode);
-            const layerGroups = groupByLayer(flowNodes);
-            return (
-              <div key={ci} className="cg-flow-row">
-                {layerGroups.map((group, gi) => (
-                  <div key={gi} className="cg-layer-group">
-                    <div className="cg-layer-label">{group.label}</div>
-                    <div className="cg-layer-nodes">
-                      {group.nodes.map((node, ni) => {
-                        const actuallyLast = gi === layerGroups.length - 1 && ni === group.nodes.length - 1;
-                        const nextNode = !actuallyLast ? getNextNodeInChain(chain, node) : null;
-                        const edgeConfidence = nextNode ? confidenceMap.get(`${node.id}→${nextNode.id}`) : undefined;
-                        const isDashed = edgeConfidence === "low";
-                        return (
-                          <div key={node.id} className="cg-node-with-arrow">
-                            <div
-                              className={`cg-box${node.changed ? " cg-box-changed" : " cg-box-context"}`}
-                              style={{ borderLeftColor: NODE_TYPE_COLORS[node.type] ?? "#6b7280" }}
-                            >
-                              <div className="cg-box-app">{node.appName}</div>
-                              <div className="cg-box-file">{node.fileName}</div>
-                              <div className="cg-box-symbol">{node.name}()</div>
-                            </div>
-                            {!actuallyLast && (
-                              <div className={`cg-arrow${isDashed ? " cg-arrow-inferred" : ""}`}>
-                                {isDashed ? "⇢" : "→"}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            );
-          })}
+          {trees.filter((t) => t.children.length > 0).map((tree, ti) => (
+            <CallTreeNode key={ti} tree={tree} confidenceMap={confidenceMap} />
+          ))}
         </div>
       ) : (
         <div className="cg-status">接続された呼び出し経路が見つかりませんでした</div>
@@ -248,15 +220,16 @@ export function CallGraph({ repo, prNumber }: Props) {
           </ol>
         </div>
       )}
+      </>
+      )}
     </div>
   );
 }
 
-function getNextNodeInChain(chain: GraphNode[], current: GraphNode): GraphNode | null {
-  const idx = chain.indexOf(current);
-  if (idx < 0 || idx >= chain.length - 1) return null;
-  return chain[idx + 1];
-}
+type CallTree = {
+  node: FlowNode;
+  children: CallTree[];
+};
 
 function findRoots(nodes: GraphNode[], edges: GraphEdge[]): GraphNode[] {
   const hasIncoming = new Set(edges.map((e) => e.to));
@@ -265,43 +238,132 @@ function findRoots(nodes: GraphNode[], edges: GraphEdge[]): GraphNode[] {
   return roots;
 }
 
-function buildChains(roots: GraphNode[], nodes: GraphNode[], edges: GraphEdge[]): GraphNode[][] {
+function buildTrees(roots: GraphNode[], nodes: GraphNode[], edges: GraphEdge[]): CallTree[] {
   const outgoing = new Map<string, string[]>();
   for (const e of edges) {
     outgoing.set(e.from, [...(outgoing.get(e.from) ?? []), e.to]);
   }
   const nodeMap = new Map(nodes.map((n) => [n.id, n]));
-  const chains: GraphNode[][] = [];
   const visited = new Set<string>();
 
-  function walk(id: string, chain: GraphNode[]) {
-    if (visited.has(id)) {
-      if (chain.length > 0) chains.push(chain);
-      return;
-    }
+  function build(id: string): CallTree | null {
+    if (visited.has(id)) return null;
     visited.add(id);
     const node = nodeMap.get(id);
-    if (!node) return;
-    chain.push(node);
-    const targets = outgoing.get(id);
-    if (!targets || targets.length === 0) {
-      chains.push(chain);
-      return;
-    }
+    if (!node) return null;
+    const targets = outgoing.get(id) ?? [];
+    const children: CallTree[] = [];
     for (const t of targets) {
-      walk(t, [...chain]);
+      const child = build(t);
+      if (child) children.push(child);
     }
+    return { node: toFlowNode(node), children };
   }
 
+  const trees: CallTree[] = [];
   for (const root of roots) {
-    walk(root.id, []);
+    const tree = build(root.id);
+    if (tree) trees.push(tree);
+  }
+  return trees;
+}
+
+function CallTreeNode({ tree, confidenceMap, depth = 0 }: {
+  tree: CallTree;
+  confidenceMap: Map<string, GraphEdge["confidence"]>;
+  depth?: number;
+}) {
+  const { node, children } = tree;
+
+  if (children.length === 0) {
+    return (
+      <div className="cg-tree-leaf">
+        <div
+          className={`cg-box${node.changed ? " cg-box-changed" : " cg-box-context"}`}
+          style={{ borderLeftColor: NODE_TYPE_COLORS[node.type] ?? "#6b7280" }}
+        >
+          <div className="cg-box-app">{node.appName}</div>
+          <div className="cg-box-file">{node.fileName}</div>
+          <div className="cg-box-symbol">{node.name}()</div>
+        </div>
+      </div>
+    );
   }
 
-  const seen = new Set<string>();
-  return chains.filter((chain) => {
-    const key = chain.map((n) => n.id).join("\0");
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
+  return (
+    <div className="cg-tree-row">
+      <div
+        className={`cg-box${node.changed ? " cg-box-changed" : " cg-box-context"}`}
+        style={{ borderLeftColor: NODE_TYPE_COLORS[node.type] ?? "#6b7280" }}
+      >
+        <div className="cg-box-app">{node.appName}</div>
+        <div className="cg-box-file">{node.fileName}</div>
+        <div className="cg-box-symbol">{node.name}()</div>
+      </div>
+      <div className="cg-tree-branch">
+        {children.map((child, i) => (
+          <div key={i} className={`cg-tree-branch-item${i === children.length - 1 ? " cg-tree-branch-last" : ""}`}>
+            <div className="cg-tree-branch-line" />
+            <div className="cg-arrow">→</div>
+            <CallTreeNode tree={child} confidenceMap={confidenceMap} depth={depth + 1} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+type ModuleConnectionsCandidateProps = {
+  symbols: ChangedSymbol[];
+  moduleConnections: SymbolRelation[];
+};
+
+function ModuleConnectionsCandidate({ symbols, moduleConnections }: ModuleConnectionsCandidateProps) {
+  if (moduleConnections.length === 0) {
+    return <div className="cg-status">モジュール間接続の候補なし</div>;
+  }
+
+  const symbolMap = new Map(symbols.map((s) => [s.name, s]));
+
+  return (
+    <div className="cg-module-connections">
+      {moduleConnections.map((mc, i) => {
+        const fromSym = symbolMap.get(mc.from);
+        const toSym = symbolMap.get(mc.to);
+        const fromApp = fromSym ? deriveAppName(fromSym.file) : "unknown";
+        const toApp = toSym ? deriveAppName(toSym.file) : "unknown";
+        const fromFile = fromSym ? shortenFile(fromSym.file) : "";
+        const toFile = toSym ? shortenFile(toSym.file) : "";
+        return (
+          <div key={i} className="cg-flow-row">
+            <div className="cg-layer-group">
+              <div className="cg-layer-label">{fromApp}</div>
+              <div className="cg-layer-nodes">
+                <div className="cg-node-with-arrow">
+                  <div className="cg-box cg-box-changed" style={{ borderLeftColor: "#fbbf24" }}>
+                    <div className="cg-box-app">{fromApp}</div>
+                    <div className="cg-box-file">{fromFile}</div>
+                    <div className="cg-box-symbol">{mc.from}()</div>
+                  </div>
+                  <div className="cg-arrow cg-arrow-inferred">⇢</div>
+                </div>
+              </div>
+            </div>
+            <div className="cg-layer-group">
+              <div className="cg-layer-label">{toApp}</div>
+              <div className="cg-layer-nodes">
+                <div className="cg-node-with-arrow">
+                  <div className="cg-box cg-box-context" style={{ borderLeftColor: "#38bdf8" }}>
+                    <div className="cg-box-app">{toApp}</div>
+                    <div className="cg-box-file">{toFile}</div>
+                    <div className="cg-box-symbol">{mc.to}()</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
 }
