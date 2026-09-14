@@ -127,6 +127,9 @@ func parseFile(filePath string, externalSymbols []string) FileResult {
 		}
 	}
 
+	// structフィールドマップ: structName → {fieldName: typeName}
+	structFieldMap := map[string]map[string]string{}
+
 	ast.Inspect(f, func(n ast.Node) bool {
 		switch decl := n.(type) {
 		case *ast.FuncDecl:
@@ -151,11 +154,23 @@ func parseFile(filePath string, externalSymbols []string) FileResult {
 				switch s := spec.(type) {
 				case *ast.TypeSpec:
 					kind := "type"
-					switch s.Type.(type) {
+					switch st := s.Type.(type) {
 					case *ast.InterfaceType:
 						kind = "interface"
+						_ = st
 					case *ast.StructType:
 						kind = "struct"
+						fields := map[string]string{}
+						for _, field := range st.Fields.List {
+							typeName := extractReceiverType(field.Type)
+							if typeName == "" {
+								continue
+							}
+							for _, name := range field.Names {
+								fields[name.Name] = typeName
+							}
+						}
+						structFieldMap[s.Name.Name] = fields
 					}
 					symbols = append(symbols, Symbol{
 						Name:      s.Name.Name,
@@ -178,54 +193,95 @@ func parseFile(filePath string, externalSymbols []string) FileResult {
 	seen := map[string]bool{}
 	var httpRoutes []HttpRoute
 
-	ast.Inspect(f, func(n ast.Node) bool {
-		call, ok := n.(*ast.CallExpr)
-		if !ok {
-			return true
+	// FuncDecl単位で走査（レシーバのフィールド型を使った修飾名解決）
+	for _, decl := range f.Decls {
+		funcDecl, ok := decl.(*ast.FuncDecl)
+		if !ok || funcDecl.Body == nil {
+			continue
 		}
 
-		line := fset.Position(call.Pos()).Line
-		caller := findContainingSymbol(symbols, line)
-
-		switch fn := call.Fun.(type) {
-		case *ast.Ident:
-			if caller != "" && bareNameSet[fn.Name] && fn.Name != caller {
-				key := caller + ":" + fn.Name + ":call"
-				if !seen[key] {
-					seen[key] = true
-					relations = append(relations, Relation{From: caller, To: fn.Name, Kind: "call"})
-				}
+		callerName := funcDecl.Name.Name
+		var receiverVarName, receiverTypeName string
+		if funcDecl.Recv != nil && len(funcDecl.Recv.List) > 0 {
+			receiverTypeName = extractReceiverType(funcDecl.Recv.List[0].Type)
+			if receiverTypeName != "" {
+				callerName = receiverTypeName + "." + funcDecl.Name.Name
 			}
-		case *ast.SelectorExpr:
-			methodName := fn.Sel.Name
+			if len(funcDecl.Recv.List[0].Names) > 0 {
+				receiverVarName = funcDecl.Recv.List[0].Names[0].Name
+			}
+		}
 
-			if httpMethods[methodName] && len(call.Args) >= 2 {
-				if pathArg, ok := call.Args[0].(*ast.BasicLit); ok {
-					pathVal := strings.Trim(pathArg.Value, `"`)
-					if strings.HasPrefix(pathVal, "/") {
-						handlerName := extractHandlerName(call.Args[len(call.Args)-1])
-						method := httpMethodMap[methodName]
-						httpRoutes = append(httpRoutes, HttpRoute{
-							Method:  method,
-							Path:    pathVal,
-							Handler: handlerName,
-							Line:    line,
-						})
+		ast.Inspect(funcDecl.Body, func(n ast.Node) bool {
+			call, ok := n.(*ast.CallExpr)
+			if !ok {
+				return true
+			}
+
+			switch fn := call.Fun.(type) {
+			case *ast.Ident:
+				if bareNameSet[fn.Name] && fn.Name != callerName {
+					key := callerName + ":" + fn.Name + ":call"
+					if !seen[key] {
+						seen[key] = true
+						relations = append(relations, Relation{From: callerName, To: fn.Name, Kind: "call"})
+					}
+				}
+			case *ast.SelectorExpr:
+				methodName := fn.Sel.Name
+
+				// HTTPルート検出
+				if httpMethods[methodName] && len(call.Args) >= 2 {
+					if pathArg, ok := call.Args[0].(*ast.BasicLit); ok {
+						pathVal := strings.Trim(pathArg.Value, `"`)
+						if strings.HasPrefix(pathVal, "/") {
+							handlerName := resolveHandlerName(call.Args[len(call.Args)-1], receiverVarName, receiverTypeName, structFieldMap)
+							method := httpMethodMap[methodName]
+							line := fset.Position(call.Pos()).Line
+							httpRoutes = append(httpRoutes, HttpRoute{
+								Method:  method,
+								Path:    pathVal,
+								Handler: handlerName,
+								Line:    line,
+							})
+						}
+					}
+				}
+
+				// h.field.Method() パターン: レシーバのフィールド型で修飾名解決
+				resolved := false
+				if innerSel, ok := fn.X.(*ast.SelectorExpr); ok {
+					if ident, ok := innerSel.X.(*ast.Ident); ok {
+						fieldName := innerSel.Sel.Name
+						if ident.Name == receiverVarName && receiverTypeName != "" {
+							if fields, ok := structFieldMap[receiverTypeName]; ok {
+								if fieldType, ok := fields[fieldName]; ok {
+									qualifiedTo := fieldType + "." + methodName
+									key := callerName + ":" + qualifiedTo + ":method-call"
+									if !seen[key] {
+										seen[key] = true
+										relations = append(relations, Relation{From: callerName, To: qualifiedTo, Kind: "method-call"})
+									}
+									resolved = true
+								}
+							}
+						}
+					}
+				}
+
+				// フォールバック: bare nameマッチング
+				if !resolved && bareNameSet[methodName] {
+					key := callerName + ":" + methodName + ":method-call"
+					if !seen[key] {
+						seen[key] = true
+						relations = append(relations, Relation{From: callerName, To: methodName, Kind: "method-call"})
 					}
 				}
 			}
 
-			if caller != "" && bareNameSet[methodName] {
-				key := caller + ":" + methodName + ":method-call"
-				if !seen[key] {
-					seen[key] = true
-					relations = append(relations, Relation{From: caller, To: methodName, Kind: "method-call"})
-				}
-			}
-		}
-
-		return true
-	})
+			return true
+		})
+	}
 
 	if relations == nil {
 		relations = []Relation{}
@@ -237,18 +293,6 @@ func parseFile(filePath string, externalSymbols []string) FileResult {
 	return FileResult{Symbols: symbols, Relations: relations, HttpRoutes: httpRoutes}
 }
 
-func findContainingSymbol(symbols []Symbol, line int) string {
-	for _, sym := range symbols {
-		if sym.Kind != "function" && sym.Kind != "method" {
-			continue
-		}
-		if line >= sym.StartLine && line <= sym.EndLine {
-			return sym.Name
-		}
-	}
-	return ""
-}
-
 func extractHandlerName(expr ast.Expr) string {
 	switch e := expr.(type) {
 	case *ast.Ident:
@@ -257,4 +301,28 @@ func extractHandlerName(expr ast.Expr) string {
 		return e.Sel.Name
 	}
 	return ""
+}
+
+func resolveHandlerName(expr ast.Expr, receiverVarName, receiverTypeName string, structFieldMap map[string]map[string]string) string {
+	sel, ok := expr.(*ast.SelectorExpr)
+	if !ok {
+		return extractHandlerName(expr)
+	}
+	methodName := sel.Sel.Name
+
+	// s.field.Method パターン: s がレシーバ変数名なら structFieldMap で型解決
+	if innerSel, ok := sel.X.(*ast.SelectorExpr); ok {
+		if ident, ok := innerSel.X.(*ast.Ident); ok {
+			fieldName := innerSel.Sel.Name
+			if ident.Name == receiverVarName && receiverTypeName != "" {
+				if fields, ok := structFieldMap[receiverTypeName]; ok {
+					if fieldType, ok := fields[fieldName]; ok {
+						return fieldType + "." + methodName
+					}
+				}
+			}
+		}
+	}
+
+	return extractHandlerName(expr)
 }

@@ -192,13 +192,24 @@ export async function analyzepr(
   const allHttpCalls: HttpCall[] = [];
   const allHttpRoutes: HttpRoute[] = [];
 
+  const goHandlerRenames = new Map<string, string>();
   for (const [goFile, result] of goPass2Results) {
     const relFile = path.relative(cachedRepoDir, goFile);
     allRelations.push(...result.relations);
     for (const route of result.httpRoutes) {
-      allHttpRoutes.push({ handler: route.handler, method: route.method, path: route.path, file: relFile });
+      if (route.handler && route.method && route.path) {
+        const displayName = `${route.method} ${route.path}`;
+        goHandlerRenames.set(route.handler, displayName);
+        allHttpRoutes.push({ handler: displayName, method: route.method, path: route.path, file: relFile });
+      } else {
+        allHttpRoutes.push({ handler: route.handler, method: route.method, path: route.path, file: relFile });
+      }
     }
     for (const sym of result.symbols) {
+      const displayName = goHandlerRenames.get(sym.name);
+      if (displayName) {
+        addToLookup(displayName, sym.kind, relFile);
+      }
       addToLookup(sym.name, sym.kind, relFile);
     }
   }
@@ -212,15 +223,27 @@ export async function analyzepr(
         (line) => line >= sym.startLine && line <= sym.endLine,
       );
       if (overlapping.length > 0) {
+        const displayName = goHandlerRenames.get(sym.name) ?? sym.name;
         allSymbols.push({
-          id: `${fc.file}:${sym.name}`,
-          name: sym.name,
+          id: `${fc.file}:${displayName}`,
+          name: displayName,
           kind: sym.kind,
           file: fc.file,
           startLine: sym.startLine,
           endLine: sym.endLine,
           changedLines: overlapping,
         });
+      }
+    }
+  }
+
+  // Go: HTTPルートのハンドラ名をrelation内でも表示名に置換
+  if (goHandlerRenames.size > 0) {
+    for (let i = 0; i < allRelations.length; i++) {
+      const r = allRelations[i];
+      const newTo = goHandlerRenames.get(r.to);
+      if (newTo) {
+        allRelations[i] = { ...r, to: newTo };
       }
     }
   }
