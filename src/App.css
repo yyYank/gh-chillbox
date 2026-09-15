@@ -871,6 +871,23 @@ th.col-rank {
   overflow: hidden;
 }
 
+.pr-detail-accordion-row {
+  display: flex;
+  align-items: center;
+}
+.pr-detail-accordion-row .pr-detail-accordion {
+  flex: 1;
+  min-width: 0;
+}
+.select-all-checkbox {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  margin: 0 16px 0 0;
+  cursor: pointer;
+  accent-color: var(--accent);
+}
+
 .pr-detail-accordion {
   display: flex;
   align-items: center;
@@ -1377,6 +1394,12 @@ th.col-rank {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.chat-diff-controls {
+  padding: 6px 20px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-alt);
 }
 
 .chat-diff-toggle {
@@ -2410,6 +2433,23 @@ th.col-rank {
 }
 .mc-group-arrow {
   color: var(--text-muted);
+}
+.mc-column-header {
+  display: flex;
+  align-items: center;
+  padding: 2px 10px;
+  font-size: 0.65rem;
+  color: var(--text);
+  opacity: 0.8;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 2px;
+}
+.mc-column-label {
+  font-weight: 600;
+}
+.mc-column-score {
+  margin-left: auto;
+  padding-left: 8px;
 }
 .mc-row {
   display: flex;

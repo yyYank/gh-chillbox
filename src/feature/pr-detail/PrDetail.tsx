@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { marked } from "marked";
 import mermaid from "mermaid";
 import { ArrowLeft, ChevronDown, ChevronRight, MessageSquareQuote } from "lucide-react";
@@ -107,6 +107,15 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
       return next;
     });
   }, []);
+
+  const allFilePaths = useMemo(() => data ? data.files.map(f => f.path) : [], [data]);
+
+  const handleSelectAll = useCallback(() => {
+    setSelectedFiles(prev => {
+      if (prev.size === allFilePaths.length) return new Set();
+      return new Set(allFilePaths);
+    });
+  }, [allFilePaths]);
 
   const clearSelection = useCallback(() => {
     setSelectedFiles(new Set());
@@ -305,21 +314,33 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
             </h2>
 
             <div className="pr-detail-section">
-              <button
-                type="button"
-                className="pr-detail-accordion"
-                onClick={() => {
-                  const next = !filesOpen;
-                  setFilesOpen(next);
-                  try { localStorage.setItem(`${storagePrefix}:filesOpen`, String(next)); } catch {}
-                }}
-              >
-                {filesOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                変更ファイル ({data.files.length})
-                {selectedFiles.size > 0 && (
-                  <span className="selected-count">{selectedFiles.size} 選択中</span>
-                )}
-              </button>
+              <div className="pr-detail-accordion-row">
+                <button
+                  type="button"
+                  className="pr-detail-accordion"
+                  onClick={() => {
+                    const next = !filesOpen;
+                    setFilesOpen(next);
+                    try { localStorage.setItem(`${storagePrefix}:filesOpen`, String(next)); } catch {}
+                  }}
+                >
+                  {filesOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                  変更ファイル ({data.files.length})
+                  {selectedFiles.size > 0 && (
+                    <span className="selected-count">{selectedFiles.size} 選択中</span>
+                  )}
+                </button>
+                <input
+                  type="checkbox"
+                  className="select-all-checkbox"
+                  title="全選択"
+                  checked={selectedFiles.size === data.files.length && data.files.length > 0}
+                  ref={(el) => {
+                    if (el) el.indeterminate = selectedFiles.size > 0 && selectedFiles.size < data.files.length;
+                  }}
+                  onChange={handleSelectAll}
+                />
+              </div>
               {filesOpen && (
                 <div className="pr-detail-tree-wrap" ref={treeWrapRef}>
                   <FileTree

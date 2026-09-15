@@ -182,20 +182,24 @@ export function ChatPanel({ selectedFiles, quotedText, repo, prNumber, prTitle, 
                   <li key={f} className="chat-file-item">{f}</li>
                 ))}
               </ul>
-              <label className="chat-diff-toggle">
-                <input type="checkbox" checked={includeDiff} onChange={(e) => setIncludeDiff(e.target.checked)} />
-                PR diffを含める
-                {diffLoading && <span className="chat-diff-loading">取得中…</span>}
-              </label>
-              {includeDiff && diffCharCount !== null && diffCharCount > 15000 && (
-                <div className={`chat-diff-warning ${diffCharCount > 50000 ? "chat-diff-warning-red" : "chat-diff-warning-yellow"}`}>
-                  <AlertTriangle size={14} />
-                  {diffCharCount > 50000
-                    ? `diff が ${Math.round(diffCharCount / 1000)}k文字あります。分割を検討してください`
-                    : `diff が ${Math.round(diffCharCount / 1000)}k文字あります。指示が埋もれる可能性があります`}
-                </div>
-              )}
             </>
+          )}
+        </div>
+      )}
+      {selectedFiles.length > 0 && !quotedText && (
+        <div className="chat-diff-controls">
+          <label className="chat-diff-toggle">
+            <input type="checkbox" checked={includeDiff} onChange={(e) => setIncludeDiff(e.target.checked)} />
+            PR diffを含める
+            {diffLoading && <span className="chat-diff-loading">取得中…</span>}
+          </label>
+          {includeDiff && diffCharCount !== null && diffCharCount > 15000 && (
+            <div className={`chat-diff-warning ${diffCharCount > 50000 ? "chat-diff-warning-red" : "chat-diff-warning-yellow"}`}>
+              <AlertTriangle size={14} />
+              {diffCharCount > 50000
+                ? `diff が ${Math.round(diffCharCount / 1000)}k文字あります。分割を検討してください`
+                : `diff が ${Math.round(diffCharCount / 1000)}k文字あります。指示が埋もれる可能性があります`}
+            </div>
           )}
         </div>
       )}
