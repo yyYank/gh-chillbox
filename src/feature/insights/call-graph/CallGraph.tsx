@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Star } from "lucide-react";
 import {
   buildCallGraph,
   extractSubgraph,
@@ -155,7 +156,7 @@ export function CallGraph({ repo, prNumber }: Props) {
       </div>
 
       {activeTab === "module-connections" ? (
-        <ModuleConnectionsCandidate symbols={symbols} moduleConnections={moduleConnections} />
+        <ModuleConnectionsCandidate symbols={symbols} moduleConnections={moduleConnections} relations={relations} />
       ) : (
       <>
       <div className="cg-header">
@@ -316,6 +317,7 @@ function CallTreeNode({ tree, confidenceMap, depth = 0 }: {
 type ModuleConnectionsCandidateProps = {
   symbols: ChangedSymbol[];
   moduleConnections: SymbolRelation[];
+  relations: SymbolRelation[];
 };
 
 const HTTP_METHOD_COLORS: Record<string, string> = {
@@ -334,24 +336,73 @@ const KIND_LABELS: Record<string, string> = {
   "hook-use": "hook",
 };
 
+function McStars({ score }: { score: number }) {
+  const count = score >= 5 ? 3 : score >= 3 ? 2 : score >= 1 ? 1 : 0;
+  if (count === 0) return null;
+  return (
+    <span className="mc-stars" title={`候補スコア: ${score}`}>
+      {Array.from({ length: count }, (_, i) => (
+        <Star key={i} size={12} fill="#fbbf24" stroke="#fbbf24" />
+      ))}
+    </span>
+  );
+}
+
 function extractHttpMethod(name: string): string | null {
   const match = name.match(/^(GET|POST|PUT|PATCH|DELETE)\s/);
   return match ? match[1] : null;
 }
 
+type ScoredMc = {
+  mc: SymbolRelation;
+  fromFile: string;
+  toFile: string;
+  score: number;
+};
+
 type McGrouped = {
   key: string;
   fromApp: string;
   toApp: string;
-  items: { mc: SymbolRelation; fromFile: string; toFile: string }[];
+  items: ScoredMc[];
 };
 
-function ModuleConnectionsCandidate({ symbols, moduleConnections }: ModuleConnectionsCandidateProps) {
+function scoreMc(mc: SymbolRelation, callerChildren: Set<string>): number {
+  let score = 0;
+  const toPath = mc.to.replace(/^(GET|POST|PUT|PATCH|DELETE)\s/, "");
+  const segments = toPath.split("/").filter(Boolean);
+  score += Math.min(segments.length, 6);
+  const fromMethod = extractHttpMethod(mc.from);
+  const toMethod = extractHttpMethod(mc.to);
+  if (fromMethod && toMethod && fromMethod === toMethod) score += 2;
+  if (callerChildren.has(mc.from)) score -= 3;
+  return score;
+}
+
+function ModuleConnectionsCandidate({ symbols, moduleConnections, relations }: ModuleConnectionsCandidateProps) {
+  const [showAll, setShowAll] = useState(false);
+
   if (moduleConnections.length === 0) {
     return <div className="cg-status">モジュール間接続の候補なし</div>;
   }
 
   const symbolMap = new Map(symbols.map((s) => [s.name, s]));
+
+  const mcCallers = new Set(moduleConnections.map((mc) => mc.from));
+  const callerChildren = new Set<string>();
+  for (const rel of relations) {
+    if (mcCallers.has(rel.from) && mcCallers.has(rel.to)) {
+      callerChildren.add(rel.to);
+    }
+  }
+  for (const mc of moduleConnections) {
+    if (!mcCallers.has(mc.from)) continue;
+    for (const rel of relations) {
+      if (rel.from === mc.from && mcCallers.has(rel.to)) {
+        callerChildren.add(rel.to);
+      }
+    }
+  }
 
   const groups: McGrouped[] = [];
   const groupMap = new Map<string, McGrouped>();
@@ -371,50 +422,73 @@ function ModuleConnectionsCandidate({ symbols, moduleConnections }: ModuleConnec
       mc,
       fromFile: fromSym ? shortenFile(fromSym.file) : "",
       toFile: toSym ? shortenFile(toSym.file) : "",
+      score: scoreMc(mc, callerChildren),
     });
   }
 
+  for (const group of groups) {
+    group.items.sort((a, b) => b.score - a.score);
+  }
+
+  const SCORE_THRESHOLD = 3;
+
   return (
     <div className="cg-module-connections">
-      {groups.map((group) => (
-        <div key={group.key} className="mc-group">
-          <div className="mc-group-header">
-            <span className="mc-group-app">{group.fromApp}</span>
-            <span className="mc-group-arrow">→</span>
-            <span className="mc-group-app">{group.toApp}</span>
+      {groups.map((group) => {
+        const highItems = group.items.filter((it) => it.score >= SCORE_THRESHOLD);
+        const lowItems = group.items.filter((it) => it.score < SCORE_THRESHOLD);
+        const visibleItems = showAll ? group.items : highItems;
+        return (
+          <div key={group.key} className="mc-group">
+            <div className="mc-group-header">
+              <span className="mc-group-app">{group.fromApp}</span>
+              <span className="mc-group-arrow">→</span>
+              <span className="mc-group-app">{group.toApp}</span>
+            </div>
+            {visibleItems.map((item, i) => {
+              const fromMethod = extractHttpMethod(item.mc.from);
+              const toMethod = extractHttpMethod(item.mc.to);
+              return (
+                <div key={i} className={`mc-row${item.score < SCORE_THRESHOLD ? " mc-row-low" : ""}`}>
+                  <div className="mc-node">
+                    {fromMethod && (
+                      <span className="mc-method-badge" style={{ background: HTTP_METHOD_COLORS[fromMethod] ?? "#6b7280" }}>
+                        {fromMethod}
+                      </span>
+                    )}
+                    <span className="mc-symbol">{item.mc.from}</span>
+                    <span className="mc-file">{item.fromFile}</span>
+                  </div>
+                  <div className="mc-edge">
+                    <span className="mc-edge-arrow">⇢</span>
+                    <span className="mc-edge-kind">{KIND_LABELS[item.mc.kind] ?? item.mc.kind}</span>
+                  </div>
+                  <div className="mc-node">
+                    {toMethod && (
+                      <span className="mc-method-badge" style={{ background: HTTP_METHOD_COLORS[toMethod] ?? "#6b7280" }}>
+                        {toMethod}
+                      </span>
+                    )}
+                    <span className="mc-symbol">{item.mc.to}</span>
+                    <span className="mc-file">{item.toFile}</span>
+                  </div>
+                  <McStars score={item.score} />
+                </div>
+              );
+            })}
+            {!showAll && lowItems.length > 0 && (
+              <button type="button" className="mc-show-more" onClick={() => setShowAll(true)}>
+                + {lowItems.length} more
+              </button>
+            )}
           </div>
-          {group.items.map((item, i) => {
-            const fromMethod = extractHttpMethod(item.mc.from);
-            const toMethod = extractHttpMethod(item.mc.to);
-            return (
-              <div key={i} className="mc-row">
-                <div className="mc-node">
-                  {fromMethod && (
-                    <span className="mc-method-badge" style={{ background: HTTP_METHOD_COLORS[fromMethod] ?? "#6b7280" }}>
-                      {fromMethod}
-                    </span>
-                  )}
-                  <span className="mc-symbol">{item.mc.from}</span>
-                  <span className="mc-file">{item.fromFile}</span>
-                </div>
-                <div className="mc-edge">
-                  <span className="mc-edge-arrow">⇢</span>
-                  <span className="mc-edge-kind">{KIND_LABELS[item.mc.kind] ?? item.mc.kind}</span>
-                </div>
-                <div className="mc-node">
-                  {toMethod && (
-                    <span className="mc-method-badge" style={{ background: HTTP_METHOD_COLORS[toMethod] ?? "#6b7280" }}>
-                      {toMethod}
-                    </span>
-                  )}
-                  <span className="mc-symbol">{item.mc.to}</span>
-                  <span className="mc-file">{item.toFile}</span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      ))}
+        );
+      })}
+      {showAll && (
+        <button type="button" className="mc-show-more" onClick={() => setShowAll(false)}>
+          collapse
+        </button>
+      )}
     </div>
   );
 }

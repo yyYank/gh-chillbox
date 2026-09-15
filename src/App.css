@@ -2469,6 +2469,32 @@ th.col-rank {
   white-space: nowrap;
 }
 
+.mc-row-low {
+  opacity: 0.5;
+}
+.mc-stars {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  margin-left: auto;
+  padding-left: 8px;
+  flex-shrink: 0;
+}
+.mc-show-more {
+  display: block;
+  margin: 4px 10px;
+  padding: 2px 8px;
+  font-size: 0.7rem;
+  color: var(--accent);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+}
+.mc-show-more:hover {
+  background: var(--surface-alt);
+}
+
 /* Tree layout */
 .cg-tree-row {
   display: flex;
