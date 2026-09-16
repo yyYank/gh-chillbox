@@ -48,6 +48,21 @@ type PrComment = {
   createdAt: string;
 };
 
+type Detection = {
+  index: number;
+  line: number;
+  column: number;
+  word: string;
+  message: string;
+};
+
+type HumanizeResult = {
+  rewritten: string;
+  before: Detection[];
+  after: Detection[];
+  replaced: { from: string; to: string; index: number }[];
+};
+
 type PrDetailData = {
   number: number;
   title: string;
@@ -79,6 +94,12 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
   });
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
   const [quotedText, setQuotedText] = useState<string | null>(null);
+  const [quotedFromRewritten, setQuotedFromRewritten] = useState(false);
+  // タブ状態は localStorage に保存しない（復元するとPRを開くたびに claude -p が走るため）
+  const [bodyTab, setBodyTab] = useState<"raw" | "natural">("raw");
+  const [humanized, setHumanized] = useState<HumanizeResult | null>(null);
+  const [humanizing, setHumanizing] = useState(false);
+  const [humanizeError, setHumanizeError] = useState<string | null>(null);
   const [chatOpen, setChatOpen] = useState(() => {
     try {
       const raw = localStorage.getItem(`gh-chillbox:chat:${repo}:${prNumber}`);
@@ -87,7 +108,7 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
   });
   const [activeTab, setActiveTab] = useState<"chat" | "diff" | "insight">("chat");
   const [insightTab, setInsightTab] = useState<"surface" | "ast" | "callgraph">("surface");
-  const [floatingBtn, setFloatingBtn] = useState<{ x: number; y: number; text: string } | null>(null);
+  const [floatingBtn, setFloatingBtn] = useState<{ x: number; y: number; text: string; fromBody: boolean } | null>(null);
   const [mermaidModal, setMermaidModal] = useState<string | null>(null);
   const [modalScale, setModalScale] = useState(1);
   const bodyRef = useRef<HTMLDivElement>(null);
@@ -120,6 +141,7 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
   const clearSelection = useCallback(() => {
     setSelectedFiles(new Set());
     setQuotedText(null);
+    setQuotedFromRewritten(false);
     setFloatingBtn(null);
   }, []);
 
@@ -138,16 +160,18 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
     }
     const range = sel!.getRangeAt(0);
     const rect = range.getBoundingClientRect();
-    setFloatingBtn({ x: rect.left + rect.width / 2, y: rect.top - 8, text });
+    setFloatingBtn({ x: rect.left + rect.width / 2, y: rect.top - 8, text, fromBody: !!inBody });
   }, []);
 
   const handleQuote = useCallback(() => {
     if (!floatingBtn) return;
     setSelectedFiles(new Set());
     setQuotedText(floatingBtn.text);
+    // 書き換え後タブからの引用は原文に存在しないので、chat 側でその旨を伝える
+    setQuotedFromRewritten(floatingBtn.fromBody && bodyTab === "natural");
     setFloatingBtn(null);
     window.getSelection()?.removeAllRanges();
-  }, [floatingBtn]);
+  }, [floatingBtn, bodyTab]);
 
   useEffect(() => {
     const dismiss = (e: MouseEvent) => {
@@ -165,6 +189,9 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
   useEffect(() => {
     setLoading(true);
     setError(null);
+    setBodyTab("raw");
+    setHumanized(null);
+    setHumanizeError(null);
     const params = new URLSearchParams({ repo, number: String(prNumber) });
     fetch(`/api/pr-detail?${params}`)
       .then((res) => {
@@ -190,7 +217,36 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
     };
   }, [data?.title, data?.number, onTitleChange]);
 
-  const rawBodyHtml = data?.body ? proxyImageUrls(marked.parse(data.body) as string) : "";
+  const runHumanize = useCallback(async () => {
+    if (!data?.body) return;
+    setHumanizing(true);
+    setHumanizeError(null);
+    try {
+      const res = await fetch("/api/pr-body/humanize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ repo, prNumber, body: data.body }),
+      });
+      const d = await res.json();
+      if (!res.ok || d.error) throw new Error(d.error ?? `API error: ${res.status}`);
+      setHumanized(d);
+    } catch (e) {
+      setHumanizeError(e instanceof Error ? e.message : "書き換えに失敗しました");
+    } finally {
+      setHumanizing(false);
+    }
+  }, [data?.body, repo, prNumber]);
+
+  const handleNaturalTab = useCallback(() => {
+    setBodyTab("natural");
+    if (!humanized && !humanizing) runHumanize();
+  }, [humanized, humanizing, runHumanize]);
+
+  const bodySource = bodyTab === "natural" ? humanized?.rewritten ?? "" : data?.body ?? "";
+  const rawBodyHtml = useMemo(
+    () => (bodySource ? proxyImageUrls(marked.parse(bodySource) as string) : ""),
+    [bodySource],
+  );
   const [renderedBody, setRenderedBody] = useState("");
 
   useEffect(() => {
@@ -368,13 +424,44 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
               </button>
               {bodyOpen && (
                 data.body ? (
-                  <div
-                    ref={bodyRef}
-                    className="pr-detail-body markdown-body"
-                    dangerouslySetInnerHTML={{ __html: renderedBody }}
-                    onMouseUp={handleTextMouseUp}
-                    onClick={handleMermaidClick}
-                  />
+                  <>
+                    <div className="pr-body-tabs">
+                      <button
+                        type="button"
+                        className={`pr-body-tab${bodyTab === "raw" ? " active" : ""}`}
+                        onClick={() => setBodyTab("raw")}
+                      >
+                        原文
+                      </button>
+                      <button
+                        type="button"
+                        className={`pr-body-tab${bodyTab === "natural" ? " active" : ""}`}
+                        onClick={handleNaturalTab}
+                      >
+                        AIぽさを無くす
+                      </button>
+                      {bodyTab === "natural" && humanized && (
+                        <span className="pr-body-lint-summary">
+                          AIっぽい語 {humanized.before.length}件 → {humanized.after.length}件
+                          {humanized.replaced.length > 0 &&
+                            `（置換: ${humanized.replaced.map((r) => `${r.from}→${r.to}`).join("、")}）`}
+                        </span>
+                      )}
+                    </div>
+                    {bodyTab === "natural" && humanizing ? (
+                      <p className="pr-detail-empty">書き換え中…</p>
+                    ) : bodyTab === "natural" && humanizeError ? (
+                      <p className="pr-detail-empty">書き換えに失敗しました: {humanizeError}</p>
+                    ) : (
+                      <div
+                        ref={bodyRef}
+                        className="pr-detail-body markdown-body"
+                        dangerouslySetInnerHTML={{ __html: renderedBody }}
+                        onMouseUp={handleTextMouseUp}
+                        onClick={handleMermaidClick}
+                      />
+                    )}
+                  </>
                 ) : (
                   <p className="pr-detail-empty">本文なし</p>
                 )
@@ -490,6 +577,7 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
             <ChatPanel
               selectedFiles={selectedArray}
               quotedText={quotedText}
+              quotedFromRewritten={quotedFromRewritten}
               repo={repo}
               prNumber={prNumber}
               prTitle={data?.title ?? ""}

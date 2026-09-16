@@ -10,6 +10,7 @@ type Message = {
 type Props = {
   selectedFiles: string[];
   quotedText: string | null;
+  quotedFromRewritten?: boolean;
   repo: string;
   prNumber: number;
   prTitle: string;
@@ -25,7 +26,7 @@ function loadMessages(key: string): Message[] {
   } catch { return []; }
 }
 
-export function ChatPanel({ selectedFiles, quotedText, repo, prNumber, prTitle, prBody, onClearSelection, onCloseChat }: Props) {
+export function ChatPanel({ selectedFiles, quotedText, quotedFromRewritten, repo, prNumber, prTitle, prBody, onClearSelection, onCloseChat }: Props) {
   const storageKey = `gh-chillbox:chat:${repo}:${prNumber}`;
   const [messages, setMessages] = useState<Message[]>(() => loadMessages(storageKey));
   const [input, setInput] = useState("");
@@ -78,6 +79,7 @@ export function ChatPanel({ selectedFiles, quotedText, repo, prNumber, prTitle, 
       const payload: Record<string, unknown> = { repo, prNumber, question, prTitle, prBody };
       if (quotedText) {
         payload.quotedText = quotedText;
+        if (quotedFromRewritten) payload.quotedFromRewritten = true;
       } else {
         payload.files = selectedFiles;
         if (includeDiff) payload.includeDiff = true;
@@ -113,6 +115,7 @@ export function ChatPanel({ selectedFiles, quotedText, repo, prNumber, prTitle, 
       const payload: Record<string, unknown> = { repo, prNumber, question, prTitle, prBody };
       if (quotedText) {
         payload.quotedText = quotedText;
+        if (quotedFromRewritten) payload.quotedFromRewritten = true;
       } else {
         payload.files = selectedFiles;
         if (includeDiff) payload.includeDiff = true;

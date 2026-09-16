@@ -2,6 +2,8 @@ import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
+import { lintJa } from "./textlint";
+import { replaceAiWords } from "./ai-words";
 
 const execFileAsync = promisify(execFile);
 
@@ -236,15 +238,18 @@ type ChatBody = {
   prTitle: string;
   prBody: string;
   includeDiff?: boolean;
+  quotedFromRewritten?: boolean;
 };
 
 async function buildContextParts(body: ChatBody): Promise<string[]> {
-  const { repo, prNumber, files, quotedText, includeDiff } = body;
+  const { repo, prNumber, files, quotedText, includeDiff, quotedFromRewritten } = body;
   const parts: string[] = [];
 
   if (quotedText) {
     parts.push(
-      "## 引用テキスト（PR本文から選択）",
+      quotedFromRewritten
+        ? "## 引用テキスト（PR本文から選択・textlint適用後の書き換え文なので原文とは表現が異なります）"
+        : "## 引用テキスト（PR本文から選択）",
       `> ${quotedText.replace(/\n/g, "\n> ")}`,
     );
   } else if (files && files.length > 0) {
@@ -368,6 +373,24 @@ app.delete("/chat/session", async (c) => {
   const sessionKey = `${repo}:${prNumber}`;
   chatSessions.delete(sessionKey);
   return c.json({ ok: true });
+});
+
+app.post("/pr-body/humanize", async (c) => {
+  const { body } = await c.req.json<{ repo: string; prNumber: number; body: string }>();
+  if (!body || !body.trim()) {
+    return c.json({ error: "body is required" }, 400);
+  }
+
+  try {
+    const before = await lintJa(body);
+    const { rewritten, replaced } = replaceAiWords(body, before);
+    const after = await lintJa(rewritten);
+    return c.json({ rewritten, before, after, replaced });
+  } catch (e) {
+    console.error("[humanize] failed:", e);
+    const message = e instanceof Error ? e.message : "Unknown error";
+    return c.json({ error: message }, 500);
+  }
 });
 
 app.get("/ast-analysis", async (c) => {
