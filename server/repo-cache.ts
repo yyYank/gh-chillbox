@@ -23,7 +23,7 @@ export async function ensureRepo(fullRepo: string): Promise<string> {
       "clone",
       "--filter=blob:none",
       "--quiet",
-      `https://github.com/${fullRepo}.git`,
+      `git@github.com:${fullRepo}.git`,
       dir,
     ], { timeout: 120000 });
   }
