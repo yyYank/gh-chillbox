@@ -586,7 +586,13 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
               onCloseChat={() => setChatOpen(false)}
             />
           ) : activeTab === "diff" ? (
-            <DiffPanel repo={repo} prNumber={prNumber} onFileHeaderClick={handleDiffFileHeaderClick} />
+            <DiffPanel
+              repo={repo}
+              prNumber={prNumber}
+              prTitle={data?.title ?? ""}
+              prBody={data?.body ?? ""}
+              onFileHeaderClick={handleDiffFileHeaderClick}
+            />
           ) : (
             <div className="insight-panel">
               <div className="insight-sub-tabs">

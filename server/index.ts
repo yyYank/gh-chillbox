@@ -5,6 +5,7 @@ import { promisify } from "node:util";
 import { lintJa } from "./textlint";
 import { replaceAiWords } from "./ai-words";
 import { ensureRepo, checkoutSha } from "./repo-cache";
+import { chatSessionKey } from "./chat-session";
 
 const execFileAsync = promisify(execFile);
 
@@ -240,13 +241,21 @@ type ChatBody = {
   prBody: string;
   includeDiff?: boolean;
   quotedFromRewritten?: boolean;
+  diffThread?: { key: string; path: string; start: string; end: string; code: string };
 };
 
 async function buildContextParts(body: ChatBody): Promise<string[]> {
-  const { repo, prNumber, files, quotedText, includeDiff, quotedFromRewritten } = body;
+  const { repo, prNumber, files, quotedText, includeDiff, quotedFromRewritten, diffThread } = body;
   const parts: string[] = [];
 
-  if (quotedText) {
+  if (diffThread) {
+    parts.push(
+      `## 質問対象のdiff行（${diffThread.path} ${diffThread.start}〜${diffThread.end}、R=変更後の行番号 L=変更前の行番号）`,
+      "```diff",
+      diffThread.code,
+      "```",
+    );
+  } else if (quotedText) {
     parts.push(
       quotedFromRewritten
         ? "## 引用テキスト（PR本文から選択・textlint適用後の書き換え文なので原文とは表現が異なります）"
@@ -321,7 +330,7 @@ app.post("/chat/preview", async (c) => {
     return c.json({ error: "repo, prNumber, and question are required" }, 400);
   }
 
-  const sessionKey = `${repo}:${prNumber}`;
+  const sessionKey = chatSessionKey({ repo, prNumber, threadKey: body.diffThread?.key });
   const hasSession = chatSessions.has(sessionKey);
 
   if (hasSession) {
@@ -341,7 +350,7 @@ app.post("/chat", async (c) => {
     return c.json({ error: "repo, prNumber, and question are required" }, 400);
   }
 
-  const sessionKey = `${repo}:${prNumber}`;
+  const sessionKey = chatSessionKey({ repo, prNumber, threadKey: body.diffThread?.key });
   const existingSessionId = chatSessions.get(sessionKey);
 
   const allowedTools = "WebSearch,Read,Grep,Glob,Bash(gh pr view *),Bash(gh pr diff *),Bash(gh api repos/*/commits/*),Bash(gh api repos/*/compare/*),Bash(gh search *)";
@@ -381,12 +390,12 @@ app.post("/chat", async (c) => {
 });
 
 app.delete("/chat/session", async (c) => {
-  const body = await c.req.json<{ repo: string; prNumber: number }>();
-  const { repo, prNumber } = body;
+  const body = await c.req.json<{ repo: string; prNumber: number; threadKey?: string }>();
+  const { repo, prNumber, threadKey } = body;
   if (!repo || !prNumber) {
     return c.json({ error: "repo and prNumber are required" }, 400);
   }
-  const sessionKey = `${repo}:${prNumber}`;
+  const sessionKey = chatSessionKey({ repo, prNumber, threadKey });
   chatSessions.delete(sessionKey);
   return c.json({ ok: true });
 });

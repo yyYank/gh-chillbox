@@ -1,13 +1,25 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
-import { Search, FolderOpen, FileText, ChevronDown, ChevronRight } from "lucide-react";
+import { Fragment, useState, useEffect, useMemo, useCallback } from "react";
+import { Search, FolderOpen, FileText, ChevronDown, ChevronRight, MessageSquarePlus } from "lucide-react";
 import { filterDiffFiles, type DiffFileEntry } from "./diff-filters";
 import { parseDiff } from "./diff-parse";
+import { buildThreadAnchor, lineLabel, type ThreadAnchor, type ThreadMessage } from "./diff-threads";
+import { loadThreads, appendThreadMessage, removeThread, type ThreadMap } from "./diff-thread-storage";
+import { DiffThreadView } from "./DiffThreadView";
 
 type Props = {
   repo: string;
   prNumber: number;
+  prTitle?: string;
+  prBody?: string;
   onFileHeaderClick?: (path: string) => void;
 };
+
+function lineIdxOf(node: Node): { path: string; idx: number } | null {
+  const el = (node instanceof Element ? node : node.parentElement)?.closest<HTMLElement>("[data-line-idx]");
+  const body = el?.closest<HTMLElement>("[data-path]");
+  if (!el || !body) return null;
+  return { path: body.dataset.path!, idx: Number(el.dataset.lineIdx) };
+}
 
 function loadCollapsed(repo: string, prNumber: number): Set<string> {
   try {
@@ -22,13 +34,35 @@ function saveCollapsed(repo: string, prNumber: number, collapsed: Set<string>) {
   } catch {}
 }
 
-export function DiffPanel({ repo, prNumber, onFileHeaderClick }: Props) {
+export function DiffPanel({ repo, prNumber, prTitle = "", prBody = "", onFileHeaderClick }: Props) {
   const [diff, setDiff] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pathQuery, setPathQuery] = useState("");
   const [textQuery, setTextQuery] = useState("");
   const [collapsedFiles, setCollapsedFiles] = useState<Set<string>>(() => loadCollapsed(repo, prNumber));
+  const [threads, setThreads] = useState<ThreadMap>(() => loadThreads(repo, prNumber));
+  const [pending, setPending] = useState<ThreadAnchor | null>(null);
+  const [floatingBtn, setFloatingBtn] = useState<{ x: number; y: number; anchor: ThreadAnchor } | null>(null);
+
+  useEffect(() => {
+    setThreads(loadThreads(repo, prNumber));
+    setPending(null);
+  }, [repo, prNumber]);
+
+  const handleAppend = useCallback((anchor: ThreadAnchor, msg: ThreadMessage) => {
+    setThreads(appendThreadMessage(repo, prNumber, anchor, msg));
+    setPending((p) => (p?.key === anchor.key ? null : p));
+  }, [repo, prNumber]);
+
+  const handleDelete = useCallback((key: string) => {
+    setThreads(removeThread(repo, prNumber, key));
+    fetch("/api/chat/session", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ repo, prNumber, threadKey: key }),
+    }).catch(() => {});
+  }, [repo, prNumber]);
 
   const toggleCollapse = useCallback((path: string) => {
     setCollapsedFiles((prev) => {
@@ -74,6 +108,49 @@ export function DiffPanel({ repo, prNumber, onFileHeaderClick }: Props) {
     [allFiles, filteredPaths],
   );
 
+  const handleMouseUp = () => {
+    const sel = window.getSelection();
+    if (!sel || sel.isCollapsed || !sel.toString().trim()) {
+      setFloatingBtn(null);
+      return;
+    }
+    const range = sel.getRangeAt(0);
+    const from = lineIdxOf(range.startContainer);
+    const to = lineIdxOf(range.endContainer);
+    if (!from || !to || from.path !== to.path) {
+      setFloatingBtn(null);
+      return;
+    }
+    // 行末まで選ぶと終点が次の行の先頭になるので、その行は含めない
+    const toIdx = range.endOffset === 0 && to.idx > from.idx ? to.idx - 1 : to.idx;
+    const file = allFiles.find((f) => f.path === from.path);
+    const anchor = file && buildThreadAnchor(file, from.idx, toIdx);
+    if (!anchor) {
+      setFloatingBtn(null);
+      return;
+    }
+    const rect = range.getBoundingClientRect();
+    setFloatingBtn({ x: rect.left + rect.width / 2, y: rect.top - 8, anchor });
+  };
+
+  const handleStartThread = () => {
+    if (!floatingBtn) return;
+    if (!threads[floatingBtn.anchor.key]) setPending(floatingBtn.anchor);
+    setFloatingBtn(null);
+    window.getSelection()?.removeAllRanges();
+  };
+
+  const threadsEndingAt = (path: string, label: string | null) => {
+    if (!label) return [];
+    const list: { anchor: ThreadAnchor; messages: ThreadMessage[] }[] = Object.values(threads)
+      .filter((t) => t.path === path && t.end === label)
+      .map(({ messages, ...anchor }) => ({ anchor, messages }));
+    if (pending && pending.path === path && pending.end === label && !threads[pending.key]) {
+      list.push({ anchor: pending, messages: [] });
+    }
+    return list;
+  };
+
   if (loading) return <div className="diff-panel-status">diff を読み込み中…</div>;
   if (error) return <div className="diff-panel-status diff-panel-error">{error}</div>;
   if (!diff) return <div className="diff-panel-status">差分なし</div>;
@@ -107,7 +184,7 @@ export function DiffPanel({ repo, prNumber, onFileHeaderClick }: Props) {
         </span>
       </div>
 
-      <div className="diff-panel-content">
+      <div className="diff-panel-content" onMouseUp={handleMouseUp}>
         {filteredFiles.length === 0 ? (
           <div className="diff-panel-status">一致するファイルがありません</div>
         ) : (
@@ -138,16 +215,34 @@ export function DiffPanel({ repo, prNumber, onFileHeaderClick }: Props) {
                   </span>
                 </div>
                 {!collapsed && (
-                  <div className="diff-file-body">
+                  <div className="diff-file-body" data-path={file.path}>
                     {file.lines.map((line, j) => (
-                      <div key={j} className={`diff-line diff-line-${line.type}`}>
-                        <span className="diff-line-marker">
-                          {line.type === "add" ? "+" : line.type === "del" ? "-" : line.type === "hunk" ? "" : " "}
-                        </span>
-                        <span className="diff-line-content">
-                          {line.type === "hunk" ? line.content : line.content || " "}
-                        </span>
-                      </div>
+                      <Fragment key={j}>
+                        <div data-line-idx={j} className={`diff-line diff-line-${line.type}`}>
+                          <span className="diff-line-num">{line.oldLine ?? ""}</span>
+                          <span className="diff-line-num">{line.newLine ?? ""}</span>
+                          <span className="diff-line-marker">
+                            {line.type === "add" ? "+" : line.type === "del" ? "-" : line.type === "hunk" ? "" : " "}
+                          </span>
+                          <span className="diff-line-content">
+                            {line.type === "hunk" ? line.content : line.content || " "}
+                          </span>
+                        </div>
+                        {threadsEndingAt(file.path, lineLabel(line)).map(({ anchor, messages }) => (
+                          <DiffThreadView
+                            key={anchor.key}
+                            anchor={anchor}
+                            messages={messages}
+                            repo={repo}
+                            prNumber={prNumber}
+                            prTitle={prTitle}
+                            prBody={prBody}
+                            onAppend={handleAppend}
+                            onDelete={handleDelete}
+                            onCancel={() => setPending(null)}
+                          />
+                        ))}
+                      </Fragment>
                     ))}
                   </div>
                 )}
@@ -156,6 +251,18 @@ export function DiffPanel({ repo, prNumber, onFileHeaderClick }: Props) {
           })
         )}
       </div>
+      {floatingBtn && (
+        <button
+          type="button"
+          className="quote-floating-btn"
+          style={{ position: "fixed", left: floatingBtn.x, top: floatingBtn.y, transform: "translate(-50%, -100%)" }}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={handleStartThread}
+        >
+          <MessageSquarePlus size={14} />
+          この行について質問
+        </button>
+      )}
     </div>
   );
 }

@@ -1,6 +1,8 @@
 export type DiffLine = {
   type: "add" | "del" | "context" | "hunk";
   content: string;
+  oldLine: number | null;
+  newLine: number | null;
 };
 
 export type DiffFile = {
@@ -21,6 +23,8 @@ export function parseDiff(raw: string): DiffFile[] {
     let additions = 0;
     let deletions = 0;
     const lines: DiffLine[] = [];
+    let oldLine = 0;
+    let newLine = 0;
 
     for (const line of sectionLines) {
       if (
@@ -34,15 +38,25 @@ export function parseDiff(raw: string): DiffFile[] {
         continue;
       }
       if (line.startsWith("@@")) {
-        lines.push({ type: "hunk", content: line });
+        const m = line.match(/^@@ -(\d+)(?:,\d+)? \+(\d+)/);
+        if (m) {
+          oldLine = parseInt(m[1], 10);
+          newLine = parseInt(m[2], 10);
+        }
+        lines.push({ type: "hunk", content: line, oldLine: null, newLine: null });
       } else if (line.startsWith("+")) {
         additions++;
-        lines.push({ type: "add", content: line.slice(1) });
+        lines.push({ type: "add", content: line.slice(1), oldLine: null, newLine: newLine++ });
       } else if (line.startsWith("-")) {
         deletions++;
-        lines.push({ type: "del", content: line.slice(1) });
+        lines.push({ type: "del", content: line.slice(1), oldLine: oldLine++, newLine: null });
       } else if (line !== "\\ No newline at end of file") {
-        lines.push({ type: "context", content: line.startsWith(" ") ? line.slice(1) : line });
+        lines.push({
+          type: "context",
+          content: line.startsWith(" ") ? line.slice(1) : line,
+          oldLine: oldLine++,
+          newLine: newLine++,
+        });
       }
     }
 
