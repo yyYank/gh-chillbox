@@ -4,6 +4,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { lintJa } from "./textlint";
 import { replaceAiWords } from "./ai-words";
+import { ensureRepo, checkoutSha } from "./repo-cache";
 
 const execFileAsync = promisify(execFile);
 
@@ -284,6 +285,12 @@ async function buildInitialPrompt(body: ChatBody): Promise<string> {
     "",
     ...await buildContextParts(body),
     "",
+    "## 回答ルール",
+    "- 必ずコードを読んでから答える。カレントディレクトリはPRのheadをcheckoutしたリポジトリ",
+    "- PR本文やdiffだけを根拠に結論を出さない",
+    "- 影響を答えるときは、画面から部品に渡される値までたどって実際に表示・実行されるかを確かめる",
+    "- コードを読めないときは「読めていないので判断できない」と答える",
+    "",
     "## 質問",
     question,
   ];
@@ -337,7 +344,7 @@ app.post("/chat", async (c) => {
   const sessionKey = `${repo}:${prNumber}`;
   const existingSessionId = chatSessions.get(sessionKey);
 
-  const allowedTools = "WebSearch,Bash(gh pr view *),Bash(gh pr diff *),Bash(gh api repos/*/commits/*),Bash(gh api repos/*/compare/*),Bash(gh search *)";
+  const allowedTools = "WebSearch,Read,Grep,Glob,Bash(gh pr view *),Bash(gh pr diff *),Bash(gh api repos/*/commits/*),Bash(gh api repos/*/compare/*),Bash(gh search *)";
   const args: string[] = ["-p"];
 
   if (existingSessionId) {
@@ -349,7 +356,16 @@ app.post("/chat", async (c) => {
   }
 
   try {
+    const { stdout: prJson } = await execFileAsync("gh", [
+      "pr", "view", String(prNumber), "--repo", repo,
+      "--json", "headRefOid",
+    ]);
+    const { headRefOid: sha } = JSON.parse(prJson);
+    const repoDir = await ensureRepo(repo);
+    await checkoutSha(repoDir, sha);
+
     const { stdout } = await execFileAsync("claude", args, {
+      cwd: repoDir,
       timeout: 120000,
     });
     const parsed = JSON.parse(stdout);
