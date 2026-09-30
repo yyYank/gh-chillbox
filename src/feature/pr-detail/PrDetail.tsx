@@ -8,6 +8,7 @@ import { DiffPanel } from "../pr-diff/DiffPanel";
 import { ChangeSurface } from "../insights/change-surface/ChangeSurface";
 import { AstAnalysis } from "../insights/ast-analysis/AstAnalysis";
 import { CallGraph } from "../insights/call-graph/CallGraph";
+import { ApiPreview } from "../insights/api-preview/ApiPreview";
 import { toggleLeft, toggleRight, gridColumns, type PaneVisibility } from "./pane-visibility";
 
 marked.setOptions({ gfm: true, breaks: true });
@@ -116,7 +117,7 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
     try { localStorage.setItem(`${storagePrefix}:leftOpen`, String(next.left)); } catch {}
   }, [storagePrefix]);
   const [activeTab, setActiveTab] = useState<"chat" | "diff" | "insight">("chat");
-  const [insightTab, setInsightTab] = useState<"surface" | "ast" | "callgraph">("surface");
+  const [insightTab, setInsightTab] = useState<"surface" | "ast" | "callgraph" | "api">("surface");
   const [floatingBtn, setFloatingBtn] = useState<{ x: number; y: number; text: string; fromBody: boolean } | null>(null);
   const [mermaidModal, setMermaidModal] = useState<string | null>(null);
   const [modalScale, setModalScale] = useState(1);
@@ -651,13 +652,22 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
                 >
                   Call Graph
                 </button>
+                <button
+                  type="button"
+                  className={`insight-sub-tab${insightTab === "api" ? " active" : ""}`}
+                  onClick={() => setInsightTab("api")}
+                >
+                  API
+                </button>
               </div>
               {insightTab === "surface" ? (
                 <ChangeSurface files={data?.files ?? []} />
               ) : insightTab === "ast" ? (
                 <AstAnalysis repo={repo} prNumber={prNumber} />
-              ) : (
+              ) : insightTab === "callgraph" ? (
                 <CallGraph repo={repo} prNumber={prNumber} />
+              ) : (
+                <ApiPreview repo={repo} prNumber={prNumber} />
               )}
             </div>
           )}
