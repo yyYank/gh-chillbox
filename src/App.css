@@ -1215,6 +1215,54 @@ th.col-rank {
   padding-right: 10px;
 }
 
+/* ===== Pane toggles ===== */
+.pane-toolbar {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+.pane-toggles {
+  display: flex;
+  gap: 6px;
+}
+.pane-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.pane-toggle.active {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.pane-hidden {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .pr-detail-layout.has-chat {
+    display: block;
+  }
+  .pr-detail-layout.has-chat .pr-detail {
+    padding-right: 0;
+  }
+  .split-resizer {
+    display: none;
+  }
+  .right-pane {
+    position: static;
+    height: 75vh;
+    margin-top: 16px;
+  }
+}
+
 /* ===== Split resizer ===== */
 .split-resizer {
   width: 6px;

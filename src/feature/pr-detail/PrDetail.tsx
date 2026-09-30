@@ -1,13 +1,14 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { marked } from "marked";
 import mermaid from "mermaid";
-import { ArrowLeft, ChevronDown, ChevronRight, MessageSquareQuote } from "lucide-react";
+import { ArrowLeft, ChevronDown, ChevronRight, MessageSquareQuote, PanelLeft, PanelRight } from "lucide-react";
 import { FileTree } from "./FileTree";
 import { ChatPanel } from "../chat/ChatPanel";
 import { DiffPanel } from "../pr-diff/DiffPanel";
 import { ChangeSurface } from "../insights/change-surface/ChangeSurface";
 import { AstAnalysis } from "../insights/ast-analysis/AstAnalysis";
 import { CallGraph } from "../insights/call-graph/CallGraph";
+import { toggleLeft, toggleRight, gridColumns, type PaneVisibility } from "./pane-visibility";
 
 marked.setOptions({ gfm: true, breaks: true });
 
@@ -106,6 +107,14 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
       return raw ? JSON.parse(raw).length > 0 : false;
     } catch { return false; }
   });
+  const [leftOpen, setLeftOpen] = useState(() => {
+    try { return localStorage.getItem(`${storagePrefix}:leftOpen`) !== "false"; } catch { return true; }
+  });
+  const applyPane = useCallback((next: PaneVisibility) => {
+    setLeftOpen(next.left);
+    setChatOpen(next.right);
+    try { localStorage.setItem(`${storagePrefix}:leftOpen`, String(next.left)); } catch {}
+  }, [storagePrefix]);
   const [activeTab, setActiveTab] = useState<"chat" | "diff" | "insight">("chat");
   const [insightTab, setInsightTab] = useState<"surface" | "ast" | "callgraph">("surface");
   const [floatingBtn, setFloatingBtn] = useState<{ x: number; y: number; text: string; fromBody: boolean } | null>(null);
@@ -287,6 +296,7 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
   }, [mermaidModal]);
 
   const handleDiffFileHeaderClick = useCallback((path: string) => {
+    if (!leftOpen) applyPane({ left: true, right: true });
     if (!filesOpen) {
       setFilesOpen(true);
       try { localStorage.setItem(`${storagePrefix}:filesOpen`, "true"); } catch {}
@@ -295,7 +305,7 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
       const el = treeWrapRef.current?.querySelector(`[data-filepath="${CSS.escape(path)}"]`);
       el?.scrollIntoView({ behavior: "smooth", block: "nearest" });
     });
-  }, [filesOpen, storagePrefix]);
+  }, [filesOpen, storagePrefix, leftOpen, applyPane]);
 
   useEffect(() => {
     if (selectedFiles.size > 0 || quotedText) {
@@ -306,6 +316,7 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
 
   const selectedArray = [...selectedFiles];
   const hasChat = chatOpen;
+  const pane: PaneVisibility = { left: leftOpen, right: chatOpen };
 
   const SPLIT_STORAGE_KEY = "gh-chillbox:split-ratio";
   const layoutRef = useRef<HTMLDivElement>(null);
@@ -344,13 +355,36 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
     <div
       className={`pr-detail-layout${hasChat ? " has-chat" : ""}`}
       ref={layoutRef}
-      style={hasChat ? { gridTemplateColumns: `${splitRatio}% 6px 1fr` } : undefined}
+      style={hasChat ? { gridTemplateColumns: gridColumns(pane, splitRatio) } : undefined}
     >
-      <div className="pr-detail">
+      <div className="pane-toolbar">
         <button type="button" className="pr-detail-back" onClick={onBack}>
           <ArrowLeft size={16} />
           一覧に戻る
         </button>
+        <div className="pane-toggles">
+          <button
+            type="button"
+            className={`pane-toggle${pane.left ? " active" : ""}`}
+            onClick={() => applyPane(toggleLeft(pane))}
+            aria-pressed={pane.left}
+            title="変更ファイル・コメントの表示切替"
+          >
+            <PanelLeft size={16} />
+          </button>
+          <button
+            type="button"
+            className={`pane-toggle${pane.right ? " active" : ""}`}
+            onClick={() => applyPane(toggleRight(pane))}
+            aria-pressed={pane.right}
+            title="Chat / Diff / Insight の表示切替"
+          >
+            <PanelRight size={16} />
+          </button>
+        </div>
+      </div>
+
+      <div className={`pr-detail${pane.left ? "" : " pane-hidden"}`}>
 
         {loading && <div className="pr-detail-loading">読み込み中…</div>}
         {error && <div className="error">{error}</div>}
@@ -544,7 +578,7 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
         </button>
       )}
 
-      {hasChat && (
+      {pane.left && pane.right && (
         <div className="split-resizer" onMouseDown={handleResizeStart} />
       )}
 
@@ -583,7 +617,7 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
               prTitle={data?.title ?? ""}
               prBody={data?.body ?? ""}
               onClearSelection={clearSelection}
-              onCloseChat={() => setChatOpen(false)}
+              onCloseChat={() => applyPane({ left: true, right: false })}
             />
           ) : activeTab === "diff" ? (
             <DiffPanel
