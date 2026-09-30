@@ -33,6 +33,7 @@ export function ApiPreview({ repo, prNumber }: Props) {
   const [states, setStates] = useState<Record<Scope, LoadState>>({ changed: EMPTY, all: EMPTY });
   const requested = useRef(new Set<Scope>());
 
+  // TODO: 差分/全部の切り替えと遅延取得は GoDocPreview と同じ作り。共通の部品にする
   // 「全部」は切り替えたときに初めて取得する
   useEffect(() => {
     if (requested.current.has(scope)) return;

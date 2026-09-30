@@ -82,6 +82,7 @@ export async function loadOpenApiSpecs(repo: string, number: number, scope: Open
   return collectSpecs(sources);
 }
 
+// TODO: godoc-collect.ts と同じ実装。repo-cache.ts などに共通化する
 async function gitOutput(repoDir: string, args: string[]): Promise<string> {
   const { stdout } = await execFileAsync("git", args, {
     cwd: repoDir,
