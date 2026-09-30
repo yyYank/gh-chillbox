@@ -453,6 +453,24 @@ app.get("/openapi", async (c) => {
   }
 });
 
+app.get("/godoc", async (c) => {
+  const repo = c.req.query("repo");
+  const number = c.req.query("number");
+  const scope = c.req.query("scope") === "all" ? "all" : "changed";
+  if (!repo || !number) {
+    return c.json({ error: "repo and number are required" }, 400);
+  }
+
+  try {
+    const { loadGoDocs } = await import("./godoc-collect");
+    const packages = await loadGoDocs(repo, parseInt(number, 10), scope);
+    return c.json({ scope, packages });
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Unknown error";
+    return c.json({ error: message }, 500);
+  }
+});
+
 serve({ fetch: app.fetch, port: 3001 }, (info) => {
   console.log(`Server running at http://localhost:${info.port}`);
 });
