@@ -1,4 +1,4 @@
-// server/openapi.ts の ApiSpec と同じ形（/api/openapi のレスポンス）
+// server/openapi-collect.ts の SpecFile と同じ形（/api/openapi のレスポンス）
 export type ApiParam = {
   name: string;
   in: string;
@@ -11,6 +11,10 @@ export type ApiBody = { required: boolean; contentType?: string; schema?: unknow
 
 export type ApiResponse = { status: string; description?: string; contentType?: string; schema?: unknown };
 
+export type EndpointChange = "added" | "modified" | "removed" | "unchanged";
+
+export type Scope = "changed" | "all";
+
 export type ApiEndpoint = {
   method: string;
   path: string;
@@ -22,6 +26,8 @@ export type ApiEndpoint = {
   parameters: ApiParam[];
   requestBody?: ApiBody;
   responses: ApiResponse[];
+  change: EndpointChange;
+  changedParts: string[];
 };
 
 export type ApiSpec = { version: "2.0" | "3.x"; title?: string; endpoints: ApiEndpoint[] };
@@ -59,4 +65,8 @@ export function schemaTypeLabel(schema: unknown): string {
   const type = typeof s.type === "string" ? s.type : s.properties ? "object" : undefined;
   if (!type) return "any";
   return s.format ? `${type}(${s.format})` : type;
+}
+
+export function visibleEndpoints(endpoints: ApiEndpoint[], scope: Scope): ApiEndpoint[] {
+  return scope === "changed" ? endpoints.filter((e) => e.change !== "unchanged") : endpoints;
 }

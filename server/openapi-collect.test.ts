@@ -42,4 +42,30 @@ describe("collectSpecs", () => {
       ["b/openapi.yaml", false, 1],
     ]);
   });
+
+  it("変更されていないファイルの endpoint はすべて unchanged", () => {
+    const [result] = collectSpecs([{ path: "openapi.yaml", content: spec, changed: false }]);
+    expect(result.spec.endpoints.map((e) => e.change)).toEqual(["unchanged"]);
+  });
+
+  it("変更されたファイルは base の版と endpoint 単位で比べる", () => {
+    const base = "openapi: 3.0.0\npaths:\n  /a:\n    get: {}\n  /old:\n    get: {}\n";
+    const head = "openapi: 3.0.0\npaths:\n  /a:\n    get: {}\n  /new:\n    get: {}\n";
+    const [result] = collectSpecs([{ path: "openapi.yaml", content: head, baseContent: base, changed: true }]);
+    expect(result.spec.endpoints.map((e) => [e.path, e.change])).toEqual([
+      ["/a", "unchanged"],
+      ["/new", "added"],
+      ["/old", "removed"],
+    ]);
+  });
+
+  it("PR で追加されたファイル（base 無し）の endpoint はすべて added", () => {
+    const [result] = collectSpecs([{ path: "openapi.yaml", content: spec, baseContent: null, changed: true }]);
+    expect(result.spec.endpoints.map((e) => e.change)).toEqual(["added"]);
+  });
+
+  it("PR で削除されたファイル（head 無し）も base の endpoint を removed として返す", () => {
+    const [result] = collectSpecs([{ path: "openapi.yaml", content: null, baseContent: spec, changed: true }]);
+    expect(result.spec.endpoints.map((e) => [e.path, e.change])).toEqual([["/a", "removed"]]);
+  });
 });

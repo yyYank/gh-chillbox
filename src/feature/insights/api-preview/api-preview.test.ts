@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { groupByTag, schemaTypeLabel, type ApiEndpoint } from "./api-preview";
+import { groupByTag, schemaTypeLabel, visibleEndpoints, type ApiEndpoint } from "./api-preview";
 
-function ep(method: string, path: string, tags: string[] = []): ApiEndpoint {
-  return { method, path, tags, deprecated: false, parameters: [], responses: [] };
+function ep(method: string, path: string, tags: string[] = [], change: ApiEndpoint["change"] = "unchanged"): ApiEndpoint {
+  return { method, path, tags, deprecated: false, parameters: [], responses: [], change, changedParts: [] };
 }
 
 describe("groupByTag", () => {
@@ -47,5 +47,22 @@ describe("schemaTypeLabel", () => {
 
   it("判断できないものは any", () => {
     expect(schemaTypeLabel(undefined)).toBe("any");
+  });
+});
+
+describe("visibleEndpoints", () => {
+  const eps = [
+    ep("GET", "/a", [], "unchanged"),
+    ep("POST", "/a", [], "added"),
+    ep("PUT", "/a", [], "modified"),
+    ep("DELETE", "/a", [], "removed"),
+  ];
+
+  it("差分モードでは変わった endpoint だけを返す", () => {
+    expect(visibleEndpoints(eps, "changed").map((e) => e.method)).toEqual(["POST", "PUT", "DELETE"]);
+  });
+
+  it("全部モードでは削除されたものも含めてすべて返す", () => {
+    expect(visibleEndpoints(eps, "all")).toHaveLength(4);
   });
 });

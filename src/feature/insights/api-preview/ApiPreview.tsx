@@ -3,11 +3,18 @@ import { ChevronDown, ChevronRight } from "lucide-react";
 import {
   groupByTag,
   schemaTypeLabel,
+  visibleEndpoints,
   type ApiEndpoint,
+  type EndpointChange,
+  type Scope,
   type SpecFile,
 } from "./api-preview";
 
-type Scope = "changed" | "all";
+const CHANGE_LABELS: Record<Exclude<EndpointChange, "unchanged">, string> = {
+  added: "追加",
+  modified: "変更",
+  removed: "削除",
+};
 
 type Props = {
   repo: string;
@@ -71,13 +78,13 @@ export function ApiPreview({ repo, prNumber }: Props) {
           {scope === "changed" ? "この PR で変更された OpenAPI ファイルはありません" : "OpenAPI ファイルが見つかりません"}
         </div>
       )}
-      {current.files?.map((f) => <SpecView key={f.path} file={f} />)}
+      {current.files?.map((f) => <SpecView key={f.path} file={f} scope={scope} />)}
     </div>
   );
 }
 
-function SpecView({ file }: { file: SpecFile }) {
-  const groups = groupByTag(file.spec.endpoints);
+function SpecView({ file, scope }: { file: SpecFile; scope: Scope }) {
+  const groups = groupByTag(visibleEndpoints(file.spec.endpoints, scope));
   return (
     <section className="api-spec">
       <header className="api-spec-header">
@@ -86,6 +93,7 @@ function SpecView({ file }: { file: SpecFile }) {
         <span className="api-badge">{file.spec.version === "2.0" ? "Swagger 2.0" : "OpenAPI 3.x"}</span>
       </header>
       {file.spec.title && <div className="api-spec-title">{file.spec.title}</div>}
+      {groups.length === 0 && <div className="api-preview-empty">endpoint の変更はありません</div>}
       {groups.map((g) => (
         <div key={g.tag} className="api-tag-group">
           <div className="api-tag">{g.tag}</div>
@@ -100,16 +108,22 @@ function EndpointView({ endpoint: e }: { endpoint: ApiEndpoint }) {
   const [open, setOpen] = useState(false);
   const method = e.method.toLowerCase();
   return (
-    <div className={`api-endpoint method-${method}`}>
+    <div className={`api-endpoint method-${method} change-${e.change}`}>
       <button type="button" className="api-endpoint-summary" onClick={() => setOpen(!open)}>
         {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
         <span className={`api-method method-${method}`}>{e.method}</span>
-        <span className={`api-path${e.deprecated ? " deprecated" : ""}`}>{e.path}</span>
+        <span className={`api-path${e.deprecated || e.change === "removed" ? " deprecated" : ""}`}>{e.path}</span>
+        {e.change !== "unchanged" && (
+          <span className={`api-badge change-${e.change}`}>{CHANGE_LABELS[e.change]}</span>
+        )}
         {e.summary && <span className="api-summary">{e.summary}</span>}
       </button>
 
       {open && (
         <div className="api-endpoint-detail">
+          {e.changedParts.length > 0 && (
+            <div className="api-changed-parts">変更箇所: {e.changedParts.join(", ")}</div>
+          )}
           {e.operationId && <div className="api-operation-id">operationId: <code>{e.operationId}</code></div>}
           {e.description && <p className="api-description">{e.description}</p>}
 

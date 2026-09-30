@@ -4,6 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { ensureRepo, checkoutSha } from "./repo-cache";
 import { parseOpenApi, type ApiSpec } from "./openapi";
+import { diffEndpoints, markUnchanged, type DiffedEndpoint } from "./openapi-diff";
 
 const execFileAsync = promisify(execFile);
 
@@ -13,9 +14,14 @@ const MAX_FILE_BYTES = 5 * 1024 * 1024;
 
 export type OpenApiScope = "changed" | "all";
 
-export type SpecSource = { path: string; content: string; changed: boolean };
+// content は head の中身、baseContent は merge-base の中身。どちらも存在しなければ null
+export type SpecSource = { path: string; content: string | null; baseContent?: string | null; changed: boolean };
 
-export type SpecFile = { path: string; changed: boolean; spec: ApiSpec };
+export type SpecFile = {
+  path: string;
+  changed: boolean;
+  spec: Omit<ApiSpec, "endpoints"> & { endpoints: DiffedEndpoint[] };
+};
 
 export function isSpecCandidate(filePath: string): boolean {
   return /\.(ya?ml|json)$/i.test(filePath);
@@ -27,38 +33,75 @@ export function looksLikeOpenApi(head: string): boolean {
 
 export function collectSpecs(sources: SpecSource[]): SpecFile[] {
   return sources
-    .flatMap(({ path, content, changed }) => {
-      const spec = parseOpenApi(content);
-      return spec ? [{ path, changed, spec }] : [];
+    .flatMap((source) => {
+      const file = toSpecFile(source);
+      return file ? [file] : [];
     })
     .sort((a, b) => a.path.localeCompare(b.path));
+}
+
+function toSpecFile({ path, content, baseContent, changed }: SpecSource): SpecFile | null {
+  const head = content !== null ? parseOpenApi(content) : null;
+  if (!changed) {
+    return head && { path, changed, spec: { ...head, endpoints: markUnchanged(head.endpoints) } };
+  }
+  const base = baseContent ? parseOpenApi(baseContent) : null;
+  const meta = head ?? base;
+  if (!meta) return null;
+  const endpoints = diffEndpoints(base?.endpoints ?? [], head?.endpoints ?? []);
+  return { path, changed, spec: { version: meta.version, title: meta.title, endpoints } };
 }
 
 export async function loadOpenApiSpecs(repo: string, number: number, scope: OpenApiScope): Promise<SpecFile[]> {
   const { stdout } = await execFileAsync("gh", [
     "pr", "view", String(number), "--repo", repo,
-    "--json", "headRefOid,files",
+    "--json", "headRefOid,baseRefOid,files",
   ]);
-  const { headRefOid: sha, files } = JSON.parse(stdout) as { headRefOid: string; files: { path: string }[] };
+  const { headRefOid: sha, baseRefOid, files } = JSON.parse(stdout) as {
+    headRefOid: string;
+    baseRefOid: string;
+    files: { path: string }[];
+  };
   const changedPaths = new Set(files.map((f) => f.path));
 
   const repoDir = await ensureRepo(repo);
   await checkoutSha(repoDir, sha);
+  const mergeBase = (await gitOutput(repoDir, ["merge-base", baseRefOid, sha])).trim();
 
-  const targets = scope === "changed" ? [...changedPaths] : await listTrackedFiles(repoDir);
+  // 削除されたファイルは head に無いため、PR のファイル一覧も対象に含める
+  const targets = scope === "changed"
+    ? [...changedPaths]
+    : [...new Set([...(await listTrackedFiles(repoDir)), ...changedPaths])];
   const sources: SpecSource[] = [];
   for (const rel of targets.filter(isSpecCandidate)) {
+    const changed = changedPaths.has(rel);
     const content = readSpecLike(path.join(repoDir, rel));
-    if (content !== null) sources.push({ path: rel, content, changed: changedPaths.has(rel) });
+    const baseContent = changed ? await readBaseSpecLike(repoDir, mergeBase, rel) : null;
+    if (content !== null || baseContent !== null) sources.push({ path: rel, content, baseContent, changed });
   }
   return collectSpecs(sources);
 }
 
-async function listTrackedFiles(repoDir: string): Promise<string[]> {
-  const { stdout } = await execFileAsync("git", ["ls-files"], {
+async function gitOutput(repoDir: string, args: string[]): Promise<string> {
+  const { stdout } = await execFileAsync("git", args, {
     cwd: repoDir,
     maxBuffer: 64 * 1024 * 1024,
   });
+  return stdout;
+}
+
+async function readBaseSpecLike(repoDir: string, sha: string, rel: string): Promise<string | null> {
+  try {
+    const content = await gitOutput(repoDir, ["show", `${sha}:${rel}`]);
+    if (content.length > MAX_FILE_BYTES || !looksLikeOpenApi(content.slice(0, HEAD_BYTES))) return null;
+    return content;
+  } catch {
+    return null;
+  }
+}
+
+async function listTrackedFiles(repoDir: string): Promise<string[]> {
+  const stdout = await gitOutput(repoDir, ["ls-files"]);
   return stdout.split("\n").filter(Boolean);
 }
 
