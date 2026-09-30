@@ -2990,3 +2990,59 @@ th.col-rank {
   color: #d97706;
   font-size: 0.78rem;
 }
+
+/* ===== godoc Preview ===== */
+.godoc-item {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  padding: 8px 10px;
+  margin-top: 8px;
+}
+.godoc-item.change-removed {
+  opacity: 0.7;
+}
+.godoc-item-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.godoc-kind {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+.godoc-name {
+  font-family: ui-monospace, monospace;
+  font-weight: 600;
+}
+.godoc-name.deprecated {
+  text-decoration: line-through;
+  color: var(--text-muted);
+}
+.godoc-item-header .api-changed-parts {
+  margin-top: 0;
+}
+.godoc-decl {
+  margin: 6px 0 0;
+  padding: 6px 8px;
+  background: var(--surface-alt);
+  border-radius: 6px;
+  font-size: 0.78rem;
+  overflow-x: auto;
+  white-space: pre;
+}
+.godoc-doc {
+  margin-top: 6px;
+  font-size: 0.8rem;
+}
+.godoc-doc p {
+  margin: 4px 0;
+}
+.godoc-doc pre {
+  padding: 6px 8px;
+  background: var(--surface-alt);
+  border-radius: 6px;
+  overflow-x: auto;
+}
