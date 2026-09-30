@@ -657,7 +657,7 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
                   className={`insight-sub-tab${insightTab === "api" ? " active" : ""}`}
                   onClick={() => setInsightTab("api")}
                 >
-                  API
+                  OpenAPI
                 </button>
               </div>
               {insightTab === "surface" ? (
