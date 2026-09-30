@@ -12,3 +12,4 @@ yarn-error.log*
 .env.*
 server/tools/ast-go-parser-bin
 server/tools/godoc-bin
+server/tools/gotests-bin
