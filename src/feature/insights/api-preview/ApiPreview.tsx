@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import {
   groupByTag,
@@ -9,6 +9,8 @@ import {
   type Scope,
   type SpecFile,
 } from "./api-preview";
+import { useScopedFetch } from "../scope-preview/useScopedFetch";
+import { ScopeToggle } from "../scope-preview/ScopeToggle";
 
 const CHANGE_LABELS: Record<Exclude<EndpointChange, "unchanged">, string> = {
   added: "追加",
@@ -21,65 +23,25 @@ type Props = {
   prNumber: number;
 };
 
-type LoadState = { loading: boolean; error: string | null; files: SpecFile[] | null };
-
-const EMPTY: LoadState = { loading: false, error: null, files: null };
-
 // 同じ参照が何度も出るスキーマで表示が膨らまないよう、ネストはここまで
 const MAX_SCHEMA_DEPTH = 6;
 
 export function ApiPreview({ repo, prNumber }: Props) {
-  const [scope, setScope] = useState<Scope>("changed");
-  const [states, setStates] = useState<Record<Scope, LoadState>>({ changed: EMPTY, all: EMPTY });
-  const requested = useRef(new Set<Scope>());
-
-  // TODO: 差分/全部の切り替えと遅延取得は GoDocPreview と同じ作り。共通の部品にする
-  // 「全部」は切り替えたときに初めて取得する
-  useEffect(() => {
-    if (requested.current.has(scope)) return;
-    requested.current.add(scope);
-    setStates((s) => ({ ...s, [scope]: { loading: true, error: null, files: null } }));
-    const params = new URLSearchParams({ repo, number: String(prNumber), scope });
-    fetch(`/api/openapi?${params}`)
-      .then((res) => {
-        if (!res.ok) throw new Error(`API error: ${res.status}`);
-        return res.json();
-      })
-      .then((d) => {
-        if (d.error) throw new Error(d.error);
-        setStates((s) => ({ ...s, [scope]: { loading: false, error: null, files: d.files ?? [] } }));
-      })
-      .catch((e) => {
-        const error = e instanceof Error ? e.message : "読み込みに失敗しました";
-        setStates((s) => ({ ...s, [scope]: { loading: false, error, files: null } }));
-      });
-  }, [scope, repo, prNumber]);
-
-  const current = states[scope];
+  const current = useScopedFetch<SpecFile>("openapi", "files", repo, prNumber);
+  const scope = current.scope;
 
   return (
     <div className="api-preview">
-      <div className="api-preview-scope">
-        {(["changed", "all"] as const).map((s) => (
-          <button
-            key={s}
-            type="button"
-            className={`api-preview-scope-btn${scope === s ? " active" : ""}`}
-            onClick={() => setScope(s)}
-          >
-            {s === "changed" ? "差分" : "全部"}
-          </button>
-        ))}
-      </div>
+      <ScopeToggle scope={scope} onChange={current.setScope} />
 
       {current.loading && <div className="api-preview-empty">読み込み中…</div>}
       {current.error && <div className="error">{current.error}</div>}
-      {current.files?.length === 0 && (
+      {current.data?.length === 0 && (
         <div className="api-preview-empty">
           {scope === "changed" ? "この PR で変更された OpenAPI ファイルはありません" : "OpenAPI ファイルが見つかりません"}
         </div>
       )}
-      {current.files?.map((f) => <SpecView key={f.path} file={f} scope={scope} />)}
+      {current.data?.map((f) => <SpecView key={f.path} file={f} scope={scope} />)}
     </div>
   );
 }

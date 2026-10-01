@@ -1,14 +1,11 @@
-import { useState, useEffect, useRef } from "react";
 import { visiblePackages, type GoDocItem, type GoPackage, type Scope, type SymbolChange } from "./godoc-preview";
+import { useScopedFetch } from "../scope-preview/useScopedFetch";
+import { ScopeToggle } from "../scope-preview/ScopeToggle";
 
 type Props = {
   repo: string;
   prNumber: number;
 };
-
-type LoadState = { loading: boolean; error: string | null; packages: GoPackage[] | null };
-
-const EMPTY: LoadState = { loading: false, error: null, packages: null };
 
 const CHANGE_LABELS: Record<Exclude<SymbolChange, "unchanged">, string> = {
   added: "追加",
@@ -17,49 +14,13 @@ const CHANGE_LABELS: Record<Exclude<SymbolChange, "unchanged">, string> = {
 };
 
 export function GoDocPreview({ repo, prNumber }: Props) {
-  const [scope, setScope] = useState<Scope>("changed");
-  const [states, setStates] = useState<Record<Scope, LoadState>>({ changed: EMPTY, all: EMPTY });
-  const requested = useRef(new Set<Scope>());
-
-  // TODO: 差分/全部の切り替えと遅延取得は ApiPreview と同じ作り。共通の部品にする
-  // 「全部」は切り替えたときに初めて取得する
-  useEffect(() => {
-    if (requested.current.has(scope)) return;
-    requested.current.add(scope);
-    setStates((s) => ({ ...s, [scope]: { loading: true, error: null, packages: null } }));
-    const params = new URLSearchParams({ repo, number: String(prNumber), scope });
-    fetch(`/api/godoc?${params}`)
-      .then((res) => {
-        if (!res.ok) throw new Error(`API error: ${res.status}`);
-        return res.json();
-      })
-      .then((d) => {
-        if (d.error) throw new Error(d.error);
-        setStates((s) => ({ ...s, [scope]: { loading: false, error: null, packages: d.packages ?? [] } }));
-      })
-      .catch((e) => {
-        const error = e instanceof Error ? e.message : "読み込みに失敗しました";
-        setStates((s) => ({ ...s, [scope]: { loading: false, error, packages: null } }));
-      });
-  }, [scope, repo, prNumber]);
-
-  const current = states[scope];
-  const packages = current.packages && visiblePackages(current.packages, scope);
+  const current = useScopedFetch<GoPackage>("godoc", "packages", repo, prNumber);
+  const scope = current.scope;
+  const packages = current.data && visiblePackages(current.data, scope);
 
   return (
     <div className="api-preview">
-      <div className="api-preview-scope">
-        {(["changed", "all"] as const).map((s) => (
-          <button
-            key={s}
-            type="button"
-            className={`api-preview-scope-btn${scope === s ? " active" : ""}`}
-            onClick={() => setScope(s)}
-          >
-            {s === "changed" ? "差分" : "全部"}
-          </button>
-        ))}
-      </div>
+      <ScopeToggle scope={scope} onChange={current.setScope} />
 
       {current.loading && <div className="api-preview-empty">読み込み中…</div>}
       {current.error && <div className="error">{current.error}</div>}

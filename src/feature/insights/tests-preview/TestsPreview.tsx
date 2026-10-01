@@ -1,4 +1,3 @@
-import { useState, useEffect, useRef } from "react";
 import {
   summarize,
   visibleTestFiles,
@@ -9,15 +8,13 @@ import {
   type TestCategory,
   type TestFileItem,
 } from "./tests-preview";
+import { useScopedFetch } from "../scope-preview/useScopedFetch";
+import { ScopeToggle } from "../scope-preview/ScopeToggle";
 
 type Props = {
   repo: string;
   prNumber: number;
 };
-
-type LoadState = { loading: boolean; error: string | null; files: TestFileItem[] | null };
-
-const EMPTY: LoadState = { loading: false, error: null, files: null };
 
 const CHANGE_LABELS: Record<Exclude<TestCaseChange, "unchanged">, string> = {
   added: "追加",
@@ -28,50 +25,14 @@ const CHANGE_LABELS: Record<Exclude<TestCaseChange, "unchanged">, string> = {
 const CATEGORY_LABELS: Record<TestCategory, string> = { unit: "Unit", e2e: "E2E" };
 
 export function TestsPreview({ repo, prNumber }: Props) {
-  const [scope, setScope] = useState<Scope>("changed");
-  const [states, setStates] = useState<Record<Scope, LoadState>>({ changed: EMPTY, all: EMPTY });
-  const requested = useRef(new Set<Scope>());
-
-  // TODO: 差分/全部の切り替えと遅延取得は ApiPreview・GoDocPreview と同じ作り。共通の部品にする
-  // 「全部」は切り替えたときに初めて取得する
-  useEffect(() => {
-    if (requested.current.has(scope)) return;
-    requested.current.add(scope);
-    setStates((s) => ({ ...s, [scope]: { loading: true, error: null, files: null } }));
-    const params = new URLSearchParams({ repo, number: String(prNumber), scope });
-    fetch(`/api/test-cases?${params}`)
-      .then((res) => {
-        if (!res.ok) throw new Error(`API error: ${res.status}`);
-        return res.json();
-      })
-      .then((d) => {
-        if (d.error) throw new Error(d.error);
-        setStates((s) => ({ ...s, [scope]: { loading: false, error: null, files: d.files ?? [] } }));
-      })
-      .catch((e) => {
-        const error = e instanceof Error ? e.message : "読み込みに失敗しました";
-        setStates((s) => ({ ...s, [scope]: { loading: false, error, files: null } }));
-      });
-  }, [scope, repo, prNumber]);
-
-  const current = states[scope];
-  const files = current.files && visibleTestFiles(current.files, scope);
-  const summary = current.files && summarize(current.files);
+  const current = useScopedFetch<TestFileItem>("test-cases", "files", repo, prNumber);
+  const scope = current.scope;
+  const files = current.data && visibleTestFiles(current.data, scope);
+  const summary = current.data && summarize(current.data);
 
   return (
     <div className="api-preview">
-      <div className="api-preview-scope">
-        {(["changed", "all"] as const).map((s) => (
-          <button
-            key={s}
-            type="button"
-            className={`api-preview-scope-btn${scope === s ? " active" : ""}`}
-            onClick={() => setScope(s)}
-          >
-            {s === "changed" ? "差分" : "全部"}
-          </button>
-        ))}
-      </div>
+      <ScopeToggle scope={scope} onChange={current.setScope} />
 
       {current.loading && <div className="api-preview-empty">読み込み中…</div>}
       {current.error && <div className="error">{current.error}</div>}
