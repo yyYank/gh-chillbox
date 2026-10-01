@@ -16,7 +16,7 @@ let linterPromise: Promise<Linter> | null = null;
 
 function getLinter(): Promise<Linter> {
   if (!linterPromise) {
-    const configFilePath = fileURLToPath(new URL("../.textlintrc.json", import.meta.url));
+    const configFilePath = fileURLToPath(new URL("../../.textlintrc.json", import.meta.url));
     linterPromise = loadTextlintrc({ configFilePath }).then((descriptor) =>
       createLinter({ descriptor }),
     );

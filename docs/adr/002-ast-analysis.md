@@ -182,8 +182,8 @@ Changed Symbol間のrelationからDAGを構築し、root（incoming edgeなし +
 | `server/ast/ast-ts.test.ts` | TypeScript解析のテスト |
 | `server/ast/ast-go.ts` | Go AST解析（CLIラッパー） |
 | `server/ast/ast-go.test.ts` | Go解析のテスト |
-| `server/diff-parser.ts` | diff → 変更行番号 |
-| `server/diff-parser.test.ts` | diffパーサーのテスト |
+| `server/diff/diff-parser.ts` | diff → 変更行番号 |
+| `server/diff/diff-parser.test.ts` | diffパーサーのテスト |
 | `server/git/repository-cache-handler.ts` | リポジトリclone/fetch管理 |
 | `server/tools/ast-go-parser.go` | Go AST解析CLI |
 

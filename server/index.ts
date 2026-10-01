@@ -2,10 +2,10 @@ import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { lintJa } from "./textlint";
-import { replaceAiWords } from "./ai-words";
+import { lintJa } from "./polish/textlint";
+import { replaceAiWords } from "./polish/ai-words";
 import { ensureRepo, checkoutSha } from "./git/repository-cache-handler";
-import { chatSessionKey } from "./chat-session";
+import { chatSessionKey } from "./chat/chat-session";
 
 const execFileAsync = promisify(execFile);
 
