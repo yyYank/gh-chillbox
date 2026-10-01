@@ -590,17 +590,17 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
           <div className="right-pane-tabs">
             <button
               type="button"
-              className={`right-pane-tab${activeTab === "chat" ? " active" : ""}`}
-              onClick={() => setActiveTab("chat")}
-            >
-              Chat
-            </button>
-            <button
-              type="button"
               className={`right-pane-tab${activeTab === "diff" ? " active" : ""}`}
               onClick={() => setActiveTab("diff")}
             >
               Diff
+            </button>
+            <button
+              type="button"
+              className={`right-pane-tab${activeTab === "chat" ? " active" : ""}`}
+              onClick={() => setActiveTab("chat")}
+            >
+              Chat
             </button>
             <button
               type="button"
