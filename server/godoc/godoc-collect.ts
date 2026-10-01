@@ -2,7 +2,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import fs from "node:fs";
 import path from "node:path";
-import { ensureRepo, checkoutSha } from "../git/repository-cache-handler";
+import { ensureRepo, checkoutSha, gitOutput } from "../git/repository-cache-handler";
 import { extractGoDocs, type GoPackageDoc, type GoPackageInput } from "./godoc";
 import { diffGoDocItems, type DiffedGoDocItem, type SymbolChange } from "./godoc-diff";
 
@@ -100,13 +100,4 @@ async function readBasePackage(repoDir: string, sha: string, dir: string): Promi
 
 async function listTrackedFiles(repoDir: string): Promise<string[]> {
   return (await gitOutput(repoDir, ["ls-files"])).split("\n").filter(Boolean);
-}
-
-// TODO: openapi-collect.ts と同じ実装。repo-cache.ts などに共通化する
-async function gitOutput(repoDir: string, args: string[]): Promise<string> {
-  const { stdout } = await execFileAsync("git", args, {
-    cwd: repoDir,
-    maxBuffer: 64 * 1024 * 1024,
-  });
-  return stdout;
 }

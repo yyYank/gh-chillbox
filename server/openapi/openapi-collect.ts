@@ -2,7 +2,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import fs from "node:fs";
 import path from "node:path";
-import { ensureRepo, checkoutSha } from "../git/repository-cache-handler";
+import { ensureRepo, checkoutSha, gitOutput } from "../git/repository-cache-handler";
 import { parseOpenApi, type ApiSpec } from "./openapi";
 import { diffEndpoints, markUnchanged, type DiffedEndpoint } from "./openapi-diff";
 
@@ -80,15 +80,6 @@ export async function loadOpenApiSpecs(repo: string, number: number, scope: Open
     if (content !== null || baseContent !== null) sources.push({ path: rel, content, baseContent, changed });
   }
   return collectSpecs(sources);
-}
-
-// TODO: godoc-collect.ts と同じ実装。repo-cache.ts などに共通化する
-async function gitOutput(repoDir: string, args: string[]): Promise<string> {
-  const { stdout } = await execFileAsync("git", args, {
-    cwd: repoDir,
-    maxBuffer: 64 * 1024 * 1024,
-  });
-  return stdout;
 }
 
 async function readBaseSpecLike(repoDir: string, sha: string, rel: string): Promise<string | null> {

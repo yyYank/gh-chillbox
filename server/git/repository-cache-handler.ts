@@ -37,3 +37,11 @@ export async function checkoutSha(repoDir: string, sha: string): Promise<void> {
     timeout: 30000,
   });
 }
+
+export async function gitOutput(repoDir: string, args: string[]): Promise<string> {
+  const { stdout } = await execFileAsync("git", args, {
+    cwd: repoDir,
+    maxBuffer: 64 * 1024 * 1024,
+  });
+  return stdout;
+}

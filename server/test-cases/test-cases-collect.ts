@@ -2,7 +2,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import fs from "node:fs";
 import path from "node:path";
-import { ensureRepo, checkoutSha } from "../git/repository-cache-handler";
+import { ensureRepo, checkoutSha, gitOutput } from "../git/repository-cache-handler";
 import { extractGoTestCases } from "./test-cases-go";
 import { extractTsTestCases } from "./test-cases-ts";
 import { extractGherkinCases } from "./test-cases-gherkin";
@@ -109,13 +109,4 @@ function readHead(absPath: string): string | null {
   } catch {
     return null;
   }
-}
-
-// TODO: openapi-collect.ts・godoc-collect.ts と同じ実装。repo-cache.ts などに共通化する
-async function gitOutput(repoDir: string, args: string[]): Promise<string> {
-  const { stdout } = await execFileAsync("git", args, {
-    cwd: repoDir,
-    maxBuffer: 64 * 1024 * 1024,
-  });
-  return stdout;
 }
