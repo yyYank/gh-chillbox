@@ -119,7 +119,7 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
     try { localStorage.setItem(`${storagePrefix}:leftOpen`, String(next.left)); } catch {}
   }, [storagePrefix]);
   const [activeTab, setActiveTab] = useState<"chat" | "diff" | "insight">("chat");
-  const [insightTab, setInsightTab] = useState<"surface" | "ast" | "callgraph" | "api" | "godoc" | "tests">("surface");
+  const [insightTab, setInsightTab] = useState<"surface" | "ast" | "callgraph" | "api" | "godoc" | "tests">("tests");
   const [floatingBtn, setFloatingBtn] = useState<{ x: number; y: number; text: string; fromBody: boolean } | null>(null);
   const [mermaidModal, setMermaidModal] = useState<string | null>(null);
   const [modalScale, setModalScale] = useState(1);
@@ -632,27 +632,14 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
             />
           ) : (
             <div className="insight-panel">
+              {/* Change Surface と AST Analysis は Call Graph と内容が重なるため、ボタンだけ外して非表示にしている */}
               <div className="insight-sub-tabs">
                 <button
                   type="button"
-                  className={`insight-sub-tab${insightTab === "surface" ? " active" : ""}`}
-                  onClick={() => setInsightTab("surface")}
+                  className={`insight-sub-tab${insightTab === "tests" ? " active" : ""}`}
+                  onClick={() => setInsightTab("tests")}
                 >
-                  Change Surface
-                </button>
-                <button
-                  type="button"
-                  className={`insight-sub-tab${insightTab === "ast" ? " active" : ""}`}
-                  onClick={() => setInsightTab("ast")}
-                >
-                  AST Analysis
-                </button>
-                <button
-                  type="button"
-                  className={`insight-sub-tab${insightTab === "callgraph" ? " active" : ""}`}
-                  onClick={() => setInsightTab("callgraph")}
-                >
-                  Call Graph
+                  Tests
                 </button>
                 <button
                   type="button"
@@ -670,10 +657,10 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
                 </button>
                 <button
                   type="button"
-                  className={`insight-sub-tab${insightTab === "tests" ? " active" : ""}`}
-                  onClick={() => setInsightTab("tests")}
+                  className={`insight-sub-tab${insightTab === "callgraph" ? " active" : ""}`}
+                  onClick={() => setInsightTab("callgraph")}
                 >
-                  Tests
+                  Call Graph
                 </button>
               </div>
               {insightTab === "surface" ? (
