@@ -34,8 +34,8 @@ Go・TS/JS・Gherkinのテストケース名を抽出し、Insightの「Tests」
 - Playwrightをimportせずに独自のfixtureを経由している場合は、e2eではなくunitとして分類される
 - 表示にはサーバー側で `go` コマンドが必要（初回にツールをbuildする）
 
-## 今後の整理
+## 今後の整理（解消済み）
 
-- `gitOutput` が `openapi-collect.ts`・`godoc-collect.ts`・`test-cases-collect.ts` で重複している
-- Goツールのbuildと実行の処理が `godoc.ts` と `test-cases-go.ts` で重複している
-- 「差分 / 全部」の切り替えと遅延取得の処理が、OpenAPI・godoc・Testsの3タブで重複している
+- `gitOutput` は `server/git/repository-cache-handler.ts` に共通化した
+- Goツールのbuildと実行は `server/go-tool/go-tool.ts` の `runGoTool` に共通化した
+- 「差分 / 全部」の切り替えと遅延取得は `src/feature/insights/scope-preview/` の `useScopedFetch`・`ScopeToggle` に共通化した

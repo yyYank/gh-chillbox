@@ -28,7 +28,7 @@ GoのPRでは、export された関数・型・メソッドのシグネチャや
 - 表示にはサーバー側で `go` コマンドが必要（初回にツールをbuildする）
 - docのHTMLは `go/doc` の出力をそのまま表示する
 
-## 今後の整理
+## 今後の整理（解消済み）
 
-- `openapi-collect.ts` と `godoc-collect.ts` に同じ `gitOutput` があるため、`repo-cache.ts` などに共通化する
-- OpenAPIタブとgodocタブの「差分 / 全部」切り替えと遅延取得の処理が同じ作りなので、共通の部品にする
+- `gitOutput` は `server/git/repository-cache-handler.ts` に共通化した
+- 「差分 / 全部」切り替えと遅延取得は `src/feature/insights/scope-preview/` の `useScopedFetch`・`ScopeToggle` に共通化した
