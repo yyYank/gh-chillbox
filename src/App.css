@@ -1848,6 +1848,31 @@ th.col-rank {
   color: var(--text-muted);
   white-space: nowrap;
 }
+.diff-font-size {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.diff-font-size-btn {
+  padding: 2px 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: none;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.diff-font-size-btn:hover {
+  color: var(--text);
+  background: var(--hover-bg);
+}
+.diff-font-size-value {
+  min-width: 32px;
+  text-align: center;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
 .diff-stat-add { color: var(--success, #22863a); }
 .diff-stat-del { color: var(--danger, #cb2431); }
 

@@ -7,6 +7,9 @@ import { loadThreads, appendThreadMessage, removeThread, type ThreadMap } from "
 import { DiffThreadView } from "./DiffThreadView";
 import { countViewed, type ViewedStates } from "./diff-viewed";
 import { languageFromPath, highlightLine } from "./diff-highlight";
+import { stepFontSize, parseFontSize } from "./diff-font-size";
+
+const FONT_SIZE_STORAGE_KEY = "gh-chillbox:diff-font-size";
 
 type Props = {
   repo: string;
@@ -58,6 +61,15 @@ export function DiffPanel({ repo, prNumber, prTitle = "", prBody = "", onFileHea
   const [floatingBtn, setFloatingBtn] = useState<{ x: number; y: number; anchor: ThreadAnchor } | null>(null);
   const [pullRequestId, setPullRequestId] = useState<string | null>(null);
   const [viewedStates, setViewedStates] = useState<ViewedStates>({});
+  const [fontSize, setFontSize] = useState(() => {
+    try { return parseFontSize(localStorage.getItem(FONT_SIZE_STORAGE_KEY)); } catch { return parseFontSize(null); }
+  });
+
+  const changeFontSize = (delta: 1 | -1) => {
+    const next = stepFontSize(fontSize, delta);
+    setFontSize(next);
+    try { localStorage.setItem(FONT_SIZE_STORAGE_KEY, String(next)); } catch {}
+  };
 
   useEffect(() => {
     setThreads(loadThreads(repo, prNumber));
@@ -248,6 +260,15 @@ export function DiffPanel({ repo, prNumber, prTitle = "", prBody = "", onFileHea
             {viewedCount.viewed} / {viewedCount.total} files viewed
           </span>
         )}
+        <span className="diff-font-size">
+          <button type="button" className="diff-font-size-btn" onClick={() => changeFontSize(-1)} title="コードの文字を小さくする">
+            A-
+          </button>
+          <span className="diff-font-size-value">{fontSize}px</span>
+          <button type="button" className="diff-font-size-btn" onClick={() => changeFontSize(1)} title="コードの文字を大きくする">
+            A+
+          </button>
+        </span>
       </div>
 
       <div className="diff-panel-content" onMouseUp={handleMouseUp}>
@@ -296,7 +317,7 @@ export function DiffPanel({ repo, prNumber, prTitle = "", prBody = "", onFileHea
                   )}
                 </div>
                 {!collapsed && (
-                  <div className="diff-file-body" data-path={file.path}>
+                  <div className="diff-file-body" data-path={file.path} style={{ fontSize }}>
                     {file.lines.map((line, j) => (
                       <Fragment key={j}>
                         <div data-line-idx={j} className={`diff-line diff-line-${line.type}`}>
