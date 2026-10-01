@@ -2,10 +2,10 @@ import fs from "node:fs";
 import path from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { parseDiffToChangedLines } from "./diff-parser";
+import { parseDiffToChangedLines } from "../diff-parser";
 import { analyzeTsFile, matchPaths, normalizePath, type HttpCall, type HttpRoute } from "./ast-ts";
 import { batchExtractGoFiles } from "./ast-go";
-import { ensureRepo, checkoutSha } from "./repo-cache";
+import { ensureRepo, checkoutSha } from "../git/repository-cache-handler";
 import type { ChangedSymbol, SymbolKind, SymbolRelation, AstAnalysisResult } from "./ast-types";
 
 const execFileAsync = promisify(execFile);

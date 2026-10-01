@@ -31,13 +31,12 @@ PR Diff → 変更ファイル → 変更行 → AST → Changed Symbols
 AstAnalysis.tsx (クライアント)
   ↓ fetch /api/ast-analysis?repo=X&number=N
 server/index.ts (APIエンドポイント)
-  ↓ import("./ast-analyzer")
-server/ast-analyzer.ts (オーケストレーター)
+  ↓ import("./ast/ast-analyzer")
+server/ast/ast-analyzer.ts (オーケストレーター)
   ├── gh pr view → headRefOid (SHA取得)
-  ├── analysis-cache.ts → キャッシュ確認
   ├── gh pr diff → diff取得
   ├── diff-parser.ts → 変更行番号抽出
-  ├── repo-cache.ts → リポジトリclone/fetch/checkout
+  ├── git/repository-cache-handler.ts → リポジトリclone/fetch/checkout
   ├── ast-ts.ts → TypeScript AST解析 (ts-morph)
   └── ast-go.ts → Go AST解析 (go/parser via Go CLI)
 ```
@@ -177,18 +176,16 @@ Changed Symbol間のrelationからDAGを構築し、root（incoming edgeなし +
 
 | ファイル | 役割 |
 |---|---|
-| `server/ast-types.ts` | 共有型定義 |
-| `server/ast-analyzer.ts` | オーケストレーター |
-| `server/ast-ts.ts` | TypeScript/TSX AST解析 |
-| `server/ast-ts.test.ts` | TypeScript解析のテスト |
-| `server/ast-go.ts` | Go AST解析（CLIラッパー） |
-| `server/ast-go.test.ts` | Go解析のテスト |
+| `server/ast/ast-types.ts` | 共有型定義 |
+| `server/ast/ast-analyzer.ts` | オーケストレーター |
+| `server/ast/ast-ts.ts` | TypeScript/TSX AST解析 |
+| `server/ast/ast-ts.test.ts` | TypeScript解析のテスト |
+| `server/ast/ast-go.ts` | Go AST解析（CLIラッパー） |
+| `server/ast/ast-go.test.ts` | Go解析のテスト |
 | `server/diff-parser.ts` | diff → 変更行番号 |
 | `server/diff-parser.test.ts` | diffパーサーのテスト |
-| `server/repo-cache.ts` | リポジトリclone/fetch管理 |
-| `server/analysis-cache.ts` | 解析結果キャッシュ |
+| `server/git/repository-cache-handler.ts` | リポジトリclone/fetch管理 |
 | `server/tools/ast-go-parser.go` | Go AST解析CLI |
-| `src/AstAnalysis.tsx` | UIコンポーネント |
 
 ## 設計上の注意点
 

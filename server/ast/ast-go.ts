@@ -16,7 +16,7 @@ export type GoParseResult = {
   httpRoutes: GoHttpRoute[];
 };
 
-const TOOLS_DIR = path.resolve(import.meta.dirname, "tools");
+const TOOLS_DIR = path.resolve(import.meta.dirname, "../tools");
 const BINARY_PATH = path.join(TOOLS_DIR, "ast-go-parser-bin");
 
 let binaryBuilt = false;

@@ -1,4 +1,4 @@
-// server/godoc-collect.ts の DiffedGoPackage と同じ形（/api/godoc のレスポンス）
+// server/godoc/godoc-collect.ts の DiffedGoPackage と同じ形（/api/godoc のレスポンス）
 export type SymbolChange = "added" | "modified" | "removed" | "unchanged";
 
 export type Scope = "changed" | "all";

@@ -24,7 +24,7 @@ export type GoPackageDoc = {
   items: GoDocItem[];
 };
 
-const TOOLS_DIR = path.resolve(import.meta.dirname, "tools");
+const TOOLS_DIR = path.resolve(import.meta.dirname, "../tools");
 const BINARY_PATH = path.join(TOOLS_DIR, "godoc-bin");
 
 let binaryBuilt = false;

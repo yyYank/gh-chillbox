@@ -4,7 +4,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { lintJa } from "./textlint";
 import { replaceAiWords } from "./ai-words";
-import { ensureRepo, checkoutSha } from "./repo-cache";
+import { ensureRepo, checkoutSha } from "./git/repository-cache-handler";
 import { chatSessionKey } from "./chat-session";
 
 const execFileAsync = promisify(execFile);
@@ -426,7 +426,7 @@ app.get("/ast-analysis", async (c) => {
   }
 
   try {
-    const { analyzepr } = await import("./ast-analyzer");
+    const { analyzepr } = await import("./ast/ast-analyzer");
     const result = await analyzepr(repo, parseInt(number, 10));
     return c.json(result);
   } catch (e) {
@@ -444,7 +444,7 @@ app.get("/openapi", async (c) => {
   }
 
   try {
-    const { loadOpenApiSpecs } = await import("./openapi-collect");
+    const { loadOpenApiSpecs } = await import("./openapi/openapi-collect");
     const files = await loadOpenApiSpecs(repo, parseInt(number, 10), scope);
     return c.json({ scope, files });
   } catch (e) {
@@ -462,7 +462,7 @@ app.get("/godoc", async (c) => {
   }
 
   try {
-    const { loadGoDocs } = await import("./godoc-collect");
+    const { loadGoDocs } = await import("./godoc/godoc-collect");
     const packages = await loadGoDocs(repo, parseInt(number, 10), scope);
     return c.json({ scope, packages });
   } catch (e) {
@@ -480,7 +480,7 @@ app.get("/test-cases", async (c) => {
   }
 
   try {
-    const { loadTestCases } = await import("./test-cases-collect");
+    const { loadTestCases } = await import("./test-cases/test-cases-collect");
     const files = await loadTestCases(repo, parseInt(number, 10), scope);
     return c.json({ scope, files });
   } catch (e) {

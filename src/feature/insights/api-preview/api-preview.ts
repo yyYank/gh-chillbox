@@ -1,4 +1,4 @@
-// server/openapi-collect.ts の SpecFile と同じ形（/api/openapi のレスポンス）
+// server/openapi/openapi-collect.ts の SpecFile と同じ形（/api/openapi のレスポンス）
 export type ApiParam = {
   name: string;
   in: string;

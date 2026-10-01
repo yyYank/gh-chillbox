@@ -2,7 +2,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import fs from "node:fs";
 import path from "node:path";
-import { ensureRepo, checkoutSha } from "./repo-cache";
+import { ensureRepo, checkoutSha } from "../git/repository-cache-handler";
 import { extractGoDocs, type GoPackageDoc, type GoPackageInput } from "./godoc";
 import { diffGoDocItems, type DiffedGoDocItem, type SymbolChange } from "./godoc-diff";
 

@@ -1,4 +1,4 @@
-// server/test-cases-collect.ts の DiffedTestFile と同じ形（/api/test-cases のレスポンス）
+// server/test-cases/test-cases-collect.ts の DiffedTestFile と同じ形（/api/test-cases のレスポンス）
 export type Scope = "changed" | "all";
 
 export type TestCategory = "unit" | "e2e";

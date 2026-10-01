@@ -13,7 +13,7 @@ export type GoTestCase = {
 
 export type GoTestFile = { path: string; cases: GoTestCase[] };
 
-const TOOLS_DIR = path.resolve(import.meta.dirname, "tools");
+const TOOLS_DIR = path.resolve(import.meta.dirname, "../tools");
 const BINARY_PATH = path.join(TOOLS_DIR, "gotests-bin");
 
 let binaryBuilt = false;
