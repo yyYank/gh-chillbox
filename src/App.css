@@ -1791,6 +1791,45 @@ th.col-rank {
   flex-shrink: 0;
   margin-left: 12px;
 }
+/* GitHub の Files changed と同じく、ファイル名と統計は左に寄せ Viewed を右端に置く */
+.diff-viewed {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  padding-left: 12px;
+  flex-shrink: 0;
+  font-family: inherit;
+}
+.diff-viewed-dismissed {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+.diff-viewed-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.diff-viewed-toggle.checked {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent-hover);
+}
+.diff-viewed-toggle input {
+  margin: 0;
+  cursor: pointer;
+}
+.diff-viewed-count {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
 .diff-stat-add { color: var(--success, #22863a); }
 .diff-stat-del { color: var(--danger, #cb2431); }
 

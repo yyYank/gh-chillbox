@@ -5,6 +5,7 @@ import { parseDiff } from "./diff-parse";
 import { buildThreadAnchor, lineLabel, type ThreadAnchor, type ThreadMessage } from "./diff-threads";
 import { loadThreads, appendThreadMessage, removeThread, type ThreadMap } from "./diff-thread-storage";
 import { DiffThreadView } from "./DiffThreadView";
+import { countViewed, type ViewedStates } from "./diff-viewed";
 
 type Props = {
   repo: string;
@@ -44,6 +45,8 @@ export function DiffPanel({ repo, prNumber, prTitle = "", prBody = "", onFileHea
   const [threads, setThreads] = useState<ThreadMap>(() => loadThreads(repo, prNumber));
   const [pending, setPending] = useState<ThreadAnchor | null>(null);
   const [floatingBtn, setFloatingBtn] = useState<{ x: number; y: number; anchor: ThreadAnchor } | null>(null);
+  const [pullRequestId, setPullRequestId] = useState<string | null>(null);
+  const [viewedStates, setViewedStates] = useState<ViewedStates>({});
 
   useEffect(() => {
     setThreads(loadThreads(repo, prNumber));
@@ -64,18 +67,54 @@ export function DiffPanel({ repo, prNumber, prTitle = "", prBody = "", onFileHea
     }).catch(() => {});
   }, [repo, prNumber]);
 
-  const toggleCollapse = useCallback((path: string) => {
+  const setCollapsed = useCallback((path: string, collapsed?: boolean) => {
     setCollapsedFiles((prev) => {
       const next = new Set(prev);
-      if (next.has(path)) {
-        next.delete(path);
-      } else {
+      if (collapsed ?? !next.has(path)) {
         next.add(path);
+      } else {
+        next.delete(path);
       }
       saveCollapsed(repo, prNumber, next);
       return next;
     });
   }, [repo, prNumber]);
+
+  const toggleCollapse = useCallback((path: string) => setCollapsed(path), [setCollapsed]);
+
+  useEffect(() => {
+    setPullRequestId(null);
+    setViewedStates({});
+    const params = new URLSearchParams({ repo, number: String(prNumber) });
+    fetch(`/api/pr-viewed?${params}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!data) return;
+        setPullRequestId(data.pullRequestId);
+        setViewedStates(data.states);
+      })
+      .catch(() => {});
+  }, [repo, prNumber]);
+
+  // GitHub の Files changed と同じく、viewed にしたら畳み、外したら開く
+  const toggleViewed = useCallback((path: string, viewed: boolean) => {
+    if (!pullRequestId) return;
+    const prevState = viewedStates[path];
+    setViewedStates((s) => ({ ...s, [path]: viewed ? "VIEWED" : "UNVIEWED" }));
+    setCollapsed(path, viewed);
+    fetch("/api/pr-viewed", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pullRequestId, path, viewed }),
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error(`API error: ${res.status}`);
+      })
+      .catch(() => {
+        setViewedStates((s) => ({ ...s, [path]: prevState }));
+        setCollapsed(path, !viewed);
+      });
+  }, [pullRequestId, viewedStates, setCollapsed]);
 
   useEffect(() => {
     setLoading(true);
@@ -107,6 +146,8 @@ export function DiffPanel({ repo, prNumber, prTitle = "", prBody = "", onFileHea
     () => allFiles.filter((f) => filteredPaths.has(f.path)),
     [allFiles, filteredPaths],
   );
+
+  const viewedCount = useMemo(() => countViewed(allFiles.map((f) => f.path), viewedStates), [allFiles, viewedStates]);
 
   const handleMouseUp = () => {
     const sel = window.getSelection();
@@ -182,6 +223,11 @@ export function DiffPanel({ repo, prNumber, prTitle = "", prBody = "", onFileHea
           <FileText size={12} />
           {filteredFiles.length}/{allFiles.length}
         </span>
+        {pullRequestId && (
+          <span className="diff-viewed-count">
+            {viewedCount.viewed} / {viewedCount.total} files viewed
+          </span>
+        )}
       </div>
 
       <div className="diff-panel-content" onMouseUp={handleMouseUp}>
@@ -213,6 +259,21 @@ export function DiffPanel({ repo, prNumber, prTitle = "", prBody = "", onFileHea
                     {file.additions > 0 && <span className="diff-stat-add">+{file.additions}</span>}
                     {file.deletions > 0 && <span className="diff-stat-del">-{file.deletions}</span>}
                   </span>
+                  {pullRequestId && (
+                    <span className="diff-viewed" onClick={(e) => e.stopPropagation()}>
+                      {viewedStates[file.path] === "DISMISSED" && (
+                        <span className="diff-viewed-dismissed">Changed since last view</span>
+                      )}
+                      <label className={`diff-viewed-toggle${viewedStates[file.path] === "VIEWED" ? " checked" : ""}`}>
+                        <input
+                          type="checkbox"
+                          checked={viewedStates[file.path] === "VIEWED"}
+                          onChange={(e) => toggleViewed(file.path, e.target.checked)}
+                        />
+                        Viewed
+                      </label>
+                    </span>
+                  )}
                 </div>
                 {!collapsed && (
                   <div className="diff-file-body" data-path={file.path}>

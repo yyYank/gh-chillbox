@@ -489,6 +489,38 @@ app.get("/test-cases", async (c) => {
   }
 });
 
+app.get("/pr-viewed", async (c) => {
+  const repo = c.req.query("repo");
+  const number = c.req.query("number");
+  if (!repo || !number) {
+    return c.json({ error: "repo and number are required" }, 400);
+  }
+
+  try {
+    const { fetchViewedStates } = await import("./viewed/pr-viewed");
+    return c.json(await fetchViewedStates(repo, parseInt(number, 10)));
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Unknown error";
+    return c.json({ error: message }, 500);
+  }
+});
+
+app.post("/pr-viewed", async (c) => {
+  const { pullRequestId, path, viewed } = await c.req.json<{ pullRequestId: string; path: string; viewed: boolean }>();
+  if (!pullRequestId || !path || typeof viewed !== "boolean") {
+    return c.json({ error: "pullRequestId, path and viewed are required" }, 400);
+  }
+
+  try {
+    const { setFileViewed } = await import("./viewed/pr-viewed");
+    await setFileViewed(pullRequestId, path, viewed);
+    return c.json({ ok: true });
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Unknown error";
+    return c.json({ error: message }, 500);
+  }
+});
+
 serve({ fetch: app.fetch, port: 3001 }, (info) => {
   console.log(`Server running at http://localhost:${info.port}`);
 });
