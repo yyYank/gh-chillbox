@@ -104,12 +104,8 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
   const [humanized, setHumanized] = useState<HumanizeResult | null>(null);
   const [humanizing, setHumanizing] = useState(false);
   const [humanizeError, setHumanizeError] = useState<string | null>(null);
-  const [chatOpen, setChatOpen] = useState(() => {
-    try {
-      const raw = localStorage.getItem(`gh-chillbox:chat:${repo}:${prNumber}`);
-      return raw ? JSON.parse(raw).length > 0 : false;
-    } catch { return false; }
-  });
+  // 右ペインは初期表示から開き、Diff タブを見せる
+  const [chatOpen, setChatOpen] = useState(true);
   const [leftOpen, setLeftOpen] = useState(() => {
     try { return localStorage.getItem(`${storagePrefix}:leftOpen`) !== "false"; } catch { return true; }
   });
@@ -118,7 +114,7 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
     setChatOpen(next.right);
     try { localStorage.setItem(`${storagePrefix}:leftOpen`, String(next.left)); } catch {}
   }, [storagePrefix]);
-  const [activeTab, setActiveTab] = useState<"chat" | "diff" | "insight">("chat");
+  const [activeTab, setActiveTab] = useState<"chat" | "diff" | "insight">("diff");
   const [insightTab, setInsightTab] = useState<"surface" | "ast" | "callgraph" | "api" | "godoc" | "tests">("tests");
   const [floatingBtn, setFloatingBtn] = useState<{ x: number; y: number; text: string; fromBody: boolean } | null>(null);
   const [mermaidModal, setMermaidModal] = useState<string | null>(null);
