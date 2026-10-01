@@ -22,6 +22,12 @@
   --drawer-shadow: -4px 0 32px rgba(0, 0, 0, 0.08);
   --overlay-bg: rgba(0, 0, 0, 0.2);
   --context-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  --syntax-keyword: #cf222e;
+  --syntax-string: #0a3069;
+  --syntax-comment: #6e7781;
+  --syntax-number: #0550ae;
+  --syntax-title: #8250df;
+  --syntax-type: #953800;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -45,6 +51,12 @@
     --drawer-shadow: -4px 0 32px rgba(0, 0, 0, 0.3);
     --overlay-bg: rgba(0, 0, 0, 0.5);
     --context-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    --syntax-keyword: #ff7b72;
+    --syntax-string: #a5d6ff;
+    --syntax-comment: #8b949e;
+    --syntax-number: #79c0ff;
+    --syntax-title: #d2a8ff;
+    --syntax-type: #ffa657;
   }
 }
 
@@ -68,6 +80,12 @@
   --drawer-shadow: -4px 0 32px rgba(0, 0, 0, 0.3);
   --overlay-bg: rgba(0, 0, 0, 0.5);
   --context-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  --syntax-keyword: #ff7b72;
+  --syntax-string: #a5d6ff;
+  --syntax-comment: #8b949e;
+  --syntax-number: #79c0ff;
+  --syntax-title: #d2a8ff;
+  --syntax-type: #ffa657;
 }
 
 /* ===== Reset ===== */
@@ -1936,6 +1954,23 @@ th.col-rank {
 .diff-line-hunk .diff-line-content {
   padding-left: 4px;
 }
+
+/* Diff のシンタックスハイライト（highlight.js のトークン） */
+.diff-line-content .hljs-keyword,
+.diff-line-content .hljs-meta,
+.diff-line-content .hljs-selector-tag { color: var(--syntax-keyword); }
+.diff-line-content .hljs-string,
+.diff-line-content .hljs-regexp { color: var(--syntax-string); }
+.diff-line-content .hljs-comment,
+.diff-line-content .hljs-quote { color: var(--syntax-comment); font-style: italic; }
+.diff-line-content .hljs-number,
+.diff-line-content .hljs-literal,
+.diff-line-content .hljs-attr,
+.diff-line-content .hljs-variable { color: var(--syntax-number); }
+.diff-line-content .hljs-title,
+.diff-line-content .hljs-section { color: var(--syntax-title); }
+.diff-line-content .hljs-type,
+.diff-line-content .hljs-built_in { color: var(--syntax-type); }
 
 /* ===== Quote floating button ===== */
 .quote-floating-btn {

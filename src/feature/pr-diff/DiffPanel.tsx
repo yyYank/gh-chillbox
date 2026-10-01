@@ -6,6 +6,7 @@ import { buildThreadAnchor, lineLabel, type ThreadAnchor, type ThreadMessage } f
 import { loadThreads, appendThreadMessage, removeThread, type ThreadMap } from "./diff-thread-storage";
 import { DiffThreadView } from "./DiffThreadView";
 import { countViewed, type ViewedStates } from "./diff-viewed";
+import { languageFromPath, highlightLine } from "./diff-highlight";
 
 type Props = {
   repo: string;
@@ -20,6 +21,16 @@ function lineIdxOf(node: Node): { path: string; idx: number } | null {
   const body = el?.closest<HTMLElement>("[data-path]");
   if (!el || !body) return null;
   return { path: body.dataset.path!, idx: Number(el.dataset.lineIdx) };
+}
+
+// ハイライトで内容が span に分かれるため、オフセット 0 でも行頭とは限らない。行頭からの文字列で判定する
+function isAtLineStart(container: Node, offset: number): boolean {
+  const lineEl = (container instanceof Element ? container : container.parentElement)?.closest("[data-line-idx]");
+  if (!lineEl) return false;
+  const r = document.createRange();
+  r.setStart(lineEl, 0);
+  r.setEnd(container, offset);
+  return r.toString() === "";
 }
 
 function loadCollapsed(repo: string, prNumber: number): Set<string> {
@@ -147,6 +158,15 @@ export function DiffPanel({ repo, prNumber, prTitle = "", prBody = "", onFileHea
     [allFiles, filteredPaths],
   );
 
+  const highlightedLines = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const f of allFiles) {
+      const language = languageFromPath(f.path);
+      map.set(f.path, f.lines.map((l) => (l.type === "hunk" ? "" : highlightLine(l.content || " ", language))));
+    }
+    return map;
+  }, [allFiles]);
+
   const viewedCount = useMemo(() => countViewed(allFiles.map((f) => f.path), viewedStates), [allFiles, viewedStates]);
 
   const handleMouseUp = () => {
@@ -163,7 +183,7 @@ export function DiffPanel({ repo, prNumber, prTitle = "", prBody = "", onFileHea
       return;
     }
     // 行末まで選ぶと終点が次の行の先頭になるので、その行は含めない
-    const toIdx = range.endOffset === 0 && to.idx > from.idx ? to.idx - 1 : to.idx;
+    const toIdx = isAtLineStart(range.endContainer, range.endOffset) && to.idx > from.idx ? to.idx - 1 : to.idx;
     const file = allFiles.find((f) => f.path === from.path);
     const anchor = file && buildThreadAnchor(file, from.idx, toIdx);
     if (!anchor) {
@@ -285,9 +305,14 @@ export function DiffPanel({ repo, prNumber, prTitle = "", prBody = "", onFileHea
                           <span className="diff-line-marker">
                             {line.type === "add" ? "+" : line.type === "del" ? "-" : line.type === "hunk" ? "" : " "}
                           </span>
-                          <span className="diff-line-content">
-                            {line.type === "hunk" ? line.content : line.content || " "}
-                          </span>
+                          {line.type === "hunk" ? (
+                            <span className="diff-line-content">{line.content}</span>
+                          ) : (
+                            <span
+                              className="diff-line-content"
+                              dangerouslySetInnerHTML={{ __html: highlightedLines.get(file.path)?.[j] ?? "" }}
+                            />
+                          )}
                         </div>
                         {threadsEndingAt(file.path, lineLabel(line)).map(({ anchor, messages }) => (
                           <DiffThreadView
