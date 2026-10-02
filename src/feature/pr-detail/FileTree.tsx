@@ -1,33 +1,8 @@
 import { useState } from "react";
 import { ChevronDown, ChevronRight, Folder, FileText } from "lucide-react";
+import { buildTree, type FileEntry, type TreeNode } from "./file-tree";
 
-type FileEntry = { path: string; additions: number; deletions: number };
 type SelectionSet = Set<string>;
-
-type TreeNode = {
-  name: string;
-  children: Map<string, TreeNode>;
-  files: FileEntry[];
-};
-
-function buildTree(files: FileEntry[]): TreeNode {
-  const root: TreeNode = { name: "", children: new Map(), files: [] };
-  for (const f of files) {
-    const parts = f.path.split("/");
-    let node = root;
-    for (let i = 0; i < parts.length - 1; i++) {
-      const dir = parts[i];
-      let child = node.children.get(dir);
-      if (!child) {
-        child = { name: dir, children: new Map(), files: [] };
-        node.children.set(dir, child);
-      }
-      node = child;
-    }
-    node.files.push(f);
-  }
-  return root;
-}
 
 function countFiles(node: TreeNode): number {
   let count = node.files.length;
