@@ -1213,6 +1213,14 @@ tr:hover .memo-view-empty {
   text-align: left;
   transition: background 0.1s;
 }
+.tree-folder-row {
+  display: flex;
+  align-items: center;
+}
+.tree-folder-row .tree-folder-toggle {
+  flex: 1;
+  min-width: 0;
+}
 .tree-folder-toggle:hover {
   background: var(--hover-bg);
 }

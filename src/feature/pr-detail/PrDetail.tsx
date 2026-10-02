@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { marked } from "marked";
 import { ArrowLeft, ChevronDown, ChevronRight, MessageSquareQuote, PanelLeft, PanelRight } from "lucide-react";
 import { FileTree } from "./FileTree";
+import { toggleFolderSelection } from "./file-tree";
 import { ChatPanel } from "../chat/ChatPanel";
 import { DiffPanel } from "../pr-diff/DiffPanel";
 import { MarpSlides } from "../pr-diff/MarpPreview";
@@ -178,6 +179,12 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange, toolbarHidden 
       return new Set(allFilePaths);
     });
   }, [allFilePaths]);
+
+  const handleFolderToggle = useCallback((paths: string[]) => {
+    setQuotedText(null);
+    setFloatingBtn(null);
+    setSelectedFiles((prev) => toggleFolderSelection(prev, paths));
+  }, []);
 
   const clearSelection = useCallback(() => {
     setSelectedFiles(new Set());
@@ -501,6 +508,7 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange, toolbarHidden 
                     storagePrefix={storagePrefix}
                     selectedFiles={selectedFiles}
                     onFileClick={handleFileClick}
+                    onFolderToggle={handleFolderToggle}
                   />
                 </div>
               )}

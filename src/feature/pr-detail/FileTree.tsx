@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ChevronDown, ChevronRight, Folder, FileText } from "lucide-react";
-import { buildTree, type FileEntry, type TreeNode } from "./file-tree";
+import { buildTree, collectFilePaths, folderSelectionState, type FileEntry, type TreeNode } from "./file-tree";
 
 type SelectionSet = Set<string>;
 
@@ -34,6 +34,7 @@ function FolderNode({
   storagePrefix,
   selectedFiles,
   onFileClick,
+  onFolderToggle,
 }: {
   node: TreeNode;
   depth: number;
@@ -41,6 +42,7 @@ function FolderNode({
   storagePrefix: string;
   selectedFiles?: SelectionSet;
   onFileClick?: (path: string, e: React.MouseEvent) => void;
+  onFolderToggle?: (paths: string[]) => void;
 }) {
   const folderPath = parentPath ? `${parentPath}/${node.name}` : node.name;
   const storageKey = `${storagePrefix}:folder:${folderPath}`;
@@ -53,6 +55,8 @@ function FolderNode({
   });
   const fileCount = countFiles(node);
   const stats = sumStats(node);
+  const folderFilePaths = collectFilePaths(node);
+  const selectionState = folderSelectionState(selectedFiles ?? new Set(), folderFilePaths);
   const sortedDirs = [...node.children.entries()].sort((a, b) => a[0].localeCompare(b[0]));
   const sortedFiles = [...node.files].sort((a, b) => {
     const aName = a.path.split("/").pop() ?? "";
@@ -62,27 +66,43 @@ function FolderNode({
 
   return (
     <li className="tree-folder">
-      <button
-        type="button"
-        className="tree-folder-toggle"
-        style={{ paddingLeft: `${depth * 16 + 12}px` }}
-        onClick={() => {
-          const next = !open;
-          setOpen(next);
-          try {
-            localStorage.setItem(storageKey, String(next));
-          } catch {}
-        }}
-      >
-        {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-        <Folder size={14} className="tree-icon-folder" />
-        <span className="tree-folder-name">{node.name}/</span>
-        <span className="tree-folder-meta">
-          {fileCount} files
-          <span className="stat-add">+{stats.additions}</span>
-          <span className="stat-del">-{stats.deletions}</span>
-        </span>
-      </button>
+      <div className="tree-folder-row">
+        <button
+          type="button"
+          className="tree-folder-toggle"
+          style={{ paddingLeft: `${depth * 16 + 12}px` }}
+          onClick={() => {
+            const next = !open;
+            setOpen(next);
+            try {
+              localStorage.setItem(storageKey, String(next));
+            } catch {}
+          }}
+        >
+          {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+          <Folder size={14} className="tree-icon-folder" />
+          <span className="tree-folder-name">{node.name}/</span>
+          <span className="tree-folder-meta">
+            {fileCount} files
+            <span className="stat-add">+{stats.additions}</span>
+            <span className="stat-del">-{stats.deletions}</span>
+          </span>
+        </button>
+        {onFolderToggle && (
+          <input
+            type="checkbox"
+            className="select-all-checkbox"
+            title={`${folderPath}/ 以下を選択`}
+            checked={selectionState === "all"}
+            ref={(el) => {
+              if (el) {
+                el.indeterminate = selectionState === "some";
+              }
+            }}
+            onChange={() => onFolderToggle(folderFilePaths)}
+          />
+        )}
+      </div>
       {open && (
         <ul className="tree-children">
           {sortedDirs.map(([name, child]) => (
@@ -94,6 +114,7 @@ function FolderNode({
               storagePrefix={storagePrefix}
               selectedFiles={selectedFiles}
               onFileClick={onFileClick}
+              onFolderToggle={onFolderToggle}
             />
           ))}
           {sortedFiles.map((f) => {
@@ -127,9 +148,10 @@ type Props = {
   storagePrefix: string;
   selectedFiles?: SelectionSet;
   onFileClick?: (path: string, e: React.MouseEvent) => void;
+  onFolderToggle?: (paths: string[]) => void;
 };
 
-export function FileTree({ files, storagePrefix, selectedFiles, onFileClick }: Props) {
+export function FileTree({ files, storagePrefix, selectedFiles, onFileClick, onFolderToggle }: Props) {
   const tree = buildTree(files);
 
   const sortedDirs = [...tree.children.entries()].sort((a, b) => a[0].localeCompare(b[0]));
@@ -150,6 +172,7 @@ export function FileTree({ files, storagePrefix, selectedFiles, onFileClick }: P
           storagePrefix={storagePrefix}
           selectedFiles={selectedFiles}
           onFileClick={onFileClick}
+          onFolderToggle={onFolderToggle}
         />
       ))}
       {sortedRootFiles.map((f) => {
