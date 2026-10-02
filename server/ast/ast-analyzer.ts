@@ -412,7 +412,7 @@ export async function analyzepr(repo: string, prNumber: number): Promise<AstAnal
     const resolved: SymbolRelation[] = [];
     for (const rel of rels) {
       let toInfos = symbolLookup.get(rel.to);
-      if (toInfos && toInfos.some((m) => m.name === rel.to)) {
+      if (toInfos?.some((m) => m.name === rel.to)) {
         resolved.push(rel);
         continue;
       }
@@ -474,7 +474,7 @@ export async function analyzepr(repo: string, prNumber: number): Promise<AstAnal
   const changedApps = new Set(allSymbols.filter((s) => s.changedLines.length > 0).map((s) => deriveApp(s.file)));
 
   const changedNames = new Set(allSymbols.map((s) => s.name));
-  let relevantRelations = resolvedRelations.filter((r) => changedNames.has(r.from) || changedNames.has(r.to));
+  const relevantRelations = resolvedRelations.filter((r) => changedNames.has(r.from) || changedNames.has(r.to));
 
   function addContextNode(name: string): boolean {
     const infos = symbolLookup.get(name);

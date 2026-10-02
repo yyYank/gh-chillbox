@@ -229,7 +229,7 @@ function extractUrlPath(node: Node): string | null {
       const spans = node.getTemplateSpans();
       let path = head;
       for (const span of spans) {
-        path += "*" + span.getLiteral().getLiteralText();
+        path += `*${span.getLiteral().getLiteralText()}`;
       }
       return path;
     }
@@ -239,7 +239,7 @@ function extractUrlPath(node: Node): string | null {
       if (lit.startsWith("/")) {
         let path = lit;
         for (let j = i + 1; j < spans.length; j++) {
-          path += "*" + spans[j].getLiteral().getLiteralText();
+          path += `*${spans[j].getLiteral().getLiteralText()}`;
         }
         return path;
       }

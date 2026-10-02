@@ -421,7 +421,7 @@ app.delete("/chat/session", async (c) => {
 
 app.post("/pr-body/humanize", async (c) => {
   const { body } = await c.req.json<{ repo: string; prNumber: number; body: string }>();
-  if (!body || !body.trim()) {
+  if (!body?.trim()) {
     return c.json({ error: "body is required" }, 400);
   }
 

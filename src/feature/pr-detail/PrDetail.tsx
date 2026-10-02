@@ -36,7 +36,7 @@ function proxyImageUrls(html: string): string {
 
 const renderer = new marked.Renderer();
 const originalCode = renderer.code.bind(renderer);
-renderer.code = function (token: Parameters<typeof originalCode>[0]) {
+renderer.code = (token: Parameters<typeof originalCode>[0]) => {
   if (token.lang === "mermaid") {
     return `<pre class="mermaid">${escapeHtml(token.text)}</pre>`;
   }

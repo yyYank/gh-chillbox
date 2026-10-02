@@ -58,10 +58,10 @@ describe("buildCallGraph", () => {
     ];
     const { nodes } = buildCallGraph(symbols, []);
     const typeMap = Object.fromEntries(nodes.map((n) => [n.name, n.type]));
-    expect(typeMap["UserSettings"]).toBe("component");
-    expect(typeMap["useUser"]).toBe("hook");
-    expect(typeMap["UpdateUser"]).toBe("function");
-    expect(typeMap["UserRepo"]).toBe("repository");
+    expect(typeMap.UserSettings).toBe("component");
+    expect(typeMap.useUser).toBe("hook");
+    expect(typeMap.UpdateUser).toBe("function");
+    expect(typeMap.UserRepo).toBe("repository");
   });
 });
 

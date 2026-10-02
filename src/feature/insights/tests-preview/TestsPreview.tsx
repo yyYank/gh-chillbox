@@ -2,7 +2,6 @@ import {
   summarize,
   visibleTestFiles,
   type CategorySummary,
-  type Scope,
   type TestCaseChange,
   type TestCaseItem,
   type TestCategory,

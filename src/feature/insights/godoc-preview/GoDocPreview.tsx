@@ -1,4 +1,4 @@
-import { visiblePackages, type GoDocItem, type GoPackage, type Scope, type SymbolChange } from "./godoc-preview";
+import { visiblePackages, type GoDocItem, type GoPackage, type SymbolChange } from "./godoc-preview";
 import { useScopedFetch } from "../scope-preview/useScopedFetch";
 import { ScopeToggle } from "../scope-preview/ScopeToggle";
 

@@ -21,9 +21,7 @@
       "style": {
         "useBlockStatements": "error",
         "noNonNullAssertion": "off",
-        "noDescendingSpecificity": "off",
-        "useTemplate": "off",
-        "useConst": "off"
+        "noDescendingSpecificity": "off"
       },
       "suspicious": {
         "noArrayIndexKey": "off",
@@ -34,13 +32,8 @@
       "security": {
         "noDangerouslySetInnerHtml": "off"
       },
-      "complexity": {
-        "useLiteralKeys": "off",
-        "useOptionalChain": "off",
-        "useArrowFunction": "off"
-      },
+      "complexity": {},
       "correctness": {
-        "noUnusedImports": "off",
         "useExhaustiveDependencies": "off"
       },
       "a11y": {
