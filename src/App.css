@@ -1853,6 +1853,39 @@ tr:hover .memo-view-empty {
   margin-left: 12px;
 }
 /* GitHub の Files changed と同じく、ファイル名と統計は左に寄せ Viewed を右端に置く */
+.diff-md-mode {
+  display: inline-flex;
+  margin-left: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.diff-md-mode-btn {
+  padding: 2px 10px;
+  border: none;
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+
+.diff-md-mode-btn.active {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.diff-md-preview {
+  padding: 12px 16px;
+}
+
+.diff-md-chunk + .diff-md-chunk {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--border);
+}
+
 .diff-viewed {
   display: flex;
   align-items: center;

@@ -8,6 +8,8 @@ import { DiffThreadView } from "./DiffThreadView";
 import { countViewed, type ViewedStates } from "./diff-viewed";
 import { languageFromPath, highlightLine } from "./diff-highlight";
 import { stepFontSize, parseFontSize } from "./diff-font-size";
+import { isMarkdown } from "./diff-markdown";
+import { MarkdownPreview } from "./MarkdownPreview";
 
 const FONT_SIZE_STORAGE_KEY = "gh-chillbox:diff-font-size";
 
@@ -61,6 +63,7 @@ export function DiffPanel({ repo, prNumber, prTitle = "", prBody = "", onFileHea
   const [floatingBtn, setFloatingBtn] = useState<{ x: number; y: number; anchor: ThreadAnchor } | null>(null);
   const [pullRequestId, setPullRequestId] = useState<string | null>(null);
   const [viewedStates, setViewedStates] = useState<ViewedStates>({});
+  const [previewPaths, setPreviewPaths] = useState<Set<string>>(new Set());
   const [fontSize, setFontSize] = useState(() => {
     try { return parseFontSize(localStorage.getItem(FONT_SIZE_STORAGE_KEY)); } catch { return parseFontSize(null); }
   });
@@ -104,6 +107,15 @@ export function DiffPanel({ repo, prNumber, prTitle = "", prBody = "", onFileHea
   }, [repo, prNumber]);
 
   const toggleCollapse = useCallback((path: string) => setCollapsed(path), [setCollapsed]);
+
+  const setPreview = (path: string, preview: boolean) => {
+    setPreviewPaths((prev) => {
+      const next = new Set(prev);
+      if (preview) next.add(path);
+      else next.delete(path);
+      return next;
+    });
+  };
 
   useEffect(() => {
     setPullRequestId(null);
@@ -296,6 +308,20 @@ export function DiffPanel({ repo, prNumber, prTitle = "", prBody = "", onFileHea
                     {collapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
                   </button>
                   <span className="diff-file-path">{file.path}</span>
+                  {isMarkdown(file.path) && (
+                    <span className="diff-md-mode" onClick={(e) => e.stopPropagation()}>
+                      {(["raw", "preview"] as const).map((mode) => (
+                        <button
+                          key={mode}
+                          type="button"
+                          className={`diff-md-mode-btn${previewPaths.has(file.path) === (mode === "preview") ? " active" : ""}`}
+                          onClick={() => setPreview(file.path, mode === "preview")}
+                        >
+                          {mode}
+                        </button>
+                      ))}
+                    </span>
+                  )}
                   <span className="diff-file-stats">
                     {file.additions > 0 && <span className="diff-stat-add">+{file.additions}</span>}
                     {file.deletions > 0 && <span className="diff-stat-del">-{file.deletions}</span>}
@@ -316,7 +342,10 @@ export function DiffPanel({ repo, prNumber, prTitle = "", prBody = "", onFileHea
                     </span>
                   )}
                 </div>
-                {!collapsed && (
+                {!collapsed && previewPaths.has(file.path) && (
+                  <MarkdownPreview repo={repo} prNumber={prNumber} path={file.path} lines={file.lines} />
+                )}
+                {!collapsed && !previewPaths.has(file.path) && (
                   <div className="diff-file-body" data-path={file.path} style={{ fontSize }}>
                     {file.lines.map((line, j) => (
                       <Fragment key={j}>
