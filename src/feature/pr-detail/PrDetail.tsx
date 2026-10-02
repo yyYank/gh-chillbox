@@ -147,19 +147,27 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange, toolbarHidden 
   const commentsRef = useRef<HTMLDivElement>(null);
   const treeWrapRef = useRef<HTMLDivElement>(null);
 
-  const handleFileClick = useCallback((path: string, e: React.MouseEvent) => {
-    setQuotedText(null);
-    setFloatingBtn(null);
-    setSelectedFiles((prev) => {
-      const next = new Set(e.metaKey || e.ctrlKey ? prev : []);
-      if (next.has(path)) {
-        next.delete(path);
-      } else {
-        next.add(path);
+  const handleFileClick = useCallback(
+    (path: string, e: React.MouseEvent) => {
+      setQuotedText(null);
+      setFloatingBtn(null);
+      setSelectedFiles((prev) => {
+        const next = new Set(e.metaKey || e.ctrlKey ? prev : []);
+        if (next.has(path)) {
+          next.delete(path);
+        } else {
+          next.add(path);
+        }
+        return next;
+      });
+      // Diff タブを開いているときは、選んだファイルの差分までスクロールする(複数選択中は動かさない)
+      if (activeTab === "diff" && !(e.metaKey || e.ctrlKey)) {
+        const header = document.querySelector(`.diff-panel-content [data-file-header="${CSS.escape(path)}"]`);
+        header?.scrollIntoView({ behavior: "smooth", block: "start" });
       }
-      return next;
-    });
-  }, []);
+    },
+    [activeTab],
+  );
 
   const allFilePaths = useMemo(() => (data ? data.files.map((f) => f.path) : []), [data]);
 

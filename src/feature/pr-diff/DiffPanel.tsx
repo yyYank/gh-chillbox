@@ -355,6 +355,7 @@ export function DiffPanel({ repo, prNumber, prTitle = "", prBody = "", onFileHea
               <div key={i} className="diff-file">
                 <div
                   className="diff-file-header"
+                  data-file-header={file.path}
                   onClick={() => {
                     onFileHeaderClick?.(file.path);
                   }}
