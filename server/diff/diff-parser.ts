@@ -4,14 +4,14 @@ export type FileChangedLines = {
 };
 
 export function parseDiffToChangedLines(diff: string): FileChangedLines[] {
-  if (!diff.trim()) return [];
+  if (!diff.trim()) { return []; }
 
   const fileSections = diff.split(/(?=^diff --git )/m).filter(Boolean);
   const results: FileChangedLines[] = [];
 
   for (const section of fileSections) {
     const fileMatch = section.match(/^diff --git a\/(.+?) b\/(.+)/);
-    if (!fileMatch) continue;
+    if (!fileMatch) { continue; }
 
     const file = fileMatch[2];
     const changedLines: number[] = [];
@@ -22,7 +22,7 @@ export function parseDiffToChangedLines(diff: string): FileChangedLines[] {
     while ((hunkMatch = hunkRegex.exec(section)) !== null) {
       let newLineNum = parseInt(hunkMatch[1], 10);
       const hunkLineEnd = section.indexOf("\n", hunkMatch.index);
-      if (hunkLineEnd === -1) continue;
+      if (hunkLineEnd === -1) { continue; }
       const hunkStart = hunkLineEnd + 1;
       const nextHunkOrEnd = section.indexOf("\n@@", hunkStart);
       const hunkBody = section.slice(
@@ -31,7 +31,7 @@ export function parseDiffToChangedLines(diff: string): FileChangedLines[] {
       );
 
       for (const line of hunkBody.split("\n")) {
-        if (line === "") continue;
+        if (line === "") { continue; }
         if (line.startsWith("+")) {
           changedLines.push(newLineNum);
           newLineNum++;

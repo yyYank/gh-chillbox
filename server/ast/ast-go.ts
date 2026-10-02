@@ -22,7 +22,7 @@ const BINARY_PATH = path.join(TOOLS_DIR, "ast-go-parser-bin");
 let binaryBuilt = false;
 
 function ensureBinary(): string {
-  if (binaryBuilt && fs.existsSync(BINARY_PATH)) return BINARY_PATH;
+  if (binaryBuilt && fs.existsSync(BINARY_PATH)) { return BINARY_PATH; }
   execFileSync("go", ["build", "-o", BINARY_PATH, "."], { cwd: TOOLS_DIR, timeout: 30000 });
   binaryBuilt = true;
   return BINARY_PATH;
@@ -65,8 +65,8 @@ function runParser(args: string[], stdinData: string): Promise<string> {
     child.stdin.end();
 
     child.on("close", (code) => {
-      if (code === 0) resolve(stdout);
-      else reject(new Error(stderr));
+      if (code === 0) { resolve(stdout); }
+      else { reject(new Error(stderr)); }
     });
   });
 }
@@ -87,7 +87,7 @@ export async function batchExtractGoFiles(
   filePaths: string[],
   externalSymbols?: string[],
 ): Promise<Map<string, GoParseResult>> {
-  if (filePaths.length === 0) return new Map();
+  if (filePaths.length === 0) { return new Map(); }
 
   try {
     const input = JSON.stringify({

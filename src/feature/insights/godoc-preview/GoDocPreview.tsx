@@ -35,7 +35,7 @@ export function GoDocPreview({ repo, prNumber }: Props) {
 }
 
 function ChangeBadge({ change }: { change: SymbolChange }) {
-  if (change === "unchanged") return null;
+  if (change === "unchanged") { return null; }
   return <span className={`api-badge change-${change}`}>{CHANGE_LABELS[change]}</span>;
 }
 

@@ -26,7 +26,7 @@ export function diffEndpoints(base: ApiEndpoint[], head: ApiEndpoint[]): DiffedE
 
   const current = head.map((e): DiffedEndpoint => {
     const before = baseByKey.get(key(e));
-    if (!before) return { ...e, change: "added", changedParts: [] };
+    if (!before) { return { ...e, change: "added", changedParts: [] }; }
     const changedParts = COMPARED_PARTS.filter((p) => canonical(before[p]) !== canonical(e[p]));
     return { ...e, change: changedParts.length > 0 ? "modified" : "unchanged", changedParts };
   });

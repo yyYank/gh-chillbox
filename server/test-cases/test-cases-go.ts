@@ -13,6 +13,6 @@ export type GoTestFile = { path: string; cases: GoTestCase[] };
 
 
 export function extractGoTestCases(files: { path: string; content: string }[]): Promise<GoTestFile[]> {
-  if (files.length === 0) return Promise.resolve([]);
+  if (files.length === 0) { return Promise.resolve([]); }
   return runGoTool<GoTestFile[]>("gotests", files);
 }

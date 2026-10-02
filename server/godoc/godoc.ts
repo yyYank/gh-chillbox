@@ -24,6 +24,6 @@ export type GoPackageDoc = {
 
 
 export function extractGoDocs(packages: GoPackageInput[]): Promise<GoPackageDoc[]> {
-  if (packages.length === 0) return Promise.resolve([]);
+  if (packages.length === 0) { return Promise.resolve([]); }
   return runGoTool<GoPackageDoc[]>("godoc", packages);
 }

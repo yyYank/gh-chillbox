@@ -67,7 +67,7 @@ export function diffTestCases(base: TestCase[], head: TestCase[]): DiffedTestCas
 
   const current = headKeyed.map(([k, c]): DiffedTestCase => {
     const before = baseByKey.get(k);
-    if (!before) return { ...c, change: "added" };
+    if (!before) { return { ...c, change: "added" }; }
     return { ...c, change: sameModifiers(before.modifiers, c.modifiers) ? "unchanged" : "modified" };
   });
   const removed = baseKeyed

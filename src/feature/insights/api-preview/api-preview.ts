@@ -56,14 +56,14 @@ export function groupByTag(endpoints: ApiEndpoint[]): TagGroup[] {
 type Schema = Record<string, any>;
 
 export function schemaTypeLabel(schema: unknown): string {
-  if (typeof schema !== "object" || schema === null) return "any";
+  if (typeof schema !== "object" || schema === null) { return "any"; }
   const s = schema as Schema;
-  if (typeof s.$ref === "string") return s.$ref.split("/").pop() ?? s.$ref;
+  if (typeof s.$ref === "string") { return s.$ref.split("/").pop() ?? s.$ref; }
   const union = s.oneOf ?? s.anyOf;
-  if (Array.isArray(union)) return union.map(schemaTypeLabel).join(" | ");
-  if (s.type === "array") return `${schemaTypeLabel(s.items)}[]`;
+  if (Array.isArray(union)) { return union.map(schemaTypeLabel).join(" | "); }
+  if (s.type === "array") { return `${schemaTypeLabel(s.items)}[]`; }
   const type = typeof s.type === "string" ? s.type : s.properties ? "object" : undefined;
-  if (!type) return "any";
+  if (!type) { return "any"; }
   return s.format ? `${type}(${s.format})` : type;
 }
 

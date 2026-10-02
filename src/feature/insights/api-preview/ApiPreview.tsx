@@ -144,7 +144,7 @@ function EndpointView({ endpoint: e }: { endpoint: ApiEndpoint }) {
 }
 
 function SchemaView({ schema, depth }: { schema: unknown; depth: number }) {
-  if (typeof schema !== "object" || schema === null) return null;
+  if (typeof schema !== "object" || schema === null) { return null; }
   const s = schema as Record<string, any>;
   const target = s.type === "array" && typeof s.items === "object" ? s.items : s;
   const props = target?.properties;

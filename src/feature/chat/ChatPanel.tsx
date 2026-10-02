@@ -44,7 +44,7 @@ export function ChatPanel({ selectedFiles, quotedText, quotedFromRewritten, repo
     try {
       const params = new URLSearchParams({ repo, number: String(prNumber), files: files.join(",") });
       const res = await fetch(`/api/pr-diff?${params}`);
-      if (!res.ok) throw new Error();
+      if (!res.ok) { throw new Error(); }
       const data = await res.json();
       setDiffCharCount(data.charCount ?? null);
     } catch {
@@ -72,24 +72,24 @@ export function ChatPanel({ selectedFiles, quotedText, quotedFromRewritten, repo
 
   const handlePreview = async () => {
     const question = input.trim();
-    if (!question) return;
+    if (!question) { return; }
 
     setPreviewLoading(true);
     try {
       const payload: Record<string, unknown> = { repo, prNumber, question, prTitle, prBody };
       if (quotedText) {
         payload.quotedText = quotedText;
-        if (quotedFromRewritten) payload.quotedFromRewritten = true;
+        if (quotedFromRewritten) { payload.quotedFromRewritten = true; }
       } else {
         payload.files = selectedFiles;
-        if (includeDiff) payload.includeDiff = true;
+        if (includeDiff) { payload.includeDiff = true; }
       }
       const res = await fetch("/api/chat/preview", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      if (!res.ok) throw new Error(`API error: ${res.status}`);
+      if (!res.ok) { throw new Error(`API error: ${res.status}`); }
       const data = await res.json();
       const label = data.resumed ? "(セッション継続中)\n\n" : "";
       setPreviewContent(label + data.prompt);
@@ -104,7 +104,7 @@ export function ChatPanel({ selectedFiles, quotedText, quotedFromRewritten, repo
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const question = input.trim();
-    if (!question) return;
+    if (!question) { return; }
 
     const userMsg: Message = { role: "user", content: question };
     setMessages((prev) => [...prev, userMsg]);
@@ -115,17 +115,17 @@ export function ChatPanel({ selectedFiles, quotedText, quotedFromRewritten, repo
       const payload: Record<string, unknown> = { repo, prNumber, question, prTitle, prBody };
       if (quotedText) {
         payload.quotedText = quotedText;
-        if (quotedFromRewritten) payload.quotedFromRewritten = true;
+        if (quotedFromRewritten) { payload.quotedFromRewritten = true; }
       } else {
         payload.files = selectedFiles;
-        if (includeDiff) payload.includeDiff = true;
+        if (includeDiff) { payload.includeDiff = true; }
       }
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      if (!res.ok) throw new Error(`API error: ${res.status}`);
+      if (!res.ok) { throw new Error(`API error: ${res.status}`); }
       const data = await res.json();
       setMessages((prev) => [...prev, { role: "assistant", content: data.answer }]);
     } catch (err) {

@@ -8,9 +8,9 @@ export function isMarkdown(path: string): boolean {
 export function markdownFromDiff(lines: DiffLine[]): string[] {
   const chunks: string[][] = [];
   for (const l of lines) {
-    if (l.type === "hunk") chunks.push([]);
+    if (l.type === "hunk") { chunks.push([]); }
     else if (l.type !== "del") {
-      if (chunks.length === 0) chunks.push([]);
+      if (chunks.length === 0) { chunks.push([]); }
       chunks[chunks.length - 1].push(l.content);
     }
   }

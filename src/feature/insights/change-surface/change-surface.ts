@@ -152,7 +152,7 @@ export function classifyFiles(files: FileInput[], diffMap?: Map<string, string>)
 }
 
 export function computeSummary(classified: FileLayerResult[]): LayerSummary[] {
-  if (classified.length === 0) return [];
+  if (classified.length === 0) { return []; }
 
   const totals: Record<Layer, number> = Object.fromEntries(
     LAYERS.map((l) => [l, 0])
@@ -164,7 +164,7 @@ export function computeSummary(classified: FileLayerResult[]): LayerSummary[] {
     totalLines += file.changedLines;
   }
 
-  if (totalLines === 0) return [];
+  if (totalLines === 0) { return []; }
 
   return LAYERS
     .filter((l) => totals[l] > 0)

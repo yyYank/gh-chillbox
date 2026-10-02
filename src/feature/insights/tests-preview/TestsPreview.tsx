@@ -48,7 +48,7 @@ export function TestsPreview({ repo, prNumber }: Props) {
       )}
       {files && (["unit", "e2e"] as const).map((category) => {
         const inCategory = files.filter((f) => f.category === category);
-        if (inCategory.length === 0) return null;
+        if (inCategory.length === 0) { return null; }
         return (
           <div key={category} className="api-tag-group">
             <div className="api-tag">{CATEGORY_LABELS[category]}</div>

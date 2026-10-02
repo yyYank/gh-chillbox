@@ -14,7 +14,7 @@ function isReactComponent(node: Node): boolean {
   }
 
   const name = node.getName();
-  if (!name || !/^[A-Z]/.test(name)) return false;
+  if (!name || !/^[A-Z]/.test(name)) { return false; }
 
   const text = node.getText();
   return /\bJSX\b|<[A-Z]|<[a-z]/.test(text) || text.includes("React.createElement");
@@ -31,7 +31,7 @@ export function extractSymbolsFromFile(filePath: string): ExtractedSymbol[] {
 
   for (const fn of sourceFile.getFunctions()) {
     const name = fn.getName();
-    if (!name) continue;
+    if (!name) { continue; }
 
     let kind: SymbolKind = "function";
     if (isCustomHook(name)) {
@@ -50,7 +50,7 @@ export function extractSymbolsFromFile(filePath: string): ExtractedSymbol[] {
 
   for (const cls of sourceFile.getClasses()) {
     const name = cls.getName();
-    if (!name) continue;
+    if (!name) { continue; }
 
     symbols.push({
       name,
@@ -90,7 +90,7 @@ export function extractSymbolsFromFile(filePath: string): ExtractedSymbol[] {
   for (const varStmt of sourceFile.getVariableStatements()) {
     for (const decl of varStmt.getDeclarations()) {
       const init = decl.getInitializer();
-      if (!init) continue;
+      if (!init) { continue; }
       if (Node.isArrowFunction(init) || Node.isFunctionExpression(init)) {
         const name = decl.getName();
         let kind: SymbolKind = "function";
@@ -148,7 +148,7 @@ export function extractRelationsFromFile(
 
   function addRelation(from: string, to: string, kind: ExtractedRelation["kind"]) {
     const key = `${from}:${to}:${kind}`;
-    if (seen.has(key)) return;
+    if (seen.has(key)) { return; }
     seen.add(key);
     relations.push({ from, to, kind });
   }
@@ -166,7 +166,7 @@ export function extractRelationsFromFile(
     const expr = call.getExpression();
     const line = call.getStartLineNumber();
     const caller = findContainingSymbol(line);
-    if (!caller) continue;
+    if (!caller) { continue; }
 
     if (Node.isIdentifier(expr)) {
       const name = expr.getText();
@@ -212,7 +212,7 @@ const HTTP_METHODS = new Set(["get", "post", "put", "delete", "patch"]);
 function extractUrlPath(node: Node): string | null {
   if (Node.isStringLiteral(node)) {
     const val = node.getLiteralValue();
-    if (val.startsWith("/")) return val;
+    if (val.startsWith("/")) { return val; }
   }
   if (Node.isTemplateExpression(node)) {
     const head = node.getHead().getLiteralText();
@@ -238,7 +238,7 @@ function extractUrlPath(node: Node): string | null {
   }
   if (Node.isNoSubstitutionTemplateLiteral(node)) {
     const val = node.getLiteralValue();
-    if (val.startsWith("/")) return val;
+    if (val.startsWith("/")) { return val; }
   }
   return null;
 }
@@ -249,8 +249,8 @@ export function normalizePath(p: string): string {
 
 function matchSegments(a: string[], b: string[], offset: number): boolean {
   for (let i = 0; i < a.length; i++) {
-    if (a[i] === "*" || b[offset + i] === "*") continue;
-    if (a[i] !== b[offset + i]) return false;
+    if (a[i] === "*" || b[offset + i] === "*") { continue; }
+    if (a[i] !== b[offset + i]) { return false; }
   }
   return true;
 }
@@ -258,15 +258,15 @@ function matchSegments(a: string[], b: string[], offset: number): boolean {
 export function matchPaths(a: string, b: string): boolean {
   const na = normalizePath(a);
   const nb = normalizePath(b);
-  if (na === nb) return true;
+  if (na === nb) { return true; }
   const segA = na.split("/").filter(Boolean);
   const segB = nb.split("/").filter(Boolean);
   const shorter = segA.length <= segB.length ? segA : segB;
   const longer = segA.length <= segB.length ? segB : segA;
-  if (shorter.length === 0) return false;
-  if (matchSegments(shorter, longer, 0)) return true;
+  if (shorter.length === 0) { return false; }
+  if (matchSegments(shorter, longer, 0)) { return true; }
   const suffixOffset = longer.length - shorter.length;
-  if (suffixOffset === 1 && matchSegments(shorter, longer, suffixOffset)) return true;
+  if (suffixOffset === 1 && matchSegments(shorter, longer, suffixOffset)) { return true; }
   return false;
 }
 
@@ -275,10 +275,10 @@ const APP_ROUTER_METHODS = new Set(["GET", "POST", "PUT", "DELETE", "PATCH", "HE
 export function inferRoutePathFromFilePath(filePath: string): string | null {
   const normalized = filePath.replace(/\\/g, "/");
   const appIdx = normalized.indexOf("/app/");
-  if (appIdx === -1) return null;
+  if (appIdx === -1) { return null; }
   const relative = normalized.slice(appIdx + "/app".length);
   const dir = relative.replace(/\/route\.(ts|tsx|js|jsx)$/, "");
-  if (dir === relative) return null;
+  if (dir === relative) { return null; }
   return dir.replace(/\[([^\]]+)\]/g, ":$1").replace(/\/\(([^)]+)\)/g, "");
 }
 
@@ -300,7 +300,7 @@ export function extractHttpFromFile(
       }
     }
     for (const stmt of sourceFile.getVariableStatements()) {
-      if (!stmt.isExported()) continue;
+      if (!stmt.isExported()) { continue; }
       for (const decl of stmt.getDeclarations()) {
         const name = decl.getName();
         if (APP_ROUTER_METHODS.has(name)) {
@@ -312,7 +312,7 @@ export function extractHttpFromFile(
 
   function findContaining(line: number): string | undefined {
     for (const sym of symbols) {
-      if (line >= sym.startLine && line <= sym.endLine) return sym.name;
+      if (line >= sym.startLine && line <= sym.endLine) { return sym.name; }
     }
     return undefined;
   }
@@ -320,10 +320,10 @@ export function extractHttpFromFile(
   for (const call of sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression)) {
     const expr = call.getExpression();
     const args = call.getArguments();
-    if (args.length === 0) continue;
+    if (args.length === 0) { continue; }
 
     const urlPath = extractUrlPath(args[0]);
-    if (!urlPath) continue;
+    if (!urlPath) { continue; }
     const line = call.getStartLineNumber();
 
     if (Node.isIdentifier(expr)) {
@@ -377,15 +377,15 @@ export function extractServerActionExports(filePath: string): string[] {
   const project = new Project({ compilerOptions: { jsx: 2 } });
   const sourceFile = project.addSourceFileAtPath(filePath);
   const text = sourceFile.getFullText();
-  if (!text.includes('"use server"') && !text.includes("'use server'")) return [];
+  if (!text.includes('"use server"') && !text.includes("'use server'")) { return []; }
 
   const names: string[] = [];
   for (const fn of sourceFile.getFunctions()) {
     const name = fn.getName();
-    if (name && fn.isExported()) names.push(name);
+    if (name && fn.isExported()) { names.push(name); }
   }
   for (const stmt of sourceFile.getVariableStatements()) {
-    if (!stmt.isExported()) continue;
+    if (!stmt.isExported()) { continue; }
     for (const decl of stmt.getDeclarations()) {
       const init = decl.getInitializer();
       if (init && (Node.isArrowFunction(init) || Node.isFunctionExpression(init))) {
@@ -416,16 +416,16 @@ export function analyzeTsFile(
 
   for (const fn of sourceFile.getFunctions()) {
     const name = fn.getName();
-    if (!name) continue;
+    if (!name) { continue; }
     let kind: SymbolKind = "function";
-    if (isCustomHook(name)) kind = "hook";
-    else if (isReactComponent(fn)) kind = "component";
+    if (isCustomHook(name)) { kind = "hook"; }
+    else if (isReactComponent(fn)) { kind = "component"; }
     symbols.push({ name, kind, startLine: fn.getStartLineNumber(), endLine: fn.getEndLineNumber() });
   }
 
   for (const cls of sourceFile.getClasses()) {
     const name = cls.getName();
-    if (!name) continue;
+    if (!name) { continue; }
     symbols.push({ name, kind: "class", startLine: cls.getStartLineNumber(), endLine: cls.getEndLineNumber() });
     for (const method of cls.getMethods()) {
       symbols.push({ name: method.getName(), kind: "method", startLine: method.getStartLineNumber(), endLine: method.getEndLineNumber() });
@@ -443,12 +443,12 @@ export function analyzeTsFile(
   for (const varStmt of sourceFile.getVariableStatements()) {
     for (const decl of varStmt.getDeclarations()) {
       const init = decl.getInitializer();
-      if (!init) continue;
+      if (!init) { continue; }
       if (Node.isArrowFunction(init) || Node.isFunctionExpression(init)) {
         const name = decl.getName();
         let kind: SymbolKind = "function";
-        if (isCustomHook(name)) kind = "hook";
-        else if (isReactComponent(decl)) kind = "component";
+        if (isCustomHook(name)) { kind = "hook"; }
+        else if (isReactComponent(decl)) { kind = "component"; }
         symbols.push({ name, kind, startLine: varStmt.getStartLineNumber(), endLine: varStmt.getEndLineNumber() });
       }
     }
@@ -464,14 +464,14 @@ export function analyzeTsFile(
 
   function addRelation(from: string, to: string, kind: ExtractedRelation["kind"]) {
     const key = `${from}:${to}:${kind}`;
-    if (seenRel.has(key)) return;
+    if (seenRel.has(key)) { return; }
     seenRel.add(key);
     relations.push({ from, to, kind });
   }
 
   function findContainingSymbol(line: number): string | undefined {
     for (const sym of symbols) {
-      if (line >= sym.startLine && line <= sym.endLine) return sym.name;
+      if (line >= sym.startLine && line <= sym.endLine) { return sym.name; }
     }
     return undefined;
   }
@@ -480,7 +480,7 @@ export function analyzeTsFile(
     const expr = call.getExpression();
     const line = call.getStartLineNumber();
     const caller = findContainingSymbol(line);
-    if (!caller) continue;
+    if (!caller) { continue; }
 
     if (Node.isIdentifier(expr)) {
       const name = expr.getText();
@@ -500,7 +500,7 @@ export function analyzeTsFile(
     if (matchNames.has(tagName)) {
       const line = jsx.getStartLineNumber();
       const caller = findContainingSymbol(line);
-      if (caller && caller !== tagName) addRelation(caller, tagName, "component-use");
+      if (caller && caller !== tagName) { addRelation(caller, tagName, "component-use"); }
     }
   }
 
@@ -509,7 +509,7 @@ export function analyzeTsFile(
     if (matchNames.has(tagName)) {
       const line = jsx.getStartLineNumber();
       const caller = findContainingSymbol(line);
-      if (caller && caller !== tagName) addRelation(caller, tagName, "component-use");
+      if (caller && caller !== tagName) { addRelation(caller, tagName, "component-use"); }
     }
   }
 
@@ -525,19 +525,19 @@ export function analyzeTsFile(
       if (name && fn.isExported() && APP_ROUTER_METHODS.has(name)) {
         const displayName = `${name} ${routePath}`;
         const idx = symbols.findIndex((s) => s.name === name);
-        if (idx !== -1) symbols[idx].name = displayName;
+        if (idx !== -1) { symbols[idx].name = displayName; }
         tsRouteRenames.set(name, displayName);
         httpRoutes.push({ handler: displayName, method: name, path: routePath, file: filePath });
       }
     }
     for (const stmt of sourceFile.getVariableStatements()) {
-      if (!stmt.isExported()) continue;
+      if (!stmt.isExported()) { continue; }
       for (const decl of stmt.getDeclarations()) {
         const name = decl.getName();
         if (APP_ROUTER_METHODS.has(name)) {
           const displayName = `${name} ${routePath}`;
           const idx = symbols.findIndex((s) => s.name === name);
-          if (idx !== -1) symbols[idx].name = displayName;
+          if (idx !== -1) { symbols[idx].name = displayName; }
           tsRouteRenames.set(name, displayName);
           httpRoutes.push({ handler: displayName, method: name, path: routePath, file: filePath });
         }
@@ -546,22 +546,22 @@ export function analyzeTsFile(
     for (const rel of relations) {
       const newFrom = tsRouteRenames.get(rel.from);
       const newTo = tsRouteRenames.get(rel.to);
-      if (newFrom) rel.from = newFrom;
-      if (newTo) rel.to = newTo;
+      if (newFrom) { rel.from = newFrom; }
+      if (newTo) { rel.to = newTo; }
     }
   }
 
   for (const call of sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression)) {
     const expr = call.getExpression();
     const args = call.getArguments();
-    if (args.length === 0) continue;
+    if (args.length === 0) { continue; }
     const urlPath = extractUrlPath(args[0]);
-    if (!urlPath) continue;
+    if (!urlPath) { continue; }
     const line = call.getStartLineNumber();
 
     if (Node.isIdentifier(expr)) {
       const caller = findContainingSymbol(line);
-      if (caller) httpCalls.push({ caller, path: urlPath, file: filePath });
+      if (caller) { httpCalls.push({ caller, path: urlPath, file: filePath }); }
     } else if (Node.isPropertyAccessExpression(expr)) {
       const methodName = expr.getName().toLowerCase();
       if (HTTP_METHODS.has(methodName)) {
@@ -571,19 +571,19 @@ export function analyzeTsFile(
         );
         if (hasHandlerArg) {
           let handlerName: string | undefined;
-          if (Node.isIdentifier(handlerArg)) handlerName = handlerArg.getText();
-          if (handlerName) httpRoutes.push({ handler: handlerName, method: methodName.toUpperCase(), path: urlPath, file: filePath });
+          if (Node.isIdentifier(handlerArg)) { handlerName = handlerArg.getText(); }
+          if (handlerName) { httpRoutes.push({ handler: handlerName, method: methodName.toUpperCase(), path: urlPath, file: filePath }); }
           else {
             const caller = findContainingSymbol(line);
-            if (caller) httpRoutes.push({ handler: caller, method: methodName.toUpperCase(), path: urlPath, file: filePath });
+            if (caller) { httpRoutes.push({ handler: caller, method: methodName.toUpperCase(), path: urlPath, file: filePath }); }
           }
         } else {
           const caller = findContainingSymbol(line);
-          if (caller) httpCalls.push({ caller, method: methodName.toUpperCase(), path: urlPath, file: filePath });
+          if (caller) { httpCalls.push({ caller, method: methodName.toUpperCase(), path: urlPath, file: filePath }); }
         }
       } else {
         const caller = findContainingSymbol(line);
-        if (caller) httpCalls.push({ caller, path: urlPath, file: filePath });
+        if (caller) { httpCalls.push({ caller, path: urlPath, file: filePath }); }
       }
     }
   }
@@ -594,10 +594,10 @@ export function analyzeTsFile(
   if (text.includes('"use server"') || text.includes("'use server'")) {
     for (const fn of sourceFile.getFunctions()) {
       const name = fn.getName();
-      if (name && fn.isExported()) serverActionExports.push(name);
+      if (name && fn.isExported()) { serverActionExports.push(name); }
     }
     for (const stmt of sourceFile.getVariableStatements()) {
-      if (!stmt.isExported()) continue;
+      if (!stmt.isExported()) { continue; }
       for (const decl of stmt.getDeclarations()) {
         const init = decl.getInitializer();
         if (init && (Node.isArrowFunction(init) || Node.isFunctionExpression(init))) {

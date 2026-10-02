@@ -141,7 +141,7 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
 
   const handleSelectAll = useCallback(() => {
     setSelectedFiles(prev => {
-      if (prev.size === allFilePaths.length) return new Set();
+      if (prev.size === allFilePaths.length) { return new Set(); }
       return new Set(allFilePaths);
     });
   }, [allFilePaths]);
@@ -172,7 +172,7 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
   }, []);
 
   const handleQuote = useCallback(() => {
-    if (!floatingBtn) return;
+    if (!floatingBtn) { return; }
     setSelectedFiles(new Set());
     setQuotedText(floatingBtn.text);
     // 書き換え後タブからの引用は原文に存在しないので、chat 側でその旨を伝える
@@ -186,7 +186,7 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
       if (floatingBtn && !(e.target as HTMLElement).closest(".quote-floating-btn")) {
         setTimeout(() => {
           const sel = window.getSelection()?.toString().trim();
-          if (!sel) setFloatingBtn(null);
+          if (!sel) { setFloatingBtn(null); }
         }, 0);
       }
     };
@@ -203,11 +203,11 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
     const params = new URLSearchParams({ repo, number: String(prNumber) });
     fetch(`/api/pr-detail?${params}`)
       .then((res) => {
-        if (!res.ok) throw new Error(`API error: ${res.status}`);
+        if (!res.ok) { throw new Error(`API error: ${res.status}`); }
         return res.json();
       })
       .then((d) => {
-        if (d.error) throw new Error(d.error);
+        if (d.error) { throw new Error(d.error); }
         setData(d);
       })
       .catch((e) => setError(e instanceof Error ? e.message : "取得に失敗しました"))
@@ -226,7 +226,7 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
   }, [data?.title, data?.number, onTitleChange]);
 
   const runHumanize = useCallback(async () => {
-    if (!data?.body) return;
+    if (!data?.body) { return; }
     setHumanizing(true);
     setHumanizeError(null);
     try {
@@ -236,7 +236,7 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
         body: JSON.stringify({ repo, prNumber, body: data.body }),
       });
       const d = await res.json();
-      if (!res.ok || d.error) throw new Error(d.error ?? `API error: ${res.status}`);
+      if (!res.ok || d.error) { throw new Error(d.error ?? `API error: ${res.status}`); }
       setHumanized(d);
     } catch (e) {
       setHumanizeError(e instanceof Error ? e.message : "書き換えに失敗しました");
@@ -247,7 +247,7 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
 
   const handleNaturalTab = useCallback(() => {
     setBodyTab("natural");
-    if (!humanized && !humanizing) runHumanize();
+    if (!humanized && !humanizing) { runHumanize(); }
   }, [humanized, humanizing, runHumanize]);
 
   const bodySource = bodyTab === "natural" ? humanized?.rewritten ?? "" : data?.body ?? "";
@@ -272,7 +272,7 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
           blocks[i].setAttribute("data-rendered", "true");
         } catch { /* keep raw text on parse error */ }
       }
-      if (!cancelled) setRenderedBody(div.innerHTML);
+      if (!cancelled) { setRenderedBody(div.innerHTML); }
     })();
     return () => { cancelled = true; };
   }, [rawBodyHtml, prNumber]);
@@ -286,16 +286,16 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
   }, []);
 
   useEffect(() => {
-    if (!mermaidModal) return;
+    if (!mermaidModal) { return; }
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setMermaidModal(null);
+      if (e.key === "Escape") { setMermaidModal(null); }
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [mermaidModal]);
 
   const handleDiffFileHeaderClick = useCallback((path: string) => {
-    if (!leftOpen) applyPane({ left: true, right: true });
+    if (!leftOpen) { applyPane({ left: true, right: true }); }
     if (!filesOpen) {
       setFilesOpen(true);
       try { localStorage.setItem(`${storagePrefix}:filesOpen`, "true"); } catch {}
@@ -331,7 +331,7 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
     e.preventDefault();
     draggingRef.current = true;
     const onMove = (ev: MouseEvent) => {
-      if (!draggingRef.current || !layoutRef.current) return;
+      if (!draggingRef.current || !layoutRef.current) { return; }
       const rect = layoutRef.current.getBoundingClientRect();
       const ratio = ((ev.clientX - rect.left) / rect.width) * 100;
       const clamped = Math.max(20, Math.min(80, ratio));
@@ -425,7 +425,7 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
                   title="全選択"
                   checked={selectedFiles.size === data.files.length && data.files.length > 0}
                   ref={(el) => {
-                    if (el) el.indeterminate = selectedFiles.size > 0 && selectedFiles.size < data.files.length;
+                    if (el) { el.indeterminate = selectedFiles.size > 0 && selectedFiles.size < data.files.length; }
                   }}
                   onChange={handleSelectAll}
                 />
@@ -548,7 +548,7 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
             className="mermaid-modal-content"
             onClick={(e) => e.stopPropagation()}
             onWheel={(e) => {
-              if (!e.ctrlKey) return;
+              if (!e.ctrlKey) { return; }
               e.preventDefault();
               setModalScale((s) => Math.max(0.2, Math.min(5, s + (e.deltaY > 0 ? -0.1 : 0.1))));
             }}

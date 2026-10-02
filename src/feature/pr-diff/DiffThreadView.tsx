@@ -24,7 +24,7 @@ export function DiffThreadView({ anchor, messages, repo, prNumber, prTitle, prBo
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const question = input.trim();
-    if (!question) return;
+    if (!question) { return; }
 
     onAppend(anchor, { role: "user", content: question });
     setInput("");
@@ -35,7 +35,7 @@ export function DiffThreadView({ anchor, messages, repo, prNumber, prTitle, prBo
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ repo, prNumber, question, prTitle, prBody, diffThread: anchor }),
       });
-      if (!res.ok) throw new Error(`API error: ${res.status}`);
+      if (!res.ok) { throw new Error(`API error: ${res.status}`); }
       const data = await res.json();
       onAppend(anchor, { role: "assistant", content: data.answer });
     } catch (err) {

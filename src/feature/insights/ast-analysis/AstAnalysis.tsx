@@ -72,7 +72,7 @@ function buildFlowChains(
     (r) => symbolNames.has(r.from) && symbolNames.has(r.to),
   );
 
-  if (relevant.length === 0) return [];
+  if (relevant.length === 0) { return []; }
 
   const outgoing = new Map<string, string[]>();
   const incoming = new Set<string>();
@@ -126,11 +126,11 @@ export function AstAnalysis({ repo, prNumber }: Props) {
     const params = new URLSearchParams({ repo, number: String(prNumber) });
     fetch(`/api/ast-analysis?${params}`)
       .then((res) => {
-        if (!res.ok) throw new Error(`API error: ${res.status}`);
+        if (!res.ok) { throw new Error(`API error: ${res.status}`); }
         return res.json();
       })
       .then((d) => {
-        if (d.error) throw new Error(d.error);
+        if (d.error) { throw new Error(d.error); }
         setSymbols(d.symbols ?? []);
         setRelations(d.relations ?? []);
       })

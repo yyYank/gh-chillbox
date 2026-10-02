@@ -50,21 +50,21 @@ function toTestCase(call: CallExpression, prefix: string[]): TsTestCase | null {
   // describe.each([...])("name", fn) は外側の呼び出しの callee が内側の呼び出しになる
   const callee = call.getExpression();
   const chain = calleeChain(Node.isCallExpression(callee) ? callee.getExpression() : callee);
-  if (!chain) return null;
+  if (!chain) { return null; }
 
   const [root, ...rest] = chain;
   const isDescribe = DESCRIBE_ROOTS.has(root) || (TEST_ROOTS.has(root) && rest[0] === "describe");
-  if (!isDescribe && !TEST_ROOTS.has(root)) return null;
+  if (!isDescribe && !TEST_ROOTS.has(root)) { return null; }
 
   const rawModifiers = isDescribe && rest[0] === "describe" ? rest.slice(1) : rest;
-  if (!rawModifiers.every((m) => MODIFIERS.has(m))) return null;
+  if (!rawModifiers.every((m) => MODIFIERS.has(m))) { return null; }
   const modifiers = [...prefixModifier(root), ...rawModifiers];
 
   const args = call.getArguments();
   const [nameArg] = args;
   // test.skip(cond, "reason") のような関数を渡さない呼び出しはテストケースではない
   const hasBody = args.some((a) => Node.isArrowFunction(a) || Node.isFunctionExpression(a));
-  if (!nameArg || (!hasBody && !modifiers.includes("todo"))) return null;
+  if (!nameArg || (!hasBody && !modifiers.includes("todo"))) { return null; }
 
   const isLiteral = Node.isStringLiteral(nameArg) || Node.isNoSubstitutionTemplateLiteral(nameArg);
   const name = isLiteral ? nameArg.getLiteralText() : nameArg.getText();
@@ -78,14 +78,14 @@ function toTestCase(call: CallExpression, prefix: string[]): TsTestCase | null {
 }
 
 function prefixModifier(root: string): string[] {
-  if (/^x(it|test|describe)$/.test(root)) return ["skip"];
-  if (/^f(it|describe)$/.test(root)) return ["only"];
+  if (/^x(it|test|describe)$/.test(root)) { return ["skip"]; }
+  if (/^f(it|describe)$/.test(root)) { return ["only"]; }
   return [];
 }
 
 // test.describe.serial → ["test", "describe", "serial"]。識別子とプロパティアクセス以外が混ざれば null
 function calleeChain(expr: Node): string[] | null {
-  if (Node.isIdentifier(expr)) return [expr.getText()];
+  if (Node.isIdentifier(expr)) { return [expr.getText()]; }
   if (Node.isPropertyAccessExpression(expr)) {
     const head = calleeChain(expr.getExpression());
     return head && [...head, expr.getName()];

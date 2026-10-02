@@ -37,7 +37,7 @@ export function pairPackages(base: GoPackageDoc[], head: GoPackageDoc[]): Diffed
   const current = head.map((p): DiffedGoPackage => {
     const before = baseByKey.get(key(p));
     const items = diffGoDocItems(before?.items ?? [], p.items);
-    if (!before) return { ...p, change: "added", items };
+    if (!before) { return { ...p, change: "added", items }; }
     const changed = before.docText !== p.docText || items.some((i) => i.change !== "unchanged");
     return { ...p, change: changed ? "modified" : "unchanged", items };
   });

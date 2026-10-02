@@ -41,7 +41,7 @@ function parse(content: string): GherkinCase[] {
   content.split(/\r?\n/).forEach((raw, index) => {
     const line = raw.trim();
     if (docStringFence) {
-      if (line.startsWith(docStringFence)) docStringFence = null;
+      if (line.startsWith(docStringFence)) { docStringFence = null; }
       return;
     }
     if (line.startsWith('"""') || line.startsWith("```")) {
@@ -54,7 +54,7 @@ function parse(content: string): GherkinCase[] {
     }
 
     const matched = matchKeyword(line);
-    if (!matched) return;
+    if (!matched) { return; }
     const { keyword, name } = matched;
     const modifiers = [...tags, ...(keyword.outline ? ["outline"] : [])];
     tags = [];
@@ -81,7 +81,7 @@ function parse(content: string): GherkinCase[] {
 function matchKeyword(line: string): { keyword: Keyword; name: string } | null {
   for (const [word, keyword] of KEYWORDS) {
     const m = line.match(new RegExp(`^${word}\\s*[:：]\\s*(.*)$`));
-    if (m) return { keyword, name: m[1].trim() };
+    if (m) { return { keyword, name: m[1].trim() }; }
   }
   return null;
 }

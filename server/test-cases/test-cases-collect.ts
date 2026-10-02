@@ -28,10 +28,10 @@ type Source = { path: string; content: string };
 const MAX_FILE_BYTES = 2 * 1024 * 1024;
 
 export function testFileKind(filePath: string): TestFileKind | null {
-  if (filePath.endsWith("_test.go")) return "go";
-  if (filePath.endsWith(".feature")) return "gherkin";
-  if (!/\.[cm]?[jt]sx?$/.test(filePath)) return null;
-  if (/\.(test|spec)\.[cm]?[jt]sx?$/.test(filePath) || /(^|\/)__tests__\//.test(filePath)) return "ts";
+  if (filePath.endsWith("_test.go")) { return "go"; }
+  if (filePath.endsWith(".feature")) { return "gherkin"; }
+  if (!/\.[cm]?[jt]sx?$/.test(filePath)) { return null; }
+  if (/\.(test|spec)\.[cm]?[jt]sx?$/.test(filePath) || /(^|\/)__tests__\//.test(filePath)) { return "ts"; }
   return null;
 }
 
@@ -104,7 +104,7 @@ export async function loadTestCases(repo: string, number: number, scope: TestCas
 function readHead(absPath: string): string | null {
   try {
     const stat = fs.statSync(absPath);
-    if (!stat.isFile() || stat.size > MAX_FILE_BYTES) return null;
+    if (!stat.isFile() || stat.size > MAX_FILE_BYTES) { return null; }
     return fs.readFileSync(absPath, "utf8");
   } catch {
     return null;

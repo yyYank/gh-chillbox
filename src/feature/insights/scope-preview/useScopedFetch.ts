@@ -14,17 +14,17 @@ export function useScopedFetch<T>(endpoint: string, key: string, repo: string, p
 
   // 「全部」は切り替えたときに初めて取得する
   useEffect(() => {
-    if (requested.current.has(scope)) return;
+    if (requested.current.has(scope)) { return; }
     requested.current.add(scope);
     setStates((s) => ({ ...s, [scope]: { loading: true, error: null, data: null } }));
     const params = new URLSearchParams({ repo, number: String(prNumber), scope });
     fetch(`/api/${endpoint}?${params}`)
       .then((res) => {
-        if (!res.ok) throw new Error(`API error: ${res.status}`);
+        if (!res.ok) { throw new Error(`API error: ${res.status}`); }
         return res.json();
       })
       .then((d) => {
-        if (d.error) throw new Error(d.error);
+        if (d.error) { throw new Error(d.error); }
         setStates((s) => ({ ...s, [scope]: { loading: false, error: null, data: d[key] ?? [] } }));
       })
       .catch((e) => {

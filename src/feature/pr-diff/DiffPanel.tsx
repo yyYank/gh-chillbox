@@ -24,14 +24,14 @@ type Props = {
 function lineIdxOf(node: Node): { path: string; idx: number } | null {
   const el = (node instanceof Element ? node : node.parentElement)?.closest<HTMLElement>("[data-line-idx]");
   const body = el?.closest<HTMLElement>("[data-path]");
-  if (!el || !body) return null;
+  if (!el || !body) { return null; }
   return { path: body.dataset.path!, idx: Number(el.dataset.lineIdx) };
 }
 
 // ハイライトで内容が span に分かれるため、オフセット 0 でも行頭とは限らない。行頭からの文字列で判定する
 function isAtLineStart(container: Node, offset: number): boolean {
   const lineEl = (container instanceof Element ? container : container.parentElement)?.closest("[data-line-idx]");
-  if (!lineEl) return false;
+  if (!lineEl) { return false; }
   const r = document.createRange();
   r.setStart(lineEl, 0);
   r.setEnd(container, offset);
@@ -111,8 +111,8 @@ export function DiffPanel({ repo, prNumber, prTitle = "", prBody = "", onFileHea
   const setPreview = (path: string, preview: boolean) => {
     setPreviewPaths((prev) => {
       const next = new Set(prev);
-      if (preview) next.add(path);
-      else next.delete(path);
+      if (preview) { next.add(path); }
+      else { next.delete(path); }
       return next;
     });
   };
@@ -124,7 +124,7 @@ export function DiffPanel({ repo, prNumber, prTitle = "", prBody = "", onFileHea
     fetch(`/api/pr-viewed?${params}`)
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        if (!data) return;
+        if (!data) { return; }
         setPullRequestId(data.pullRequestId);
         setViewedStates(data.states);
       })
@@ -133,7 +133,7 @@ export function DiffPanel({ repo, prNumber, prTitle = "", prBody = "", onFileHea
 
   // GitHub の Files changed と同じく、viewed にしたら畳み、外したら開く
   const toggleViewed = useCallback((path: string, viewed: boolean) => {
-    if (!pullRequestId) return;
+    if (!pullRequestId) { return; }
     const prevState = viewedStates[path];
     setViewedStates((s) => ({ ...s, [path]: viewed ? "VIEWED" : "UNVIEWED" }));
     setCollapsed(path, viewed);
@@ -143,7 +143,7 @@ export function DiffPanel({ repo, prNumber, prTitle = "", prBody = "", onFileHea
       body: JSON.stringify({ pullRequestId, path, viewed }),
     })
       .then((res) => {
-        if (!res.ok) throw new Error(`API error: ${res.status}`);
+        if (!res.ok) { throw new Error(`API error: ${res.status}`); }
       })
       .catch(() => {
         setViewedStates((s) => ({ ...s, [path]: prevState }));
@@ -157,7 +157,7 @@ export function DiffPanel({ repo, prNumber, prTitle = "", prBody = "", onFileHea
     const params = new URLSearchParams({ repo, number: String(prNumber) });
     fetch(`/api/pr-diff?${params}`)
       .then((res) => {
-        if (!res.ok) throw new Error(`API error: ${res.status}`);
+        if (!res.ok) { throw new Error(`API error: ${res.status}`); }
         return res.json();
       })
       .then((data) => setDiff(data.diff))
@@ -219,14 +219,14 @@ export function DiffPanel({ repo, prNumber, prTitle = "", prBody = "", onFileHea
   };
 
   const handleStartThread = () => {
-    if (!floatingBtn) return;
-    if (!threads[floatingBtn.anchor.key]) setPending(floatingBtn.anchor);
+    if (!floatingBtn) { return; }
+    if (!threads[floatingBtn.anchor.key]) { setPending(floatingBtn.anchor); }
     setFloatingBtn(null);
     window.getSelection()?.removeAllRanges();
   };
 
   const threadsEndingAt = (path: string, label: string | null) => {
-    if (!label) return [];
+    if (!label) { return []; }
     const list: { anchor: ThreadAnchor; messages: ThreadMessage[] }[] = Object.values(threads)
       .filter((t) => t.path === path && t.end === label)
       .map(({ messages, ...anchor }) => ({ anchor, messages }));
@@ -236,9 +236,9 @@ export function DiffPanel({ repo, prNumber, prTitle = "", prBody = "", onFileHea
     return list;
   };
 
-  if (loading) return <div className="diff-panel-status">diff を読み込み中…</div>;
-  if (error) return <div className="diff-panel-status diff-panel-error">{error}</div>;
-  if (!diff) return <div className="diff-panel-status">差分なし</div>;
+  if (loading) { return <div className="diff-panel-status">diff を読み込み中…</div>; }
+  if (error) { return <div className="diff-panel-status diff-panel-error">{error}</div>; }
+  if (!diff) { return <div className="diff-panel-status">差分なし</div>; }
 
   return (
     <div className="diff-panel">

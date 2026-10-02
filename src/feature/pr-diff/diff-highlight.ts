@@ -31,7 +31,7 @@ const EXTENSION_LANGUAGES: Record<string, string> = {
 export function languageFromPath(path: string): string | null {
   const name = path.split("/").pop() ?? "";
   const dot = name.lastIndexOf(".");
-  if (dot <= 0) return null;
+  if (dot <= 0) { return null; }
   return EXTENSION_LANGUAGES[name.slice(dot + 1).toLowerCase()] ?? null;
 }
 
@@ -41,6 +41,6 @@ function escapeHtml(text: string): string {
 
 // diff は行単位で表示するため 1 行ずつハイライトする（複数行コメント等は崩れることがある）
 export function highlightLine(content: string, language: string | null): string {
-  if (!language) return escapeHtml(content);
+  if (!language) { return escapeHtml(content); }
   return hljs.highlight(content, { language, ignoreIllegals: true }).value;
 }

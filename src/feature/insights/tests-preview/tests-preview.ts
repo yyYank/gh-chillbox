@@ -28,7 +28,7 @@ export type CategorySummary = { added: number; modified: number; removed: number
 const CONTAINER_KINDS = new Set(["describe", "feature", "rule"]);
 
 export function visibleTestFiles(files: TestFileItem[], scope: Scope): TestFileItem[] {
-  if (scope === "all") return files;
+  if (scope === "all") { return files; }
   return files
     .map((f) => ({ ...f, cases: f.cases.filter((c) => c.change !== "unchanged") }))
     .filter((f) => f.cases.length > 0);
@@ -41,9 +41,9 @@ export function summarize(files: TestFileItem[]): Record<TestCategory, CategoryS
   for (const f of files) {
     const s = result[f.category];
     for (const c of f.cases) {
-      if (CONTAINER_KINDS.has(c.kind)) continue;
-      if (c.change !== "unchanged") s[c.change] += 1;
-      if (c.change !== "removed") s.total += 1;
+      if (CONTAINER_KINDS.has(c.kind)) { continue; }
+      if (c.change !== "unchanged") { s[c.change] += 1; }
+      if (c.change !== "removed") { s.total += 1; }
     }
   }
   return result;

@@ -51,7 +51,7 @@ app.get("/prs", async (c) => {
 
 app.get("/notifications", async (c) => {
   const repo = c.req.query("repo");
-  if (!repo) return c.json({ error: "repo is required" }, 400);
+  if (!repo) { return c.json({ error: "repo is required" }, 400); }
 
   try {
     const since = new Date(
@@ -116,8 +116,8 @@ app.get("/notifications", async (c) => {
             "pr", "view", String(prNumber), "--repo", repo, "--json", "state", "--jq", ".state",
           ]);
           const s = prStdout.trim().toUpperCase();
-          if (s === "MERGED") prState = "merged";
-          else if (s === "CLOSED") prState = "closed";
+          if (s === "MERGED") { prState = "merged"; }
+          else if (s === "CLOSED") { prState = "closed"; }
         } catch { /* default to open */ }
 
         return {
@@ -143,13 +143,13 @@ app.get("/notifications", async (c) => {
 
 app.get("/image-proxy", async (c) => {
   const url = c.req.query("url");
-  if (!url) return c.json({ error: "url is required" }, 400);
+  if (!url) { return c.json({ error: "url is required" }, 400); }
 
   const allowed =
     url.startsWith("https://user-images.githubusercontent.com/") ||
     url.startsWith("https://private-user-images.githubusercontent.com/") ||
     url.startsWith("https://github.com/user-attachments/assets/");
-  if (!allowed) return c.json({ error: "url not allowed" }, 403);
+  if (!allowed) { return c.json({ error: "url not allowed" }, 403); }
 
   try {
     const { stdout: token } = await execFileAsync("gh", ["auth", "token"]);
@@ -157,7 +157,7 @@ app.get("/image-proxy", async (c) => {
       headers: { Authorization: `token ${token.trim()}` },
       redirect: "follow",
     });
-    if (!res.ok) return c.json({ error: `upstream ${res.status}` }, 502);
+    if (!res.ok) { return c.json({ error: `upstream ${res.status}` }, 502); }
 
     const contentType = res.headers.get("content-type") || "application/octet-stream";
     const buf = await res.arrayBuffer();
@@ -201,7 +201,7 @@ function filterDiffByFiles(fullDiff: string, files: string[]): string {
   return sections
     .filter((section) => {
       const match = section.match(/^diff --git a\/(.+?) b\/(.+)/);
-      if (!match) return false;
+      if (!match) { return false; }
       return fileSet.has(match[1]) || fileSet.has(match[2]);
     })
     .join("");

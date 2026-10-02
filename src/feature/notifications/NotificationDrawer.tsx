@@ -33,8 +33,9 @@ function formatType(reason: string): string {
 function formatMessage(n: AppNotification): string {
   switch (n.type) {
     case "mention":
-      if (n.message)
+      if (n.message) {
         return `PR#${n.prNumber} ${n.actor ? `@${n.actor}` : ""}: ${n.message}`;
+      }
       return `PR#${n.prNumber}であなたがメンションされました`;
     case "review_requested":
       return `あなたがPR#${n.prNumber}のreviewerにアサインされました`;
@@ -50,10 +51,10 @@ function formatTime(iso: string): string {
   const now = new Date();
   const diffMs = now.getTime() - d.getTime();
   const diffMin = Math.floor(diffMs / 60000);
-  if (diffMin < 1) return "たった今";
-  if (diffMin < 60) return `${diffMin}分前`;
+  if (diffMin < 1) { return "たった今"; }
+  if (diffMin < 60) { return `${diffMin}分前`; }
   const diffHour = Math.floor(diffMin / 60);
-  if (diffHour < 24) return `${diffHour}時間前`;
+  if (diffHour < 24) { return `${diffHour}時間前`; }
   const diffDay = Math.floor(diffHour / 24);
   return `${diffDay}日前`;
 }

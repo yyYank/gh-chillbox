@@ -9,7 +9,7 @@ const builtTools = new Set<string>();
 // server/tools/<name> の Go ツールを <name>-bin に build する。build はツールごとにプロセスで1度だけ
 function ensureBinary(name: string): string {
   const binaryPath = path.join(TOOLS_DIR, `${name}-bin`);
-  if (builtTools.has(name) && fs.existsSync(binaryPath)) return binaryPath;
+  if (builtTools.has(name) && fs.existsSync(binaryPath)) { return binaryPath; }
   execFileSync("go", ["build", "-o", binaryPath, `./${name}`], { cwd: TOOLS_DIR, timeout: 60000 });
   builtTools.add(name);
   return binaryPath;
@@ -25,7 +25,7 @@ export function runGoTool<T>(name: string, input: unknown): Promise<T> {
     child.stderr.on("data", (d: Buffer) => { stderr += d.toString(); });
     child.on("error", reject);
     child.on("close", (code) => {
-      if (code !== 0) return reject(new Error(stderr || `${name} exited with ${code}`));
+      if (code !== 0) { return reject(new Error(stderr || `${name} exited with ${code}`)); }
       try {
         resolve(JSON.parse(stdout) as T);
       } catch (e) {

@@ -36,7 +36,7 @@ type Theme = "light" | "dark";
 function getInitialTheme(): Theme {
   try {
     const stored = localStorage.getItem(THEME_STORAGE_KEY);
-    if (stored === "light" || stored === "dark") return stored;
+    if (stored === "light" || stored === "dark") { return stored; }
   } catch {}
   return window.matchMedia("(prefers-color-scheme: dark)").matches
     ? "dark"
@@ -152,11 +152,11 @@ export function App() {
     try {
       const params = new URLSearchParams();
       params.set("repo", repo.trim());
-      if (apiMode === "reviewer-me") params.set("reviewer", "@me");
+      if (apiMode === "reviewer-me") { params.set("reviewer", "@me"); }
       const res = await fetch(`/api/prs?${params}`);
-      if (!res.ok) throw new Error(`API error: ${res.status}`);
+      if (!res.ok) { throw new Error(`API error: ${res.status}`); }
       const data = await res.json();
-      if (data.error) throw new Error(data.error);
+      if (data.error) { throw new Error(data.error); }
       setPrs(data);
       const trimmed = repo.trim();
       if (trimmed) {
@@ -220,18 +220,18 @@ export function App() {
   const sortedPrs = [...visiblePrs].sort((a, b) => {
     const aIdx = order.indexOf(a.number);
     const bIdx = order.indexOf(b.number);
-    if (aIdx !== -1 && bIdx !== -1) return aIdx - bIdx;
-    if (aIdx !== -1) return -1;
-    if (bIdx !== -1) return 1;
+    if (aIdx !== -1 && bIdx !== -1) { return aIdx - bIdx; }
+    if (aIdx !== -1) { return -1; }
+    if (bIdx !== -1) { return 1; }
     return b.number - a.number;
   });
 
   const groupedByAuthor = (() => {
-    if (filter !== "group-by-author") return [];
+    if (filter !== "group-by-author") { return []; }
     const groups = new Map<string, PR[]>();
     for (const pr of sortedPrs) {
       const author = pr.author.login;
-      if (!groups.has(author)) groups.set(author, []);
+      if (!groups.has(author)) { groups.set(author, []); }
       groups.get(author)!.push(pr);
     }
     return [...groups.entries()];
@@ -239,20 +239,21 @@ export function App() {
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active: dragActive, over } = event;
-    if (!over || dragActive.id === over.id) return;
+    if (!over || dragActive.id === over.id) { return; }
 
     if (filter === "group-by-author") {
       const activePr = sortedPrs.find((pr) => pr.number === dragActive.id);
       const overPr = sortedPrs.find((pr) => pr.number === over.id);
-      if (!activePr || !overPr || activePr.author.login !== overPr.author.login)
+      if (!activePr || !overPr || activePr.author.login !== overPr.author.login) {
         return;
+      }
 
       const groupIds = sortedPrs
         .filter((pr) => pr.author.login === activePr.author.login)
         .map((pr) => pr.number);
       const oldIndex = groupIds.indexOf(dragActive.id as number);
       const newIndex = groupIds.indexOf(over.id as number);
-      if (oldIndex === -1 || newIndex === -1) return;
+      if (oldIndex === -1 || newIndex === -1) { return; }
 
       const newGroupIds = [...groupIds];
       newGroupIds.splice(oldIndex, 1);
@@ -269,7 +270,7 @@ export function App() {
       const currentIds = sortedPrs.map((pr) => pr.number);
       const oldIndex = currentIds.indexOf(dragActive.id as number);
       const newIndex = currentIds.indexOf(over.id as number);
-      if (oldIndex === -1 || newIndex === -1) return;
+      if (oldIndex === -1 || newIndex === -1) { return; }
 
       const newIds = [...currentIds];
       newIds.splice(oldIndex, 1);
