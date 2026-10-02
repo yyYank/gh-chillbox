@@ -214,6 +214,11 @@ body {
   margin-bottom: 20px;
 }
 
+.repo-bar.collapsed,
+.pane-toolbar.collapsed {
+  display: none;
+}
+
 .repo-input {
   flex: 1;
   max-width: 420px;

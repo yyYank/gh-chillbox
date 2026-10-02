@@ -80,9 +80,10 @@ type Props = {
   prNumber: number;
   onBack: () => void;
   onTitleChange?: (title: string | null) => void;
+  toolbarHidden?: boolean;
 };
 
-export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
+export function PrDetail({ repo, prNumber, onBack, onTitleChange, toolbarHidden = false }: Props) {
   const storagePrefix = `gh-chillbox:${repo}:${prNumber}`;
   const [data, setData] = useState<PrDetailData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -421,7 +422,7 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
       ref={layoutRef}
       style={hasChat ? { gridTemplateColumns: gridColumns(pane, splitRatio) } : undefined}
     >
-      <div className="pane-toolbar">
+      <div className={`pane-toolbar${toolbarHidden ? " collapsed" : ""}`}>
         <button type="button" className="pr-detail-back" onClick={onBack}>
           <ArrowLeft size={16} />
           一覧に戻る

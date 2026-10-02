@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
-import { Bell, RotateCcw, Sun, Moon } from "lucide-react";
+import { Bell, RotateCcw, Sun, Moon, ChevronUp, ChevronDown } from "lucide-react";
 import type { PR, Filter } from "./types";
 import { usePrOrder, useHiddenPrs } from "./useLocalData";
 import { useNotifications } from "./feature/notifications/useNotifications";
@@ -20,6 +20,7 @@ import { MemoCell } from "./feature/pull-requests/MemoCell";
 const REPO_STORAGE_KEY = "gh-chillbox:repo";
 const REPO_HISTORY_KEY = "gh-chillbox:repo-history";
 const THEME_STORAGE_KEY = "gh-chillbox:theme";
+const HEADER_COLLAPSED_KEY = "gh-chillbox:header-collapsed";
 
 type Theme = "light" | "dark";
 
@@ -38,6 +39,14 @@ function loadRepo(): string {
     return localStorage.getItem(REPO_STORAGE_KEY) ?? "";
   } catch {
     return "";
+  }
+}
+
+function loadHeaderCollapsed(): boolean {
+  try {
+    return localStorage.getItem(HEADER_COLLAPSED_KEY) === "true";
+  } catch {
+    return false;
   }
 }
 
@@ -73,6 +82,7 @@ export function App() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [theme, setTheme] = useState<Theme>(getInitialTheme);
   const [prTitle, setPrTitle] = useState<string | null>(null);
+  const [headerCollapsed, setHeaderCollapsed] = useState(loadHeaderCollapsed);
   const [selectedPr, setSelectedPr] = useState<number | null>(() => {
     if (location.pathname === "/pr-detail") {
       const id = new URLSearchParams(location.search).get("id");
@@ -87,6 +97,15 @@ export function App() {
       localStorage.setItem(THEME_STORAGE_KEY, theme);
     } catch {}
   }, [theme]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(HEADER_COLLAPSED_KEY, String(headerCollapsed));
+    } catch {}
+  }, [headerCollapsed]);
+
+  // たたむのは PR 詳細の画面だけ。一覧の画面ではリポジトリ選択を常に出す
+  const headerRowsHidden = headerCollapsed && selectedPr !== null;
 
   const navigateToPr = useCallback((prNumber: number) => {
     setSelectedPr(prNumber);
@@ -338,10 +357,21 @@ export function App() {
           >
             {loading ? "取得中…" : "更新"}
           </button>
+          {selectedPr !== null && (
+            <button
+              type="button"
+              className="theme-toggle"
+              onClick={() => setHeaderCollapsed(!headerCollapsed)}
+              aria-expanded={!headerCollapsed}
+              title={headerCollapsed ? "ヘッダーを開く" : "ヘッダーをたたむ"}
+            >
+              {headerCollapsed ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
+            </button>
+          )}
         </div>
       </header>
 
-      <form className="repo-bar" onSubmit={handleRepoSubmit} ref={repoBarRef}>
+      <form className={`repo-bar${headerRowsHidden ? " collapsed" : ""}`} onSubmit={handleRepoSubmit} ref={repoBarRef}>
         <div className="repo-combo">
           <input
             className="repo-input"
@@ -398,7 +428,13 @@ export function App() {
       </form>
 
       {selectedPr !== null ? (
-        <PrDetail repo={repo.trim()} prNumber={selectedPr} onBack={navigateToList} onTitleChange={setPrTitle} />
+        <PrDetail
+          repo={repo.trim()}
+          prNumber={selectedPr}
+          onBack={navigateToList}
+          onTitleChange={setPrTitle}
+          toolbarHidden={headerRowsHidden}
+        />
       ) : (
         <>
           <div className="filter-bar">
