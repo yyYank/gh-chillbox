@@ -1,6 +1,6 @@
 export const DEFAULT_FONT_SIZE = 12;
 const MIN_FONT_SIZE = 9;
-const MAX_FONT_SIZE = 20;
+const MAX_FONT_SIZE = 30;
 
 export function stepFontSize(size: number, delta: 1 | -1): number {
   return Math.min(MAX_FONT_SIZE, Math.max(MIN_FONT_SIZE, size + delta));

@@ -11,8 +11,8 @@ describe("stepFontSize", () => {
     expect(stepFontSize(9, -1)).toBe(9);
   });
 
-  it("20px を超えない", () => {
-    expect(stepFontSize(20, 1)).toBe(20);
+  it("30px を超えない", () => {
+    expect(stepFontSize(30, 1)).toBe(30);
   });
 });
 

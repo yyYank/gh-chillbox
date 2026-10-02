@@ -1904,7 +1904,8 @@ th.col-rank {
 
 .diff-line-num {
   flex-shrink: 0;
-  width: 40px;
+  /* コードの文字サイズに合わせて広げる（12px のとき従来の 40px 相当） */
+  width: 3.4em;
   padding-right: 6px;
   text-align: right;
   user-select: none;
