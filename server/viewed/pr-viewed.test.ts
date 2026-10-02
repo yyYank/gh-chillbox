@@ -1,7 +1,11 @@
 import { describe, it, expect } from "vitest";
 import { parseViewedPage, type ViewedState } from "./pr-viewed";
 
-function page(nodes: { path: string; viewerViewedState: ViewedState }[], hasNextPage = false, endCursor: string | null = null) {
+function page(
+  nodes: { path: string; viewerViewedState: ViewedState }[],
+  hasNextPage = false,
+  endCursor: string | null = null,
+) {
   return {
     data: {
       repository: {
@@ -16,11 +20,13 @@ function page(nodes: { path: string; viewerViewedState: ViewedState }[], hasNext
 
 describe("parseViewedPage", () => {
   it("PR の Node ID とファイルごとの viewed 状態を読み取る", () => {
-    const result = parseViewedPage(page([
-      { path: "src/a.ts", viewerViewedState: "VIEWED" },
-      { path: "src/b.ts", viewerViewedState: "UNVIEWED" },
-      { path: "src/c.ts", viewerViewedState: "DISMISSED" },
-    ]));
+    const result = parseViewedPage(
+      page([
+        { path: "src/a.ts", viewerViewedState: "VIEWED" },
+        { path: "src/b.ts", viewerViewedState: "UNVIEWED" },
+        { path: "src/c.ts", viewerViewedState: "DISMISSED" },
+      ]),
+    );
     expect(result.pullRequestId).toBe("PR_kwDOabc");
     expect(result.states).toEqual({
       "src/a.ts": "VIEWED",

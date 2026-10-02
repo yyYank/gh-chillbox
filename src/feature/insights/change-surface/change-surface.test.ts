@@ -1,10 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
-  type FileInput,
-  scoreFile,
-  classifyFiles,
-  computeSummary,
-} from "./change-surface";
+import { type FileInput, scoreFile, classifyFiles, computeSummary } from "./change-surface";
 
 describe("scoreFile", () => {
   it("componentsディレクトリのtsxファイルをUIと判定する", () => {
@@ -117,7 +112,7 @@ describe("scoreFile with diff keywords", () => {
   it("CREATE TABLEを含むdiffでDBスコアが加算される", () => {
     const result = scoreFile(
       { path: "src/setup.ts", additions: 10, deletions: 0 },
-      "CREATE TABLE users (id INT PRIMARY KEY);"
+      "CREATE TABLE users (id INT PRIMARY KEY);",
     );
     expect(result.scores.db).toBeGreaterThan(0);
   });
@@ -125,16 +120,13 @@ describe("scoreFile with diff keywords", () => {
   it("useStateを含むdiffでUIスコアが加算される", () => {
     const result = scoreFile(
       { path: "src/utils/helper.ts", additions: 10, deletions: 0 },
-      "const [count, setCount] = useState(0);"
+      "const [count, setCount] = useState(0);",
     );
     expect(result.scores.ui).toBeGreaterThan(0);
   });
 
   it("routerを含むdiffでAPIスコアが加算される", () => {
-    const result = scoreFile(
-      { path: "src/index.ts", additions: 10, deletions: 0 },
-      "const router = express.Router();"
-    );
+    const result = scoreFile({ path: "src/index.ts", additions: 10, deletions: 0 }, "const router = express.Router();");
     expect(result.scores.api).toBeGreaterThan(0);
   });
 });
@@ -184,9 +176,7 @@ describe("computeSummary", () => {
   });
 
   it("0%のレイヤーは含まれない", () => {
-    const files: FileInput[] = [
-      { path: "src/components/Page.tsx", additions: 100, deletions: 0 },
-    ];
+    const files: FileInput[] = [{ path: "src/components/Page.tsx", additions: 100, deletions: 0 }];
     const classified = classifyFiles(files);
     const summary = computeSummary(classified);
     expect(summary).toHaveLength(1);

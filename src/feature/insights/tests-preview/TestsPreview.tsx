@@ -38,7 +38,9 @@ export function TestsPreview({ repo, prNumber }: Props) {
       {current.error && <div className="error">{current.error}</div>}
       {summary && (
         <div className="tests-summary">
-          {(["unit", "e2e"] as const).map((c) => <SummaryRow key={c} label={CATEGORY_LABELS[c]} summary={summary[c]} />)}
+          {(["unit", "e2e"] as const).map((c) => (
+            <SummaryRow key={c} label={CATEGORY_LABELS[c]} summary={summary[c]} />
+          ))}
         </div>
       )}
       {files?.length === 0 && (
@@ -46,16 +48,21 @@ export function TestsPreview({ repo, prNumber }: Props) {
           {scope === "changed" ? "この PR でテストケースの変更はありません" : "テストファイルが見つかりません"}
         </div>
       )}
-      {files && (["unit", "e2e"] as const).map((category) => {
-        const inCategory = files.filter((f) => f.category === category);
-        if (inCategory.length === 0) { return null; }
-        return (
-          <div key={category} className="api-tag-group">
-            <div className="api-tag">{CATEGORY_LABELS[category]}</div>
-            {inCategory.map((f) => <TestFileView key={f.path} file={f} fullPath={scope === "changed"} />)}
-          </div>
-        );
-      })}
+      {files &&
+        (["unit", "e2e"] as const).map((category) => {
+          const inCategory = files.filter((f) => f.category === category);
+          if (inCategory.length === 0) {
+            return null;
+          }
+          return (
+            <div key={category} className="api-tag-group">
+              <div className="api-tag">{CATEGORY_LABELS[category]}</div>
+              {inCategory.map((f) => (
+                <TestFileView key={f.path} file={f} fullPath={scope === "changed"} />
+              ))}
+            </div>
+          );
+        })}
     </div>
   );
 }
@@ -80,7 +87,9 @@ function TestFileView({ file, fullPath }: { file: TestFileItem; fullPath: boolea
         <span className="api-badge">{file.framework}</span>
       </header>
       <ul className="tests-cases">
-        {file.cases.map((c, i) => <TestCaseView key={`${c.kind}:${c.names.join("\u0000")}:${i}`} item={c} fullPath={fullPath} />)}
+        {file.cases.map((c, i) => (
+          <TestCaseView key={`${c.kind}:${c.names.join("\u0000")}:${i}`} item={c} fullPath={fullPath} />
+        ))}
       </ul>
     </section>
   );
@@ -96,11 +105,17 @@ function TestCaseView({ item: c, fullPath }: { item: TestCaseItem; fullPath: boo
       <span className={`tests-case-name${c.change === "removed" ? " deprecated" : ""}${c.dynamic ? " dynamic" : ""}`}>
         {name}
       </span>
-      {c.change !== "unchanged" && (
-        <span className={`api-badge change-${c.change}`}>{CHANGE_LABELS[c.change]}</span>
+      {c.change !== "unchanged" && <span className={`api-badge change-${c.change}`}>{CHANGE_LABELS[c.change]}</span>}
+      {c.modifiers.map((m) => (
+        <span key={m} className="api-badge">
+          {m}
+        </span>
+      ))}
+      {c.dynamic && (
+        <span className="api-badge" title="名前が実行時に決まります">
+          dynamic
+        </span>
       )}
-      {c.modifiers.map((m) => <span key={m} className="api-badge">{m}</span>)}
-      {c.dynamic && <span className="api-badge" title="名前が実行時に決まります">dynamic</span>}
       <span className="api-muted">L{c.line}</span>
     </li>
   );

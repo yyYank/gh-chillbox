@@ -18,20 +18,31 @@ hljs.registerLanguage("markdown", markdown);
 hljs.registerLanguage("bash", bash);
 
 const EXTENSION_LANGUAGES: Record<string, string> = {
-  ts: "typescript", tsx: "typescript", mts: "typescript", cts: "typescript",
-  js: "javascript", jsx: "javascript", mjs: "javascript", cjs: "javascript",
+  ts: "typescript",
+  tsx: "typescript",
+  mts: "typescript",
+  cts: "typescript",
+  js: "javascript",
+  jsx: "javascript",
+  mjs: "javascript",
+  cjs: "javascript",
   go: "go",
   json: "json",
-  yml: "yaml", yaml: "yaml",
+  yml: "yaml",
+  yaml: "yaml",
   css: "css",
   md: "markdown",
-  sh: "bash", bash: "bash", zsh: "bash",
+  sh: "bash",
+  bash: "bash",
+  zsh: "bash",
 };
 
 export function languageFromPath(path: string): string | null {
   const name = path.split("/").pop() ?? "";
   const dot = name.lastIndexOf(".");
-  if (dot <= 0) { return null; }
+  if (dot <= 0) {
+    return null;
+  }
   return EXTENSION_LANGUAGES[name.slice(dot + 1).toLowerCase()] ?? null;
 }
 
@@ -41,6 +52,8 @@ function escapeHtml(text: string): string {
 
 // diff は行単位で表示するため 1 行ずつハイライトする（複数行コメント等は崩れることがある）
 export function highlightLine(content: string, language: string | null): string {
-  if (!language) { return escapeHtml(content); }
+  if (!language) {
+    return escapeHtml(content);
+  }
   return hljs.highlight(content, { language, ignoreIllegals: true }).value;
 }

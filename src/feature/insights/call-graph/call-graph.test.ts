@@ -1,11 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
-  buildCallGraph,
-  extractSubgraph,
-  generateReadingOrder,
-  type GraphNode,
-  type GraphEdge,
-} from "./call-graph";
+import { buildCallGraph, extractSubgraph, generateReadingOrder, type GraphNode, type GraphEdge } from "./call-graph";
 
 const sym = (name: string, kind: string, file: string, changed = true) => ({
   id: `${file}:${name}`,
@@ -48,10 +42,7 @@ describe("buildCallGraph", () => {
 
   it("Relationのfrom/toに含まれる未変更Symbolをcontext nodeとして追加する", () => {
     const symbols = [sym("updateUser", "function", "src/api/updateUser.ts")];
-    const relations = [
-      rel("UserPage", "updateUser"),
-      rel("updateUser", "UserRepository"),
-    ];
+    const relations = [rel("UserPage", "updateUser"), rel("updateUser", "UserRepository")];
     const { nodes } = buildCallGraph(symbols, relations);
     const contextNodes = nodes.filter((n) => !n.changed);
     expect(contextNodes).toHaveLength(2);

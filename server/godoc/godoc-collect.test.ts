@@ -16,13 +16,9 @@ describe("goPackageDirs", () => {
   });
 
   it("_test.go だけのディレクトリ、.go 以外、vendor と testdata 配下は除く", () => {
-    expect(goPackageDirs([
-      "a/a_test.go",
-      "b/README.md",
-      "vendor/lib/x.go",
-      "pkg/testdata/sample.go",
-      "c/c.go",
-    ])).toEqual(["c"]);
+    expect(
+      goPackageDirs(["a/a_test.go", "b/README.md", "vendor/lib/x.go", "pkg/testdata/sample.go", "c/c.go"]),
+    ).toEqual(["c"]);
   });
 });
 

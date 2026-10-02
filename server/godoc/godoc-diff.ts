@@ -15,10 +15,16 @@ export function diffGoDocItems(base: GoDocItem[], head: GoDocItem[]): DiffedGoDo
 
   const current = head.map((i): DiffedGoDocItem => {
     const before = baseByKey.get(key(i));
-    if (!before) { return { ...i, change: "added", changedParts: [] }; }
+    if (!before) {
+      return { ...i, change: "added", changedParts: [] };
+    }
     const changedParts: DiffedGoDocItem["changedParts"] = [];
-    if (before.decl !== i.decl) { changedParts.push("signature"); }
-    if (before.docText !== i.docText) { changedParts.push("doc"); }
+    if (before.decl !== i.decl) {
+      changedParts.push("signature");
+    }
+    if (before.docText !== i.docText) {
+      changedParts.push("doc");
+    }
     return { ...i, change: changedParts.length > 0 ? "modified" : "unchanged", changedParts };
   });
   const removed = base

@@ -34,10 +34,7 @@ describe("summarize", () => {
         tc(["y"], "modified"),
         tc(["z"], "unchanged"),
       ]),
-      file("a.feature", "e2e", [
-        tc(["F"], "unchanged", "feature"),
-        tc(["F", "S"], "removed", "scenario"),
-      ]),
+      file("a.feature", "e2e", [tc(["F"], "unchanged", "feature"), tc(["F", "S"], "removed", "scenario")]),
     ]);
     expect(result).toEqual({
       unit: { added: 1, modified: 1, removed: 0, total: 3 },

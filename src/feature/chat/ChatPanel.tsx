@@ -23,10 +23,22 @@ function loadMessages(key: string): Message[] {
   try {
     const raw = localStorage.getItem(key);
     return raw ? JSON.parse(raw) : [];
-  } catch { return []; }
+  } catch {
+    return [];
+  }
 }
 
-export function ChatPanel({ selectedFiles, quotedText, quotedFromRewritten, repo, prNumber, prTitle, prBody, onClearSelection, onCloseChat }: Props) {
+export function ChatPanel({
+  selectedFiles,
+  quotedText,
+  quotedFromRewritten,
+  repo,
+  prNumber,
+  prTitle,
+  prBody,
+  onClearSelection,
+  onCloseChat,
+}: Props) {
   const storageKey = `gh-chillbox:chat:${repo}:${prNumber}`;
   const [messages, setMessages] = useState<Message[]>(() => loadMessages(storageKey));
   const [input, setInput] = useState("");
@@ -38,21 +50,29 @@ export function ChatPanel({ selectedFiles, quotedText, quotedFromRewritten, repo
   const [previewLoading, setPreviewLoading] = useState(false);
   const bodyRef = useRef<HTMLDivElement>(null);
 
-  const fetchDiffSize = useCallback(async (files: string[]) => {
-    if (files.length === 0) { setDiffCharCount(null); return; }
-    setDiffLoading(true);
-    try {
-      const params = new URLSearchParams({ repo, number: String(prNumber), files: files.join(",") });
-      const res = await fetch(`/api/pr-diff?${params}`);
-      if (!res.ok) { throw new Error(); }
-      const data = await res.json();
-      setDiffCharCount(data.charCount ?? null);
-    } catch {
-      setDiffCharCount(null);
-    } finally {
-      setDiffLoading(false);
-    }
-  }, [repo, prNumber]);
+  const fetchDiffSize = useCallback(
+    async (files: string[]) => {
+      if (files.length === 0) {
+        setDiffCharCount(null);
+        return;
+      }
+      setDiffLoading(true);
+      try {
+        const params = new URLSearchParams({ repo, number: String(prNumber), files: files.join(",") });
+        const res = await fetch(`/api/pr-diff?${params}`);
+        if (!res.ok) {
+          throw new Error();
+        }
+        const data = await res.json();
+        setDiffCharCount(data.charCount ?? null);
+      } catch {
+        setDiffCharCount(null);
+      } finally {
+        setDiffLoading(false);
+      }
+    },
+    [repo, prNumber],
+  );
 
   useEffect(() => {
     if (includeDiff && selectedFiles.length > 0) {
@@ -67,29 +87,39 @@ export function ChatPanel({ selectedFiles, quotedText, quotedFromRewritten, repo
   }, [messages]);
 
   useEffect(() => {
-    try { localStorage.setItem(storageKey, JSON.stringify(messages)); } catch {}
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(messages));
+    } catch {}
   }, [messages, storageKey]);
 
   const handlePreview = async () => {
     const question = input.trim();
-    if (!question) { return; }
+    if (!question) {
+      return;
+    }
 
     setPreviewLoading(true);
     try {
       const payload: Record<string, unknown> = { repo, prNumber, question, prTitle, prBody };
       if (quotedText) {
         payload.quotedText = quotedText;
-        if (quotedFromRewritten) { payload.quotedFromRewritten = true; }
+        if (quotedFromRewritten) {
+          payload.quotedFromRewritten = true;
+        }
       } else {
         payload.files = selectedFiles;
-        if (includeDiff) { payload.includeDiff = true; }
+        if (includeDiff) {
+          payload.includeDiff = true;
+        }
       }
       const res = await fetch("/api/chat/preview", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      if (!res.ok) { throw new Error(`API error: ${res.status}`); }
+      if (!res.ok) {
+        throw new Error(`API error: ${res.status}`);
+      }
       const data = await res.json();
       const label = data.resumed ? "(セッション継続中)\n\n" : "";
       setPreviewContent(label + data.prompt);
@@ -104,7 +134,9 @@ export function ChatPanel({ selectedFiles, quotedText, quotedFromRewritten, repo
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const question = input.trim();
-    if (!question) { return; }
+    if (!question) {
+      return;
+    }
 
     const userMsg: Message = { role: "user", content: question };
     setMessages((prev) => [...prev, userMsg]);
@@ -115,17 +147,23 @@ export function ChatPanel({ selectedFiles, quotedText, quotedFromRewritten, repo
       const payload: Record<string, unknown> = { repo, prNumber, question, prTitle, prBody };
       if (quotedText) {
         payload.quotedText = quotedText;
-        if (quotedFromRewritten) { payload.quotedFromRewritten = true; }
+        if (quotedFromRewritten) {
+          payload.quotedFromRewritten = true;
+        }
       } else {
         payload.files = selectedFiles;
-        if (includeDiff) { payload.includeDiff = true; }
+        if (includeDiff) {
+          payload.includeDiff = true;
+        }
       }
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      if (!res.ok) { throw new Error(`API error: ${res.status}`); }
+      if (!res.ok) {
+        throw new Error(`API error: ${res.status}`);
+      }
       const data = await res.json();
       setMessages((prev) => [...prev, { role: "assistant", content: data.answer }]);
     } catch (err) {
@@ -149,7 +187,9 @@ export function ChatPanel({ selectedFiles, quotedText, quotedFromRewritten, repo
           disabled={loading || messages.length === 0}
           onClick={async () => {
             setMessages([]);
-            try { localStorage.removeItem(storageKey); } catch {}
+            try {
+              localStorage.removeItem(storageKey);
+            } catch {}
             try {
               await fetch("/api/chat/session", {
                 method: "DELETE",
@@ -182,7 +222,9 @@ export function ChatPanel({ selectedFiles, quotedText, quotedFromRewritten, repo
               </button>
               <ul className="chat-file-list">
                 {selectedFiles.map((f) => (
-                  <li key={f} className="chat-file-item">{f}</li>
+                  <li key={f} className="chat-file-item">
+                    {f}
+                  </li>
                 ))}
               </ul>
             </>
@@ -197,7 +239,9 @@ export function ChatPanel({ selectedFiles, quotedText, quotedFromRewritten, repo
             {diffLoading && <span className="chat-diff-loading">取得中…</span>}
           </label>
           {includeDiff && diffCharCount !== null && diffCharCount > 15000 && (
-            <div className={`chat-diff-warning ${diffCharCount > 50000 ? "chat-diff-warning-red" : "chat-diff-warning-yellow"}`}>
+            <div
+              className={`chat-diff-warning ${diffCharCount > 50000 ? "chat-diff-warning-red" : "chat-diff-warning-yellow"}`}
+            >
               <AlertTriangle size={14} />
               {diffCharCount > 50000
                 ? `diff が ${Math.round(diffCharCount / 1000)}k文字あります。分割を検討してください`
@@ -208,9 +252,7 @@ export function ChatPanel({ selectedFiles, quotedText, quotedFromRewritten, repo
       )}
 
       <div className="chat-body" ref={bodyRef}>
-        {messages.length === 0 && (
-          <div className="chat-empty">ファイルを選択して質問を入力してください</div>
-        )}
+        {messages.length === 0 && <div className="chat-empty">ファイルを選択して質問を入力してください</div>}
         {messages.map((msg, i) => (
           <div key={i} className={`chat-message chat-message-${msg.role}`}>
             <div className="chat-message-label">{msg.role === "user" ? "You" : "Claude"}</div>
@@ -235,7 +277,13 @@ export function ChatPanel({ selectedFiles, quotedText, quotedFromRewritten, repo
       <form className="chat-input-area" onSubmit={handleSubmit}>
         <textarea
           className="chat-input"
-          placeholder={quotedText ? "引用テキストについて質問…" : selectedFiles.length > 0 ? "選択ファイルについて質問…" : "質問を入力…"}
+          placeholder={
+            quotedText
+              ? "引用テキストについて質問…"
+              : selectedFiles.length > 0
+                ? "選択ファイルについて質問…"
+                : "質問を入力…"
+          }
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => {
@@ -256,11 +304,7 @@ export function ChatPanel({ selectedFiles, quotedText, quotedFromRewritten, repo
         >
           <Eye size={16} />
         </button>
-        <button
-          type="submit"
-          className="chat-send-btn"
-          disabled={loading || !input.trim()}
-        >
+        <button type="submit" className="chat-send-btn" disabled={loading || !input.trim()}>
           <Send size={16} />
         </button>
       </form>

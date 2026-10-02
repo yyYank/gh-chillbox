@@ -1,16 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import {
-  DndContext,
-  closestCenter,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-} from "@dnd-kit/core";
-import {
-  SortableContext,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
+import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { Bell, RotateCcw, Sun, Moon } from "lucide-react";
 import type { PR, Filter } from "./types";
 import { usePrOrder, useHiddenPrs } from "./useLocalData";
@@ -36,11 +26,11 @@ type Theme = "light" | "dark";
 function getInitialTheme(): Theme {
   try {
     const stored = localStorage.getItem(THEME_STORAGE_KEY);
-    if (stored === "light" || stored === "dark") { return stored; }
+    if (stored === "light" || stored === "dark") {
+      return stored;
+    }
   } catch {}
-  return window.matchMedia("(prefers-color-scheme: dark)").matches
-    ? "dark"
-    : "light";
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
 function loadRepo(): string {
@@ -136,9 +126,7 @@ export function App() {
   const { active, dismissed, unreadCount, fetchNotifications, dismiss, dismissClosed, markRead, readIds } =
     useNotifications(repo);
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-  );
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
   const apiMode = filter === "reviewer-me" ? "reviewer-me" : "open";
 
@@ -152,11 +140,17 @@ export function App() {
     try {
       const params = new URLSearchParams();
       params.set("repo", repo.trim());
-      if (apiMode === "reviewer-me") { params.set("reviewer", "@me"); }
+      if (apiMode === "reviewer-me") {
+        params.set("reviewer", "@me");
+      }
       const res = await fetch(`/api/prs?${params}`);
-      if (!res.ok) { throw new Error(`API error: ${res.status}`); }
+      if (!res.ok) {
+        throw new Error(`API error: ${res.status}`);
+      }
       const data = await res.json();
-      if (data.error) { throw new Error(data.error); }
+      if (data.error) {
+        throw new Error(data.error);
+      }
       setPrs(data);
       const trimmed = repo.trim();
       if (trimmed) {
@@ -197,17 +191,20 @@ export function App() {
     }
   }, [memoRepo]);
 
-  const updateMemo = useCallback((prNumber: number, text: string) => {
-    setMemos((prev) => {
-      const next = setMemo(prev, prNumber, text);
-      try {
-        localStorage.setItem(memoStorageKey(memoRepo), JSON.stringify(next));
-      } catch {
-        // ignore
-      }
-      return next;
-    });
-  }, [memoRepo]);
+  const updateMemo = useCallback(
+    (prNumber: number, text: string) => {
+      setMemos((prev) => {
+        const next = setMemo(prev, prNumber, text);
+        try {
+          localStorage.setItem(memoStorageKey(memoRepo), JSON.stringify(next));
+        } catch {
+          // ignore
+        }
+        return next;
+      });
+    },
+    [memoRepo],
+  );
 
   const handleRepoSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -220,18 +217,28 @@ export function App() {
   const sortedPrs = [...visiblePrs].sort((a, b) => {
     const aIdx = order.indexOf(a.number);
     const bIdx = order.indexOf(b.number);
-    if (aIdx !== -1 && bIdx !== -1) { return aIdx - bIdx; }
-    if (aIdx !== -1) { return -1; }
-    if (bIdx !== -1) { return 1; }
+    if (aIdx !== -1 && bIdx !== -1) {
+      return aIdx - bIdx;
+    }
+    if (aIdx !== -1) {
+      return -1;
+    }
+    if (bIdx !== -1) {
+      return 1;
+    }
     return b.number - a.number;
   });
 
   const groupedByAuthor = (() => {
-    if (filter !== "group-by-author") { return []; }
+    if (filter !== "group-by-author") {
+      return [];
+    }
     const groups = new Map<string, PR[]>();
     for (const pr of sortedPrs) {
       const author = pr.author.login;
-      if (!groups.has(author)) { groups.set(author, []); }
+      if (!groups.has(author)) {
+        groups.set(author, []);
+      }
       groups.get(author)!.push(pr);
     }
     return [...groups.entries()];
@@ -239,7 +246,9 @@ export function App() {
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active: dragActive, over } = event;
-    if (!over || dragActive.id === over.id) { return; }
+    if (!over || dragActive.id === over.id) {
+      return;
+    }
 
     if (filter === "group-by-author") {
       const activePr = sortedPrs.find((pr) => pr.number === dragActive.id);
@@ -248,12 +257,12 @@ export function App() {
         return;
       }
 
-      const groupIds = sortedPrs
-        .filter((pr) => pr.author.login === activePr.author.login)
-        .map((pr) => pr.number);
+      const groupIds = sortedPrs.filter((pr) => pr.author.login === activePr.author.login).map((pr) => pr.number);
       const oldIndex = groupIds.indexOf(dragActive.id as number);
       const newIndex = groupIds.indexOf(over.id as number);
-      if (oldIndex === -1 || newIndex === -1) { return; }
+      if (oldIndex === -1 || newIndex === -1) {
+        return;
+      }
 
       const newGroupIds = [...groupIds];
       newGroupIds.splice(oldIndex, 1);
@@ -262,15 +271,15 @@ export function App() {
       const fullIds = sortedPrs.map((pr) => pr.number);
       const groupIdSet = new Set(groupIds);
       let gi = 0;
-      const result = fullIds.map((id) =>
-        groupIdSet.has(id) ? newGroupIds[gi++] : id,
-      );
+      const result = fullIds.map((id) => (groupIdSet.has(id) ? newGroupIds[gi++] : id));
       reorder(result);
     } else {
       const currentIds = sortedPrs.map((pr) => pr.number);
       const oldIndex = currentIds.indexOf(dragActive.id as number);
       const newIndex = currentIds.indexOf(over.id as number);
-      if (oldIndex === -1 || newIndex === -1) { return; }
+      if (oldIndex === -1 || newIndex === -1) {
+        return;
+      }
 
       const newIds = [...currentIds];
       newIds.splice(oldIndex, 1);
@@ -279,8 +288,7 @@ export function App() {
     }
   };
 
-  const reviewers = (pr: PR) =>
-    pr.reviewRequests.map((r) => r.login).join(", ") || "—";
+  const reviewers = (pr: PR) => pr.reviewRequests.map((r) => r.login).join(", ") || "—";
 
   const formatDate = (iso: string) => {
     const d = new Date(iso);
@@ -291,24 +299,31 @@ export function App() {
   return (
     <div className="app">
       <header className="header sticky-header">
-        <h1><img src={headerLogo} alt="ChillBox" height={24} className="header-logo header-logo-light" /><img src={headerLogoDark} alt="ChillBox" height={24} className="header-logo header-logo-dark" /><img src={headerIcon} alt="" width={28} height={28} className="header-icon header-icon-light" /><img src={headerIconDark} alt="" width={28} height={28} className="header-icon header-icon-dark" />{prTitle && selectedPr !== null && <span className="header-pr-title">{prTitle.replace(/ #\d+$/, '')} <a href={`https://github.com/${repo.trim()}/pull/${selectedPr}/changes`} target="_blank" rel="noopener noreferrer">#{selectedPr}</a></span>}</h1>
+        <h1>
+          <img src={headerLogo} alt="ChillBox" height={24} className="header-logo header-logo-light" />
+          <img src={headerLogoDark} alt="ChillBox" height={24} className="header-logo header-logo-dark" />
+          <img src={headerIcon} alt="" width={28} height={28} className="header-icon header-icon-light" />
+          <img src={headerIconDark} alt="" width={28} height={28} className="header-icon header-icon-dark" />
+          {prTitle && selectedPr !== null && (
+            <span className="header-pr-title">
+              {prTitle.replace(/ #\d+$/, "")}{" "}
+              <a
+                href={`https://github.com/${repo.trim()}/pull/${selectedPr}/changes`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                #{selectedPr}
+              </a>
+            </span>
+          )}
+        </h1>
         <div className="header-actions">
-          <button
-            type="button"
-            className="theme-toggle"
-            onClick={() => setTheme(theme === "light" ? "dark" : "light")}
-          >
+          <button type="button" className="theme-toggle" onClick={() => setTheme(theme === "light" ? "dark" : "light")}>
             {theme === "light" ? <Moon size={18} /> : <Sun size={18} />}
           </button>
-          <button
-            type="button"
-            className="notification-bell"
-            onClick={() => setDrawerOpen(true)}
-          >
+          <button type="button" className="notification-bell" onClick={() => setDrawerOpen(true)}>
             <Bell size={18} />
-            {unreadCount > 0 && (
-              <span className="notification-badge">{unreadCount}</span>
-            )}
+            {unreadCount > 0 && <span className="notification-badge">{unreadCount}</span>}
           </button>
           <button
             type="button"
@@ -381,12 +396,7 @@ export function App() {
       </form>
 
       {selectedPr !== null ? (
-        <PrDetail
-          repo={repo.trim()}
-          prNumber={selectedPr}
-          onBack={navigateToList}
-          onTitleChange={setPrTitle}
-        />
+        <PrDetail repo={repo.trim()} prNumber={selectedPr} onBack={navigateToList} onTitleChange={setPrTitle} />
       ) : (
         <>
           <div className="filter-bar">
@@ -425,11 +435,7 @@ export function App() {
           {error && <div className="error">{error}</div>}
 
           <div className="table-wrap">
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={handleDragEnd}
-            >
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
               <table className="pr-table">
                 <thead>
                   <tr>
@@ -459,18 +465,12 @@ export function App() {
                     {hiddenPrs.map((pr) => (
                       <tr key={pr.number}>
                         <td className="col-number">
-                          <a
-                            href={pr.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
+                          <a href={pr.url} target="_blank" rel="noopener noreferrer">
                             #{pr.number}
                           </a>
                         </td>
                         <td className="col-title">
-                          {pr.isDraft && (
-                            <span className="draft-badge">Draft</span>
-                          )}
+                          {pr.isDraft && <span className="draft-badge">Draft</span>}
                           {pr.title}
                         </td>
                         <td>{pr.author.login}</td>
@@ -479,12 +479,7 @@ export function App() {
                         <td className="col-date">{formatDate(pr.updatedAt)}</td>
                         <MemoCell memo={memos[pr.number] ?? ""} onChange={(text) => updateMemo(pr.number, text)} />
                         <td>
-                          <button
-                            type="button"
-                            className="unhide-btn"
-                            onClick={() => unhide(pr.number)}
-                            title="再表示"
-                          >
+                          <button type="button" className="unhide-btn" onClick={() => unhide(pr.number)} title="再表示">
                             <RotateCcw size={14} />
                           </button>
                         </td>
@@ -526,17 +521,12 @@ export function App() {
                     </SortableContext>
                   ))
                 ) : (
-                  <SortableContext
-                    items={sortedPrs.map((pr) => pr.number)}
-                    strategy={verticalListSortingStrategy}
-                  >
+                  <SortableContext items={sortedPrs.map((pr) => pr.number)} strategy={verticalListSortingStrategy}>
                     <tbody>
                       {sortedPrs.length === 0 && !loading && (
                         <tr>
                           <td colSpan={10} className="empty">
-                            {repo.trim()
-                              ? "該当するPRがありません"
-                              : "リポジトリを入力してください"}
+                            {repo.trim() ? "該当するPRがありません" : "リポジトリを入力してください"}
                           </td>
                         </tr>
                       )}

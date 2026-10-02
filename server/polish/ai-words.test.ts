@@ -46,7 +46,10 @@ describe("replaceAiWords", () => {
 
 describe("PHRASE_REPLACEMENTS", () => {
   const det = (word: string, index: number): Detection => ({
-    index, line: 1, column: index + 1, word,
+    index,
+    line: 1,
+    column: index + 1,
+    word,
     message: `"${word}" はAIが書いた文章で多用される表現です。`,
   });
 

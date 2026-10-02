@@ -22,7 +22,9 @@ const BINARY_PATH = path.join(TOOLS_DIR, "ast-go-parser-bin");
 let binaryBuilt = false;
 
 function ensureBinary(): string {
-  if (binaryBuilt && fs.existsSync(BINARY_PATH)) { return BINARY_PATH; }
+  if (binaryBuilt && fs.existsSync(BINARY_PATH)) {
+    return BINARY_PATH;
+  }
   execFileSync("go", ["build", "-o", BINARY_PATH, "."], { cwd: TOOLS_DIR, timeout: 30000 });
   binaryBuilt = true;
   return BINARY_PATH;
@@ -58,23 +60,27 @@ function runParser(args: string[], stdinData: string): Promise<string> {
 
     let stdout = "";
     let stderr = "";
-    child.stdout.on("data", (d: Buffer) => { stdout += d.toString(); });
-    child.stderr.on("data", (d: Buffer) => { stderr += d.toString(); });
+    child.stdout.on("data", (d: Buffer) => {
+      stdout += d.toString();
+    });
+    child.stderr.on("data", (d: Buffer) => {
+      stderr += d.toString();
+    });
 
     child.stdin.write(stdinData);
     child.stdin.end();
 
     child.on("close", (code) => {
-      if (code === 0) { resolve(stdout); }
-      else { reject(new Error(stderr)); }
+      if (code === 0) {
+        resolve(stdout);
+      } else {
+        reject(new Error(stderr));
+      }
     });
   });
 }
 
-export async function extractSymbolsFromGoFile(
-  filePath: string,
-  globalGoSymbols?: string[],
-): Promise<GoParseResult> {
+export async function extractSymbolsFromGoFile(filePath: string, globalGoSymbols?: string[]): Promise<GoParseResult> {
   try {
     const result = await runParser([filePath], JSON.stringify(globalGoSymbols ?? []));
     return mapResult(JSON.parse(result));
@@ -87,7 +93,9 @@ export async function batchExtractGoFiles(
   filePaths: string[],
   externalSymbols?: string[],
 ): Promise<Map<string, GoParseResult>> {
-  if (filePaths.length === 0) { return new Map(); }
+  if (filePaths.length === 0) {
+    return new Map();
+  }
 
   try {
     const input = JSON.stringify({

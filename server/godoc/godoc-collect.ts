@@ -22,9 +22,7 @@ function isGoSource(file: string): boolean {
 }
 
 export function goPackageDirs(paths: string[]): string[] {
-  const dirs = paths
-    .filter((p) => isGoSource(p) && !EXCLUDED_DIR.test(p))
-    .map((p) => path.posix.dirname(p));
+  const dirs = paths.filter((p) => isGoSource(p) && !EXCLUDED_DIR.test(p)).map((p) => path.posix.dirname(p));
   return [...new Set(dirs)].sort();
 }
 
@@ -37,7 +35,9 @@ export function pairPackages(base: GoPackageDoc[], head: GoPackageDoc[]): Diffed
   const current = head.map((p): DiffedGoPackage => {
     const before = baseByKey.get(key(p));
     const items = diffGoDocItems(before?.items ?? [], p.items);
-    if (!before) { return { ...p, change: "added", items }; }
+    if (!before) {
+      return { ...p, change: "added", items };
+    }
     const changed = before.docText !== p.docText || items.some((i) => i.change !== "unchanged");
     return { ...p, change: changed ? "modified" : "unchanged", items };
   });
@@ -50,10 +50,19 @@ export function pairPackages(base: GoPackageDoc[], head: GoPackageDoc[]): Diffed
 
 export async function loadGoDocs(repo: string, number: number, scope: GoDocScope): Promise<DiffedGoPackage[]> {
   const { stdout } = await execFileAsync("gh", [
-    "pr", "view", String(number), "--repo", repo,
-    "--json", "headRefOid,baseRefOid,files",
+    "pr",
+    "view",
+    String(number),
+    "--repo",
+    repo,
+    "--json",
+    "headRefOid,baseRefOid,files",
   ]);
-  const { headRefOid: sha, baseRefOid, files } = JSON.parse(stdout) as {
+  const {
+    headRefOid: sha,
+    baseRefOid,
+    files,
+  } = JSON.parse(stdout) as {
     headRefOid: string;
     baseRefOid: string;
     files: { path: string }[];
@@ -64,9 +73,10 @@ export async function loadGoDocs(repo: string, number: number, scope: GoDocScope
   const mergeBase = (await gitOutput(repoDir, ["merge-base", baseRefOid, sha])).trim();
 
   const changedDirs = goPackageDirs(files.map((f) => f.path));
-  const targetDirs = scope === "changed"
-    ? changedDirs
-    : [...new Set([...goPackageDirs(await listTrackedFiles(repoDir)), ...changedDirs])];
+  const targetDirs =
+    scope === "changed"
+      ? changedDirs
+      : [...new Set([...goPackageDirs(await listTrackedFiles(repoDir)), ...changedDirs])];
 
   const head = await extractGoDocs(targetDirs.map((dir) => readHeadPackage(repoDir, dir)));
   const base = await extractGoDocs(
@@ -88,13 +98,20 @@ function readHeadPackage(repoDir: string, dir: string): GoPackageInput {
 }
 
 async function readBasePackage(repoDir: string, sha: string, dir: string): Promise<GoPackageInput> {
-  const listed = await gitOutput(repoDir, ["ls-tree", "--name-only", sha, dir === "." ? "./" : `${dir}/`])
-    .catch(() => "");
-  const names = listed.split("\n").filter(Boolean).map((p) => path.posix.basename(p)).filter(isGoSource);
-  const files = await Promise.all(names.map(async (name) => ({
-    name,
-    content: await gitOutput(repoDir, ["show", `${sha}:${dir === "." ? name : `${dir}/${name}`}`]).catch(() => ""),
-  })));
+  const listed = await gitOutput(repoDir, ["ls-tree", "--name-only", sha, dir === "." ? "./" : `${dir}/`]).catch(
+    () => "",
+  );
+  const names = listed
+    .split("\n")
+    .filter(Boolean)
+    .map((p) => path.posix.basename(p))
+    .filter(isGoSource);
+  const files = await Promise.all(
+    names.map(async (name) => ({
+      name,
+      content: await gitOutput(repoDir, ["show", `${sha}:${dir === "." ? name : `${dir}/${name}`}`]).catch(() => ""),
+    })),
+  );
   return { dir, files };
 }
 

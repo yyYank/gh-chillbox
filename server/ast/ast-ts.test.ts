@@ -1,6 +1,12 @@
 import { describe, it, expect } from "vitest";
 import path from "node:path";
-import { extractSymbolsFromFile, extractRelationsFromFile, extractHttpFromFile, inferRoutePathFromFilePath, matchPaths } from "./ast-ts";
+import {
+  extractSymbolsFromFile,
+  extractRelationsFromFile,
+  extractHttpFromFile,
+  inferRoutePathFromFilePath,
+  matchPaths,
+} from "./ast-ts";
 
 const FIXTURE = path.resolve(__dirname, "test-fixtures/sample.tsx");
 const ROUTE_FIXTURE = path.resolve(__dirname, "test-fixtures/app/api/users/route.ts");
@@ -68,9 +74,7 @@ describe("extractSymbolsFromFile", () => {
 describe("extractRelationsFromFile", () => {
   it("UserPage → useUser のhook-use関係を検出する", () => {
     const relations = extractRelationsFromFile(FIXTURE);
-    const hookUse = relations.find(
-      (r) => r.from === "UserPage" && r.to === "useUser",
-    );
+    const hookUse = relations.find((r) => r.from === "UserPage" && r.to === "useUser");
     expect(hookUse).toBeDefined();
     expect(hookUse!.kind).toBe("hook-use");
   });

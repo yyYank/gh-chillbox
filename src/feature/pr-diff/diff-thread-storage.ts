@@ -10,7 +10,9 @@ export function loadThreads(repo: string, prNumber: number): ThreadMap {
   try {
     const raw = localStorage.getItem(storageKey(repo, prNumber));
     return raw ? JSON.parse(raw) : {};
-  } catch { return {}; }
+  } catch {
+    return {};
+  }
 }
 
 function saveThreads(repo: string, prNumber: number, threads: ThreadMap) {
@@ -20,7 +22,12 @@ function saveThreads(repo: string, prNumber: number, threads: ThreadMap) {
 }
 
 // Diff タブを離れている間に回答が返っても失わないよう、state ではなく localStorage を正とする
-export function appendThreadMessage(repo: string, prNumber: number, anchor: ThreadAnchor, msg: ThreadMessage): ThreadMap {
+export function appendThreadMessage(
+  repo: string,
+  prNumber: number,
+  anchor: ThreadAnchor,
+  msg: ThreadMessage,
+): ThreadMap {
   const threads = loadThreads(repo, prNumber);
   const current = threads[anchor.key] ?? { ...anchor, messages: [] };
   const next = { ...threads, [anchor.key]: { ...current, messages: [...current.messages, msg] } };

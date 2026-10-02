@@ -92,7 +92,9 @@ test("本体", async ({ browserName }) => {
   });
 
   it("行番号を持つ", () => {
-    const [file] = extractTsTestCases([{ path: "a.test.ts", content: `\n\ndescribe("A", () => {\n  it("b", () => {});\n});\n` }]);
+    const [file] = extractTsTestCases([
+      { path: "a.test.ts", content: `\n\ndescribe("A", () => {\n  it("b", () => {});\n});\n` },
+    ]);
     expect(file.cases.map((c) => c.line)).toEqual([3, 4]);
   });
 });

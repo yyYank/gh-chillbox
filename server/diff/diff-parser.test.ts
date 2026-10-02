@@ -18,9 +18,7 @@ index 1234567..abcdefg 100644
  }`;
 
     const result = parseDiffToChangedLines(diff);
-    expect(result).toEqual([
-      { file: "src/api/updateUser.ts", changedLines: [32, 33, 34, 35] },
-    ]);
+    expect(result).toEqual([{ file: "src/api/updateUser.ts", changedLines: [32, 33, 34, 35] }]);
   });
 
   it("複数ファイルの変更を抽出する", () => {
@@ -66,9 +64,7 @@ index aaa..bbb 100644
  }`;
 
     const result = parseDiffToChangedLines(diff);
-    expect(result).toEqual([
-      { file: "src/old.ts", changedLines: [] },
-    ]);
+    expect(result).toEqual([{ file: "src/old.ts", changedLines: [] }]);
   });
 
   it("複数hunkを持つファイルを正しく処理する", () => {
@@ -86,9 +82,7 @@ index aaa..bbb 100644
    return;`;
 
     const result = parseDiffToChangedLines(diff);
-    expect(result).toEqual([
-      { file: "src/service.ts", changedLines: [6, 22] },
-    ]);
+    expect(result).toEqual([{ file: "src/service.ts", changedLines: [6, 22] }]);
   });
 
   it("空のdiffは空配列を返す", () => {
@@ -107,8 +101,6 @@ index 0000000..abcdefg
 +}`;
 
     const result = parseDiffToChangedLines(diff);
-    expect(result).toEqual([
-      { file: "src/new.ts", changedLines: [1, 2, 3] },
-    ]);
+    expect(result).toEqual([{ file: "src/new.ts", changedLines: [1, 2, 3] }]);
   });
 });

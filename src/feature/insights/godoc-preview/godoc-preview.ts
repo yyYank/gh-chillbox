@@ -23,7 +23,9 @@ export type GoPackage = {
 };
 
 export function visiblePackages(packages: GoPackage[], scope: Scope): GoPackage[] {
-  if (scope === "all") { return packages; }
+  if (scope === "all") {
+    return packages;
+  }
   return packages
     .filter((p) => p.change !== "unchanged")
     .map((p) => ({ ...p, items: p.items.filter((i) => i.change !== "unchanged") }));

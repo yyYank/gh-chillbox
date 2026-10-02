@@ -60,18 +60,28 @@ describe("extractGoDocs", () => {
 
   it("_test.go は対象外にする", async () => {
     const testSrc = "package user\n\n// TestOnly はテスト用。\nfunc TestOnly() {}\n";
-    const [pkg] = await extractGoDocs([{
-      dir: "u",
-      files: [{ name: "user.go", content: SRC }, { name: "user_test.go", content: testSrc }],
-    }]);
+    const [pkg] = await extractGoDocs([
+      {
+        dir: "u",
+        files: [
+          { name: "user.go", content: SRC },
+          { name: "user_test.go", content: testSrc },
+        ],
+      },
+    ]);
     expect(pkg.items.map((i) => i.name)).not.toContain("TestOnly");
   });
 
   it("構文エラーのファイルは飛ばし、残りのファイルで抽出する", async () => {
-    const [pkg] = await extractGoDocs([{
-      dir: "u",
-      files: [{ name: "user.go", content: SRC }, { name: "broken.go", content: "package user\nfunc (" }],
-    }]);
+    const [pkg] = await extractGoDocs([
+      {
+        dir: "u",
+        files: [
+          { name: "user.go", content: SRC },
+          { name: "broken.go", content: "package user\nfunc (" },
+        ],
+      },
+    ]);
     expect(pkg.items.map((i) => i.name)).toContain("NewUser");
   });
 });

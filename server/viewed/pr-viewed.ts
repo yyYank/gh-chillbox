@@ -40,7 +40,9 @@ type FilesResponse = {
 
 export function parseViewedPage(json: FilesResponse): ViewedPage {
   const pr = json?.data?.repository?.pullRequest;
-  if (!pr) { throw new Error("pull request not found"); }
+  if (!pr) {
+    throw new Error("pull request not found");
+  }
   const states: Record<string, ViewedState> = {};
   for (const node of pr.files.nodes) {
     states[node.path] = node.viewerViewedState;
@@ -65,8 +67,10 @@ export async function fetchViewedStates(repo: string, number: number): Promise<O
   let after: string | null = null;
   do {
     const fields: Record<string, string | number> = { owner, name, number };
-    if (after) { fields.after = after; }
-    const page = parseViewedPage(await graphql(FILES_QUERY, fields) as FilesResponse);
+    if (after) {
+      fields.after = after;
+    }
+    const page = parseViewedPage((await graphql(FILES_QUERY, fields)) as FilesResponse);
     pullRequestId = page.pullRequestId;
     Object.assign(states, page.states);
     after = page.nextCursor;

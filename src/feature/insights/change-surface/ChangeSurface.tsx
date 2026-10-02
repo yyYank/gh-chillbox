@@ -34,11 +34,7 @@ export function ChangeSurface({ files }: Props) {
     <div className="change-surface">
       <div className="change-surface-header">
         <span className="change-surface-title">Change Surface</span>
-        <button
-          type="button"
-          className="change-surface-debug-btn"
-          onClick={() => setShowDebug(!showDebug)}
-        >
+        <button type="button" className="change-surface-debug-btn" onClick={() => setShowDebug(!showDebug)}>
           {showDebug ? "Hide" : "Debug"}
         </button>
       </div>
@@ -87,10 +83,7 @@ export function ChangeSurface({ files }: Props) {
                 <tr key={f.path}>
                   <td className="change-surface-debug-path">{f.path}</td>
                   <td>
-                    <span
-                      className="change-surface-layer-badge"
-                      style={{ background: LAYER_COLORS[f.primaryLayer] }}
-                    >
+                    <span className="change-surface-layer-badge" style={{ background: LAYER_COLORS[f.primaryLayer] }}>
                       {LAYER_LABELS[f.primaryLayer]}
                     </span>
                   </td>

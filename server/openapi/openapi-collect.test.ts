@@ -14,7 +14,7 @@ describe("isSpecCandidate", () => {
 describe("looksLikeOpenApi", () => {
   it("YAML のトップレベルに openapi/swagger キーがあれば true", () => {
     expect(looksLikeOpenApi("# comment\nopenapi: 3.0.0\n")).toBe(true);
-    expect(looksLikeOpenApi("swagger: \"2.0\"\n")).toBe(true);
+    expect(looksLikeOpenApi('swagger: "2.0"\n')).toBe(true);
   });
 
   it("整形済み・1行の JSON でも openapi/swagger キーを検出する", () => {

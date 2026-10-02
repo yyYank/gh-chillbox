@@ -41,7 +41,9 @@ function parse(content: string): GherkinCase[] {
   content.split(/\r?\n/).forEach((raw, index) => {
     const line = raw.trim();
     if (docStringFence) {
-      if (line.startsWith(docStringFence)) { docStringFence = null; }
+      if (line.startsWith(docStringFence)) {
+        docStringFence = null;
+      }
       return;
     }
     if (line.startsWith('"""') || line.startsWith("```")) {
@@ -49,12 +51,19 @@ function parse(content: string): GherkinCase[] {
       return;
     }
     if (line.startsWith("@")) {
-      tags.push(...line.split(/\s+/).filter((t) => t.startsWith("@")).map((t) => t.slice(1)));
+      tags.push(
+        ...line
+          .split(/\s+/)
+          .filter((t) => t.startsWith("@"))
+          .map((t) => t.slice(1)),
+      );
       return;
     }
 
     const matched = matchKeyword(line);
-    if (!matched) { return; }
+    if (!matched) {
+      return;
+    }
     const { keyword, name } = matched;
     const modifiers = [...tags, ...(keyword.outline ? ["outline"] : [])];
     tags = [];
@@ -65,9 +74,7 @@ function parse(content: string): GherkinCase[] {
     } else if (keyword.kind === "rule") {
       rule = name;
     }
-    const parents = keyword.kind === "feature" ? []
-      : keyword.kind === "rule" ? [feature]
-      : [feature, rule];
+    const parents = keyword.kind === "feature" ? [] : keyword.kind === "rule" ? [feature] : [feature, rule];
     cases.push({
       kind: keyword.kind,
       names: [...parents.filter((p): p is string => p !== null), name],
@@ -81,7 +88,9 @@ function parse(content: string): GherkinCase[] {
 function matchKeyword(line: string): { keyword: Keyword; name: string } | null {
   for (const [word, keyword] of KEYWORDS) {
     const m = line.match(new RegExp(`^${word}\\s*[:：]\\s*(.*)$`));
-    if (m) { return { keyword, name: m[1].trim() }; }
+    if (m) {
+      return { keyword, name: m[1].trim() };
+    }
   }
   return null;
 }

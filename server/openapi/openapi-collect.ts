@@ -47,17 +47,28 @@ function toSpecFile({ path, content, baseContent, changed }: SpecSource): SpecFi
   }
   const base = baseContent ? parseOpenApi(baseContent) : null;
   const meta = head ?? base;
-  if (!meta) { return null; }
+  if (!meta) {
+    return null;
+  }
   const endpoints = diffEndpoints(base?.endpoints ?? [], head?.endpoints ?? []);
   return { path, changed, spec: { version: meta.version, title: meta.title, endpoints } };
 }
 
 export async function loadOpenApiSpecs(repo: string, number: number, scope: OpenApiScope): Promise<SpecFile[]> {
   const { stdout } = await execFileAsync("gh", [
-    "pr", "view", String(number), "--repo", repo,
-    "--json", "headRefOid,baseRefOid,files",
+    "pr",
+    "view",
+    String(number),
+    "--repo",
+    repo,
+    "--json",
+    "headRefOid,baseRefOid,files",
   ]);
-  const { headRefOid: sha, baseRefOid, files } = JSON.parse(stdout) as {
+  const {
+    headRefOid: sha,
+    baseRefOid,
+    files,
+  } = JSON.parse(stdout) as {
     headRefOid: string;
     baseRefOid: string;
     files: { path: string }[];
@@ -69,15 +80,16 @@ export async function loadOpenApiSpecs(repo: string, number: number, scope: Open
   const mergeBase = (await gitOutput(repoDir, ["merge-base", baseRefOid, sha])).trim();
 
   // 削除されたファイルは head に無いため、PR のファイル一覧も対象に含める
-  const targets = scope === "changed"
-    ? [...changedPaths]
-    : [...new Set([...(await listTrackedFiles(repoDir)), ...changedPaths])];
+  const targets =
+    scope === "changed" ? [...changedPaths] : [...new Set([...(await listTrackedFiles(repoDir)), ...changedPaths])];
   const sources: SpecSource[] = [];
   for (const rel of targets.filter(isSpecCandidate)) {
     const changed = changedPaths.has(rel);
     const content = readSpecLike(path.join(repoDir, rel));
     const baseContent = changed ? await readBaseSpecLike(repoDir, mergeBase, rel) : null;
-    if (content !== null || baseContent !== null) { sources.push({ path: rel, content, baseContent, changed }); }
+    if (content !== null || baseContent !== null) {
+      sources.push({ path: rel, content, baseContent, changed });
+    }
   }
   return collectSpecs(sources);
 }
@@ -85,7 +97,9 @@ export async function loadOpenApiSpecs(repo: string, number: number, scope: Open
 async function readBaseSpecLike(repoDir: string, sha: string, rel: string): Promise<string | null> {
   try {
     const content = await gitOutput(repoDir, ["show", `${sha}:${rel}`]);
-    if (content.length > MAX_FILE_BYTES || !looksLikeOpenApi(content.slice(0, HEAD_BYTES))) { return null; }
+    if (content.length > MAX_FILE_BYTES || !looksLikeOpenApi(content.slice(0, HEAD_BYTES))) {
+      return null;
+    }
     return content;
   } catch {
     return null;
@@ -102,15 +116,21 @@ function readSpecLike(absPath: string): string | null {
   let fd: number | undefined;
   try {
     const stat = fs.statSync(absPath);
-    if (!stat.isFile() || stat.size > MAX_FILE_BYTES) { return null; }
+    if (!stat.isFile() || stat.size > MAX_FILE_BYTES) {
+      return null;
+    }
     fd = fs.openSync(absPath, "r");
     const buf = Buffer.alloc(Math.min(HEAD_BYTES, stat.size));
     fs.readSync(fd, buf, 0, buf.length, 0);
-    if (!looksLikeOpenApi(buf.toString("utf8"))) { return null; }
+    if (!looksLikeOpenApi(buf.toString("utf8"))) {
+      return null;
+    }
     return fs.readFileSync(absPath, "utf8");
   } catch {
     return null;
   } finally {
-    if (fd !== undefined) { fs.closeSync(fd); }
+    if (fd !== undefined) {
+      fs.closeSync(fd);
+    }
   }
 }

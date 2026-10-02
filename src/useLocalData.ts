@@ -21,9 +21,7 @@ function saveJson(key: string, value: unknown) {
 }
 
 export function usePrOrder() {
-  const [order, setOrder] = useState<number[]>(() =>
-    loadJson<number[]>(ORDER_KEY, []),
-  );
+  const [order, setOrder] = useState<number[]>(() => loadJson<number[]>(ORDER_KEY, []));
 
   const reorder = useCallback((newOrder: number[]) => {
     setOrder(newOrder);
@@ -42,9 +40,7 @@ export function usePrOrder() {
 }
 
 export function useHiddenPrs() {
-  const [hidden, setHidden] = useState<Set<number>>(
-    () => new Set(loadJson<number[]>(HIDDEN_KEY, [])),
-  );
+  const [hidden, setHidden] = useState<Set<number>>(() => new Set(loadJson<number[]>(HIDDEN_KEY, [])));
 
   const hide = useCallback((prNumber: number) => {
     setHidden((prev) => {

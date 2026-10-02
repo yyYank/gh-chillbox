@@ -19,13 +19,9 @@ export async function ensureRepo(fullRepo: string): Promise<string> {
     await execFileAsync("git", ["fetch", "--quiet"], { cwd: dir, timeout: 60000 });
   } else {
     fs.mkdirSync(path.join(CACHE_ROOT, owner), { recursive: true });
-    await execFileAsync("git", [
-      "clone",
-      "--filter=blob:none",
-      "--quiet",
-      `git@github.com:${fullRepo}.git`,
-      dir,
-    ], { timeout: 120000 });
+    await execFileAsync("git", ["clone", "--filter=blob:none", "--quiet", `git@github.com:${fullRepo}.git`, dir], {
+      timeout: 120000,
+    });
   }
 
   return dir;

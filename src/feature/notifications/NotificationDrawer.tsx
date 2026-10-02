@@ -51,10 +51,16 @@ function formatTime(iso: string): string {
   const now = new Date();
   const diffMs = now.getTime() - d.getTime();
   const diffMin = Math.floor(diffMs / 60000);
-  if (diffMin < 1) { return "たった今"; }
-  if (diffMin < 60) { return `${diffMin}分前`; }
+  if (diffMin < 1) {
+    return "たった今";
+  }
+  if (diffMin < 60) {
+    return `${diffMin}分前`;
+  }
   const diffHour = Math.floor(diffMin / 60);
-  if (diffHour < 24) { return `${diffHour}時間前`; }
+  if (diffHour < 24) {
+    return `${diffHour}時間前`;
+  }
   const diffDay = Math.floor(diffHour / 24);
   return `${diffDay}日前`;
 }
@@ -76,17 +82,11 @@ export function NotificationDrawer({
 
   return (
     <>
-      {open && (
-        <div className="drawer-overlay" onClick={onClose} role="presentation" />
-      )}
+      {open && <div className="drawer-overlay" onClick={onClose} role="presentation" />}
       <aside className={`drawer ${open ? "drawer-open" : ""}`}>
         <div className="drawer-header">
           <h2>通知</h2>
-          <button
-            type="button"
-            className="drawer-close-btn"
-            onClick={onClose}
-          >
+          <button type="button" className="drawer-close-btn" onClick={onClose}>
             ×
           </button>
         </div>
@@ -110,11 +110,7 @@ export function NotificationDrawer({
 
         {tab === "active" && closedCount > 0 && (
           <div className="drawer-bulk-actions">
-            <button
-              type="button"
-              className="dismiss-closed-btn"
-              onClick={onDismissClosed}
-            >
+            <button type="button" className="dismiss-closed-btn" onClick={onDismissClosed}>
               <Trash2 size={14} />
               クローズ済PRの通知をまとめて消す ({closedCount})
             </button>
@@ -124,35 +120,21 @@ export function NotificationDrawer({
         <div className="drawer-body">
           {items.length === 0 && (
             <div className="drawer-empty">
-              {tab === "dismissed"
-                ? "削除済みの通知はありません"
-                : "通知はありません"}
+              {tab === "dismissed" ? "削除済みの通知はありません" : "通知はありません"}
             </div>
           )}
           {items.map((n) => {
             const isRead = readIds.has(n.id);
             return (
-              <div
-                key={n.id}
-                className={`notification-item ${!isRead && tab === "active" ? "unread" : ""}`}
-              >
+              <div key={n.id} className={`notification-item ${!isRead && tab === "active" ? "unread" : ""}`}>
                 <div className="notification-content">
-                  <span className="notification-type-badge">
-                    {formatType(n.type)}
-                  </span>
+                  <span className="notification-type-badge">{formatType(n.type)}</span>
                   <p className="notification-message">
-                    <a
-                      href={n.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="notification-link"
-                    >
+                    <a href={n.url} target="_blank" rel="noopener noreferrer" className="notification-link">
                       {formatMessage(n)}
                     </a>
                   </p>
-                  <span className="notification-time">
-                    {formatTime(n.createdAt)}
-                  </span>
+                  <span className="notification-time">{formatTime(n.createdAt)}</span>
                 </div>
                 {tab === "active" && (
                   <div className="notification-actions">
@@ -166,12 +148,7 @@ export function NotificationDrawer({
                         <CheckCircle size={16} />
                       </button>
                     )}
-                    <button
-                      type="button"
-                      className="dismiss-btn"
-                      onClick={() => onDismiss(n.id)}
-                      title="通知を削除"
-                    >
+                    <button type="button" className="dismiss-btn" onClick={() => onDismiss(n.id)} title="通知を削除">
                       <Eraser size={16} />
                     </button>
                   </div>

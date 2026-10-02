@@ -37,9 +37,15 @@ describe("fuzzyMatch", () => {
 
 describe("filterDiffFiles", () => {
   const files: DiffFileEntry[] = [
-    { path: "apps/rest-api/src/index.ts", rawContent: "+import { session } from './auth';\n-import { old } from './legacy';" },
+    {
+      path: "apps/rest-api/src/index.ts",
+      rawContent: "+import { session } from './auth';\n-import { old } from './legacy';",
+    },
     { path: "apps/web/src/App.tsx", rawContent: "+const theme = 'dark';\n-const theme = 'light';" },
-    { path: "libs/shared/types.ts", rawContent: "+export type Session = { id: string };\n-export type OldSession = {};" },
+    {
+      path: "libs/shared/types.ts",
+      rawContent: "+export type Session = { id: string };\n-export type OldSession = {};",
+    },
     { path: "README.md", rawContent: "+## Updated docs\n-## Old docs" },
   ];
 

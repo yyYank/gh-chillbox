@@ -10,7 +10,10 @@ describe("共通の形への変換", () => {
     const go = fromGo({ path: "a_test.go", cases: [{ kind: "test", names: ["TestA"], line: 3, dynamic: false }] });
     const jest = fromTs({ path: "a.test.ts", framework: "jest", cases: [] });
     const pw = fromTs({ path: "e2e/a.spec.ts", framework: "playwright", cases: [] });
-    const gherkin = fromGherkin({ path: "a.feature", cases: [{ kind: "scenario", names: ["F", "S"], line: 2, modifiers: ["wip"] }] });
+    const gherkin = fromGherkin({
+      path: "a.feature",
+      cases: [{ kind: "scenario", names: ["F", "S"], line: 2, modifiers: ["wip"] }],
+    });
     expect([go, jest, pw, gherkin].map((f) => [f.framework, f.category])).toEqual([
       ["go", "unit"],
       ["jest", "unit"],
@@ -18,16 +21,19 @@ describe("共通の形への変換", () => {
       ["gherkin", "e2e"],
     ]);
     expect(go.cases[0]).toEqual({ kind: "test", names: ["TestA"], line: 3, dynamic: false, modifiers: [] });
-    expect(gherkin.cases[0]).toEqual({ kind: "scenario", names: ["F", "S"], line: 2, dynamic: false, modifiers: ["wip"] });
+    expect(gherkin.cases[0]).toEqual({
+      kind: "scenario",
+      names: ["F", "S"],
+      line: 2,
+      dynamic: false,
+      modifiers: ["wip"],
+    });
   });
 });
 
 describe("diffTestCases", () => {
   it("kind+名前のパスで突き合わせ、head にだけあるものを added、base にだけあるものを removed にする", () => {
-    const result = diffTestCases(
-      [tc(["A", "keep"]), tc(["A", "old"])],
-      [tc(["A", "keep"]), tc(["A", "new"])],
-    );
+    const result = diffTestCases([tc(["A", "keep"]), tc(["A", "old"])], [tc(["A", "keep"]), tc(["A", "new"])]);
     expect(result.map((c) => [c.names.join(" > "), c.change])).toEqual([
       ["A > keep", "unchanged"],
       ["A > new", "added"],

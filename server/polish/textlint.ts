@@ -17,9 +17,7 @@ let linterPromise: Promise<Linter> | null = null;
 function getLinter(): Promise<Linter> {
   if (!linterPromise) {
     const configFilePath = fileURLToPath(new URL("../../.textlintrc.json", import.meta.url));
-    linterPromise = loadTextlintrc({ configFilePath }).then((descriptor) =>
-      createLinter({ descriptor }),
-    );
+    linterPromise = loadTextlintrc({ configFilePath }).then((descriptor) => createLinter({ descriptor }));
   }
   return linterPromise;
 }
@@ -30,7 +28,9 @@ function extractWord(message: string): string {
 }
 
 export async function lintJa(text: string): Promise<Detection[]> {
-  if (!text.trim()) { return []; }
+  if (!text.trim()) {
+    return [];
+  }
   const linter = await getLinter();
   const result = await linter.lintText(text, "pr-body.md");
   return result.messages.map((m) => ({

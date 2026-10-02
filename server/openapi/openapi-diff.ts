@@ -26,7 +26,9 @@ export function diffEndpoints(base: ApiEndpoint[], head: ApiEndpoint[]): DiffedE
 
   const current = head.map((e): DiffedEndpoint => {
     const before = baseByKey.get(key(e));
-    if (!before) { return { ...e, change: "added", changedParts: [] }; }
+    if (!before) {
+      return { ...e, change: "added", changedParts: [] };
+    }
     const changedParts = COMPARED_PARTS.filter((p) => canonical(before[p]) !== canonical(e[p]));
     return { ...e, change: changedParts.length > 0 ? "modified" : "unchanged", changedParts };
   });
@@ -43,9 +45,11 @@ export function markUnchanged(endpoints: ApiEndpoint[]): DiffedEndpoint[] {
 
 // キー順の違いを無視して比べるため、キーを並べ替えた JSON にする
 function canonical(value: unknown): string {
-  return JSON.stringify(value, (_, v) =>
-    typeof v === "object" && v !== null && !Array.isArray(v)
-      ? Object.fromEntries(Object.entries(v).sort(([a], [b]) => a.localeCompare(b)))
-      : v,
-  ) ?? "undefined";
+  return (
+    JSON.stringify(value, (_, v) =>
+      typeof v === "object" && v !== null && !Array.isArray(v)
+        ? Object.fromEntries(Object.entries(v).sort(([a], [b]) => a.localeCompare(b)))
+        : v,
+    ) ?? "undefined"
+  );
 }

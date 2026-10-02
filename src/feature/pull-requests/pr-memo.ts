@@ -15,7 +15,9 @@ export function setMemo(memos: PrMemos, prNumber: number, text: string): PrMemos
 }
 
 export function parseMemos(raw: string | null): PrMemos {
-  if (!raw) { return {}; }
+  if (!raw) {
+    return {};
+  }
   try {
     const parsed = JSON.parse(raw);
     return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};

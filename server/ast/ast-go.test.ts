@@ -82,18 +82,14 @@ describe("Go クロスファイルrelation", () => {
     const externalNames = symbols.map((s) => s.name);
 
     const { relations } = await extractSymbolsFromGoFile(CROSSFILE_FIXTURE, externalNames);
-    const callToScanUser = relations.find(
-      (r) => r.from === "Anonymize" && r.to === "scanUser",
-    );
+    const callToScanUser = relations.find((r) => r.from === "Anonymize" && r.to === "scanUser");
     expect(callToScanUser).toBeDefined();
     expect(callToScanUser!.kind).toBe("call");
   });
 
   it("外部symbolなしでは同一ファイル内のcallのみ検出する", async () => {
     const { relations } = await extractSymbolsFromGoFile(CROSSFILE_FIXTURE);
-    const callToScanUser = relations.find(
-      (r) => r.from === "Anonymize" && r.to === "scanUser",
-    );
+    const callToScanUser = relations.find((r) => r.from === "Anonymize" && r.to === "scanUser");
     expect(callToScanUser).toBeDefined();
   });
 });

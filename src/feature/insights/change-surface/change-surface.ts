@@ -1,13 +1,4 @@
-export type Layer =
-  | "ui"
-  | "api"
-  | "domain"
-  | "data"
-  | "db"
-  | "test"
-  | "config"
-  | "docs"
-  | "other";
+export type Layer = "ui" | "api" | "domain" | "data" | "db" | "test" | "config" | "docs" | "other";
 
 export type LayerScore = Record<Layer, number>;
 
@@ -152,11 +143,11 @@ export function classifyFiles(files: FileInput[], diffMap?: Map<string, string>)
 }
 
 export function computeSummary(classified: FileLayerResult[]): LayerSummary[] {
-  if (classified.length === 0) { return []; }
+  if (classified.length === 0) {
+    return [];
+  }
 
-  const totals: Record<Layer, number> = Object.fromEntries(
-    LAYERS.map((l) => [l, 0])
-  ) as Record<Layer, number>;
+  const totals: Record<Layer, number> = Object.fromEntries(LAYERS.map((l) => [l, 0])) as Record<Layer, number>;
 
   let totalLines = 0;
   for (const file of classified) {
@@ -164,10 +155,11 @@ export function computeSummary(classified: FileLayerResult[]): LayerSummary[] {
     totalLines += file.changedLines;
   }
 
-  if (totalLines === 0) { return []; }
+  if (totalLines === 0) {
+    return [];
+  }
 
-  return LAYERS
-    .filter((l) => totals[l] > 0)
+  return LAYERS.filter((l) => totals[l] > 0)
     .map((l) => ({
       layer: l,
       percentage: Math.round((totals[l] / totalLines) * 100),

@@ -1,12 +1,6 @@
 import { useState, useEffect } from "react";
 import { Star } from "lucide-react";
-import {
-  buildCallGraph,
-  extractSubgraph,
-  generateReadingOrder,
-  type GraphNode,
-  type GraphEdge,
-} from "./call-graph";
+import { buildCallGraph, extractSubgraph, generateReadingOrder, type GraphNode, type GraphEdge } from "./call-graph";
 
 type ChangedSymbol = {
   id: string;
@@ -35,10 +29,18 @@ function isTestFile(file: string): boolean {
 
 function deriveAppName(file: string): string {
   const parts = file.split("/");
-  if (parts[0] === "apps" && parts.length > 1) { return parts[1]; }
-  if (parts[0] === "packages" && parts.length > 1) { return parts[1]; }
-  if (parts[0] === "server") { return "server"; }
-  if (parts[0] === "src") { return "src"; }
+  if (parts[0] === "apps" && parts.length > 1) {
+    return parts[1];
+  }
+  if (parts[0] === "packages" && parts.length > 1) {
+    return parts[1];
+  }
+  if (parts[0] === "server") {
+    return "server";
+  }
+  if (parts[0] === "src") {
+    return "src";
+  }
   if (parts.length >= 2 && (parts[0] === "internal" || parts[0] === "cmd" || parts[0] === "pkg")) {
     return parts[1];
   }
@@ -59,7 +61,6 @@ function toFlowNode(node: GraphNode): FlowNode {
     fileName: node.file ? shortenFile(node.file) : "",
   };
 }
-
 
 const NODE_TYPE_COLORS: Record<string, string> = {
   component: "#34d399",
@@ -97,11 +98,15 @@ export function CallGraph({ repo, prNumber }: Props) {
     const params = new URLSearchParams({ repo, number: String(prNumber) });
     fetch(`/api/ast-analysis?${params}`)
       .then((res) => {
-        if (!res.ok) { throw new Error(`API error: ${res.status}`); }
+        if (!res.ok) {
+          throw new Error(`API error: ${res.status}`);
+        }
         return res.json();
       })
       .then((d) => {
-        if (d.error) { throw new Error(d.error); }
+        if (d.error) {
+          throw new Error(d.error);
+        }
         setSymbols(d.symbols ?? []);
         setRelations(d.relations ?? []);
         setModuleConnections(d.moduleConnections ?? []);
@@ -110,9 +115,15 @@ export function CallGraph({ repo, prNumber }: Props) {
       .finally(() => setLoading(false));
   }, [repo, prNumber]);
 
-  if (loading) { return <div className="cg-status">AST解析中…</div>; }
-  if (error) { return <div className="cg-status cg-error">{error}</div>; }
-  if (symbols.length === 0) { return <div className="cg-status">変更されたシンボルなし</div>; }
+  if (loading) {
+    return <div className="cg-status">AST解析中…</div>;
+  }
+  if (error) {
+    return <div className="cg-status cg-error">{error}</div>;
+  }
+  if (symbols.length === 0) {
+    return <div className="cg-status">変更されたシンボルなし</div>;
+  }
 
   const filteredSymbols = includeTests ? symbols : symbols.filter((s) => !isTestFile(s.file));
   const filteredRelations = includeTests
@@ -158,70 +169,57 @@ export function CallGraph({ repo, prNumber }: Props) {
       {activeTab === "module-connections" ? (
         <ModuleConnectionsCandidate symbols={symbols} moduleConnections={moduleConnections} relations={relations} />
       ) : (
-      <>
-      <div className="cg-header">
-        <span className="cg-title">Change Flow</span>
-        <div className="cg-controls">
-          <div className="cg-hop-toggle">
-            <button
-              type="button"
-              className={`cg-hop-btn${hops === 1 ? " active" : ""}`}
-              onClick={() => setHops(1)}
-            >
-              1-hop
-            </button>
-            <button
-              type="button"
-              className={`cg-hop-btn${hops === 2 ? " active" : ""}`}
-              onClick={() => setHops(2)}
-            >
-              2-hop
-            </button>
+        <>
+          <div className="cg-header">
+            <span className="cg-title">Change Flow</span>
+            <div className="cg-controls">
+              <div className="cg-hop-toggle">
+                <button type="button" className={`cg-hop-btn${hops === 1 ? " active" : ""}`} onClick={() => setHops(1)}>
+                  1-hop
+                </button>
+                <button type="button" className={`cg-hop-btn${hops === 2 ? " active" : ""}`} onClick={() => setHops(2)}>
+                  2-hop
+                </button>
+              </div>
+              {testCount > 0 && (
+                <label className="cg-test-toggle">
+                  <input type="checkbox" checked={includeTests} onChange={(e) => setIncludeTests(e.target.checked)} />
+                  Test ({testCount})
+                </label>
+              )}
+            </div>
           </div>
-          {testCount > 0 && (
-            <label className="cg-test-toggle">
-              <input
-                type="checkbox"
-                checked={includeTests}
-                onChange={(e) => setIncludeTests(e.target.checked)}
-              />
-              Test ({testCount})
-            </label>
+
+          {hasFlow ? (
+            <div className="cg-flow-scroll">
+              {trees
+                .filter((t) => t.children.length > 0)
+                .map((tree, ti) => (
+                  <CallTreeNode key={ti} tree={tree} confidenceMap={confidenceMap} />
+                ))}
+            </div>
+          ) : (
+            <div className="cg-status">接続された呼び出し経路が見つかりませんでした</div>
           )}
-        </div>
-      </div>
 
-      {hasFlow ? (
-        <div className="cg-flow-scroll">
-          {trees.filter((t) => t.children.length > 0).map((tree, ti) => (
-            <CallTreeNode key={ti} tree={tree} confidenceMap={confidenceMap} />
-          ))}
-        </div>
-      ) : (
-        <div className="cg-status">接続された呼び出し経路が見つかりませんでした</div>
-      )}
-
-      {readingOrder.length > 1 && (
-        <div className="cg-reading-order">
-          <div className="cg-reading-title">Recommended Reading Order</div>
-          <ol className="cg-reading-list">
-            {readingOrder.map((node, i) => (
-              <li key={node.id} className="cg-reading-item">
-                <span className="cg-reading-num">{i + 1}.</span>
-                <span
-                  className="cg-reading-name"
-                  style={{ color: NODE_TYPE_COLORS[node.type] }}
-                >
-                  {node.name}
-                </span>
-                <span className="cg-reading-type">{node.type}</span>
-                {node.file && <span className="cg-reading-file">{node.file}</span>}
-              </li>
-            ))}
-          </ol>
-        </div>
-      )}
-      </>
+          {readingOrder.length > 1 && (
+            <div className="cg-reading-order">
+              <div className="cg-reading-title">Recommended Reading Order</div>
+              <ol className="cg-reading-list">
+                {readingOrder.map((node, i) => (
+                  <li key={node.id} className="cg-reading-item">
+                    <span className="cg-reading-num">{i + 1}.</span>
+                    <span className="cg-reading-name" style={{ color: NODE_TYPE_COLORS[node.type] }}>
+                      {node.name}
+                    </span>
+                    <span className="cg-reading-type">{node.type}</span>
+                    {node.file && <span className="cg-reading-file">{node.file}</span>}
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
@@ -235,7 +233,9 @@ type CallTree = {
 function findRoots(nodes: GraphNode[], edges: GraphEdge[]): GraphNode[] {
   const hasIncoming = new Set(edges.map((e) => e.to));
   const roots = nodes.filter((n) => !hasIncoming.has(n.id));
-  if (roots.length === 0 && nodes.length > 0) { return [nodes[0]]; }
+  if (roots.length === 0 && nodes.length > 0) {
+    return [nodes[0]];
+  }
   return roots;
 }
 
@@ -248,15 +248,21 @@ function buildTrees(roots: GraphNode[], nodes: GraphNode[], edges: GraphEdge[]):
   const visited = new Set<string>();
 
   function build(id: string): CallTree | null {
-    if (visited.has(id)) { return null; }
+    if (visited.has(id)) {
+      return null;
+    }
     visited.add(id);
     const node = nodeMap.get(id);
-    if (!node) { return null; }
+    if (!node) {
+      return null;
+    }
     const targets = outgoing.get(id) ?? [];
     const children: CallTree[] = [];
     for (const t of targets) {
       const child = build(t);
-      if (child) { children.push(child); }
+      if (child) {
+        children.push(child);
+      }
     }
     return { node: toFlowNode(node), children };
   }
@@ -264,12 +270,18 @@ function buildTrees(roots: GraphNode[], nodes: GraphNode[], edges: GraphEdge[]):
   const trees: CallTree[] = [];
   for (const root of roots) {
     const tree = build(root.id);
-    if (tree) { trees.push(tree); }
+    if (tree) {
+      trees.push(tree);
+    }
   }
   return trees;
 }
 
-function CallTreeNode({ tree, confidenceMap, depth = 0 }: {
+function CallTreeNode({
+  tree,
+  confidenceMap,
+  depth = 0,
+}: {
   tree: CallTree;
   confidenceMap: Map<string, GraphEdge["confidence"]>;
   depth?: number;
@@ -338,7 +350,9 @@ const KIND_LABELS: Record<string, string> = {
 
 function McStars({ score }: { score: number }) {
   const count = score >= 5 ? 3 : score >= 3 ? 2 : score >= 1 ? 1 : 0;
-  if (count === 0) { return null; }
+  if (count === 0) {
+    return null;
+  }
   return (
     <span className="mc-stars" title={`候補スコア: ${score}`}>
       {Array.from({ length: count }, (_, i) => (
@@ -374,8 +388,12 @@ function scoreMc(mc: SymbolRelation, callerChildren: Set<string>): number {
   score += Math.min(segments.length, 6);
   const fromMethod = extractHttpMethod(mc.from);
   const toMethod = extractHttpMethod(mc.to);
-  if (fromMethod && toMethod && fromMethod === toMethod) { score += 2; }
-  if (callerChildren.has(mc.from)) { score -= 3; }
+  if (fromMethod && toMethod && fromMethod === toMethod) {
+    score += 2;
+  }
+  if (callerChildren.has(mc.from)) {
+    score -= 3;
+  }
   return score;
 }
 
@@ -396,7 +414,9 @@ function ModuleConnectionsCandidate({ symbols, moduleConnections, relations }: M
     }
   }
   for (const mc of moduleConnections) {
-    if (!mcCallers.has(mc.from)) { continue; }
+    if (!mcCallers.has(mc.from)) {
+      continue;
+    }
     for (const rel of relations) {
       if (rel.from === mc.from && mcCallers.has(rel.to)) {
         callerChildren.add(rel.to);
@@ -452,7 +472,10 @@ function ModuleConnectionsCandidate({ symbols, moduleConnections, relations }: M
                 <div key={i} className={`mc-row${item.score < SCORE_THRESHOLD ? " mc-row-low" : ""}`}>
                   <div className="mc-node">
                     {fromMethod && (
-                      <span className="mc-method-badge" style={{ background: HTTP_METHOD_COLORS[fromMethod] ?? "#6b7280" }}>
+                      <span
+                        className="mc-method-badge"
+                        style={{ background: HTTP_METHOD_COLORS[fromMethod] ?? "#6b7280" }}
+                      >
                         {fromMethod}
                       </span>
                     )}
@@ -465,7 +488,10 @@ function ModuleConnectionsCandidate({ symbols, moduleConnections, relations }: M
                   </div>
                   <div className="mc-node">
                     {toMethod && (
-                      <span className="mc-method-badge" style={{ background: HTTP_METHOD_COLORS[toMethod] ?? "#6b7280" }}>
+                      <span
+                        className="mc-method-badge"
+                        style={{ background: HTTP_METHOD_COLORS[toMethod] ?? "#6b7280" }}
+                      >
                         {toMethod}
                       </span>
                     )}

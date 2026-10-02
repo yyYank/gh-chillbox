@@ -3,10 +3,7 @@ import { detectModules, isTestOrMockFile } from "./ast-analyzer";
 
 describe("detectModules", () => {
   it("apps/配下のファイルからモジュールを特定する", () => {
-    const modules = detectModules([
-      "apps/rest-api/identity_user_repo.go",
-      "apps/my-app/app/users/page.tsx",
-    ]);
+    const modules = detectModules(["apps/rest-api/identity_user_repo.go", "apps/my-app/app/users/page.tsx"]);
     expect(modules).toContain("apps/rest-api");
     expect(modules).toContain("apps/my-app");
     expect(modules.length).toBe(2);
@@ -34,19 +31,12 @@ describe("detectModules", () => {
   });
 
   it("重複するモジュールは1つにまとめる", () => {
-    const modules = detectModules([
-      "apps/rest-api/handler.go",
-      "apps/rest-api/repo.go",
-    ]);
+    const modules = detectModules(["apps/rest-api/handler.go", "apps/rest-api/repo.go"]);
     expect(modules).toEqual(["apps/rest-api"]);
   });
 
   it("複数種別が混在する場合すべて検出する", () => {
-    const modules = detectModules([
-      "apps/frontend/page.tsx",
-      "internal/auth/handler.go",
-      "main.go",
-    ]);
+    const modules = detectModules(["apps/frontend/page.tsx", "internal/auth/handler.go", "main.go"]);
     expect(modules).toContain("apps/frontend");
     expect(modules).toContain("internal/auth");
     expect(modules).toContain(".");

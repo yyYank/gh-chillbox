@@ -54,21 +54,27 @@ export function parseOpenApi(content: string): ApiSpec | null {
   } catch {
     return null;
   }
-  if (!isObj(doc)) { return null; }
+  if (!isObj(doc)) {
+    return null;
+  }
 
   const isV2 = typeof doc.swagger === "string" && doc.swagger.startsWith("2");
   const isV3 = typeof doc.openapi === "string" && doc.openapi.startsWith("3");
-  if (!isV2 && !isV3) { return null; }
+  if (!isV2 && !isV3) {
+    return null;
+  }
 
   const root = resolveRefs(doc, doc, []) as Obj;
   const endpoints: ApiEndpoint[] = [];
   for (const [path, item] of Object.entries(isObj(root.paths) ? root.paths : {})) {
-    if (!isObj(item)) { continue; }
+    if (!isObj(item)) {
+      continue;
+    }
     for (const [method, op] of Object.entries(item)) {
-      if (!HTTP_METHODS.has(method) || !isObj(op)) { continue; }
-      endpoints.push(isV2
-        ? toEndpointV2(root, method, path, item, op)
-        : toEndpointV3(method, path, item, op));
+      if (!HTTP_METHODS.has(method) || !isObj(op)) {
+        continue;
+      }
+      endpoints.push(isV2 ? toEndpointV2(root, method, path, item, op) : toEndpointV3(method, path, item, op));
     }
   }
 
@@ -127,7 +133,9 @@ function baseEndpoint(method: string, path: string, op: Obj) {
 function mergeParams(pathParams: unknown, opParams: unknown): Obj[] {
   const key = (p: Obj) => `${p.in}:${p.name}`;
   const merged = new Map<string, Obj>();
-  for (const p of [...asObjArray(pathParams), ...asObjArray(opParams)]) { merged.set(key(p), p); }
+  for (const p of [...asObjArray(pathParams), ...asObjArray(opParams)]) {
+    merged.set(key(p), p);
+  }
   return [...merged.values()];
 }
 
@@ -141,39 +149,48 @@ function v2Schema(p: Obj): Obj | undefined {
 }
 
 function responseEntries(op: Obj): [string, Obj][] {
-  if (!isObj(op.responses)) { return []; }
-  return Object.entries(op.responses)
-    .filter((e): e is [string, Obj] => isObj(e[1]));
+  if (!isObj(op.responses)) {
+    return [];
+  }
+  return Object.entries(op.responses).filter((e): e is [string, Obj] => isObj(e[1]));
 }
 
 function firstContent(content: unknown): { contentType?: string; schema?: unknown } {
-  if (!isObj(content)) { return { contentType: undefined, schema: undefined }; }
+  if (!isObj(content)) {
+    return { contentType: undefined, schema: undefined };
+  }
   const [contentType, media] = Object.entries(content)[0] ?? [];
   return { contentType, schema: isObj(media) ? media.schema : undefined };
 }
 
 // 同一ドキュメント内の "#/..." 参照だけを展開する。展開中の参照に戻ってきたら $ref のまま残す
 function resolveRefs(node: unknown, root: Obj, stack: string[]): unknown {
-  if (Array.isArray(node)) { return node.map((n) => resolveRefs(n, root, stack)); }
-  if (!isObj(node)) { return node; }
+  if (Array.isArray(node)) {
+    return node.map((n) => resolveRefs(n, root, stack));
+  }
+  if (!isObj(node)) {
+    return node;
+  }
 
   const ref = node.$ref;
   if (typeof ref === "string" && ref.startsWith("#/")) {
-    if (stack.includes(ref)) { return node; }
+    if (stack.includes(ref)) {
+      return node;
+    }
     const target = lookupPointer(root, ref);
     return target === undefined ? node : resolveRefs(target, root, [...stack, ref]);
   }
 
-  return Object.fromEntries(
-    Object.entries(node).map(([k, v]) => [k, resolveRefs(v, root, stack)]),
-  );
+  return Object.fromEntries(Object.entries(node).map(([k, v]) => [k, resolveRefs(v, root, stack)]));
 }
 
 function lookupPointer(root: Obj, ref: string): unknown {
   let cur: unknown = root;
   for (const raw of ref.slice(2).split("/")) {
     const seg = raw.replace(/~1/g, "/").replace(/~0/g, "~");
-    if (!isObj(cur)) { return undefined; }
+    if (!isObj(cur)) {
+      return undefined;
+    }
     cur = cur[seg];
   }
   return cur;

@@ -28,8 +28,10 @@ function isTsFile(filePath: string): boolean {
 }
 
 export function isTestOrMockFile(filePath: string): boolean {
-  return /\.test\.[jt]sx?$|\.spec\.[jt]sx?$|_test\.go$|(?:^|\/)(?:__tests__|test-fixtures|tests?)\//i.test(filePath)
-    || /(?:^|\/)mock_[^/]+\.go$/.test(filePath);
+  return (
+    /\.test\.[jt]sx?$|\.spec\.[jt]sx?$|_test\.go$|(?:^|\/)(?:__tests__|test-fixtures|tests?)\//i.test(filePath) ||
+    /(?:^|\/)mock_[^/]+\.go$/.test(filePath)
+  );
 }
 
 export function detectModules(changedFiles: string[]): string[] {
@@ -62,7 +64,9 @@ function walkDir(dir: string, extensions: Set<string>): string[] {
     return results;
   }
   for (const entry of entries) {
-    if (SKIP_DIRS.has(entry.name)) { continue; }
+    if (SKIP_DIRS.has(entry.name)) {
+      continue;
+    }
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) {
       results.push(...walkDir(full, extensions));
@@ -73,19 +77,19 @@ function walkDir(dir: string, extensions: Set<string>): string[] {
   return results;
 }
 
-export async function analyzepr(
-  repo: string,
-  prNumber: number,
-): Promise<AstAnalysisResult> {
+export async function analyzepr(repo: string, prNumber: number): Promise<AstAnalysisResult> {
   const { stdout: prJson } = await execFileAsync("gh", [
-    "pr", "view", String(prNumber), "--repo", repo,
-    "--json", "headRefOid",
+    "pr",
+    "view",
+    String(prNumber),
+    "--repo",
+    repo,
+    "--json",
+    "headRefOid",
   ]);
   const { headRefOid: sha } = JSON.parse(prJson);
 
-  const { stdout: diffText } = await execFileAsync("gh", [
-    "pr", "diff", String(prNumber), "--repo", repo,
-  ]);
+  const { stdout: diffText } = await execFileAsync("gh", ["pr", "diff", String(prNumber), "--repo", repo]);
 
   const fileChanges = parseDiffToChangedLines(diffText);
   const supportedFiles = fileChanges.filter((f) => isSupported(f.file) && !isTestOrMockFile(f.file));
@@ -140,10 +144,16 @@ export async function analyzepr(
       try {
         const analysis = analyzeTsFile(tsFile);
         tsAnalysisCache.set(tsFile, analysis);
-        for (const sym of analysis.symbols) { globalSymbolNames.add(sym.name); }
-        for (const name of analysis.serverActionExports) { globalSymbolNames.add(name); }
-      } catch { /* skip */ }
-    })
+        for (const sym of analysis.symbols) {
+          globalSymbolNames.add(sym.name);
+        }
+        for (const name of analysis.serverActionExports) {
+          globalSymbolNames.add(name);
+        }
+      } catch {
+        /* skip */
+      }
+    }),
   );
   await Promise.all(tsPromises);
 
@@ -153,8 +163,10 @@ export async function analyzepr(
       try {
         const analysis = analyzeTsFile(tsFile, globalSymbolNames);
         tsAnalysisCache.set(tsFile, analysis);
-      } catch { /* skip */ }
-    })
+      } catch {
+        /* skip */
+      }
+    }),
   );
   await Promise.all(tsReanalyzePromises);
 
@@ -162,12 +174,15 @@ export async function analyzepr(
   const goPass2Results = await batchExtractGoFiles(allModuleGoFiles, globalGoSymbolNames);
 
   // 変更ファイルの分類
-  const changedGoFiles: { fc: typeof supportedFiles[0]; fullPath: string }[] = [];
-  const changedTsFiles: { fc: typeof supportedFiles[0]; fullPath: string }[] = [];
+  const changedGoFiles: { fc: (typeof supportedFiles)[0]; fullPath: string }[] = [];
+  const changedTsFiles: { fc: (typeof supportedFiles)[0]; fullPath: string }[] = [];
   for (const fc of supportedFiles) {
     const fullPath = path.join(cachedRepoDir, fc.file);
-    if (isGoFile(fc.file)) { changedGoFiles.push({ fc, fullPath }); }
-    else if (isTsFile(fc.file)) { changedTsFiles.push({ fc, fullPath }); }
+    if (isGoFile(fc.file)) {
+      changedGoFiles.push({ fc, fullPath });
+    } else if (isTsFile(fc.file)) {
+      changedTsFiles.push({ fc, fullPath });
+    }
   }
 
   // シンボル参照テーブル: bareName → [{name (修飾名), kind, file}]
@@ -179,12 +194,22 @@ export async function analyzepr(
     const bareName = dotIdx !== -1 ? symName.slice(dotIdx + 1) : symName;
     const info: SymInfo = { name: symName, kind, file };
     let arr = symbolLookup.get(bareName);
-    if (!arr) { arr = []; symbolLookup.set(bareName, arr); }
-    if (!arr.some((i) => i.name === symName && i.file === file)) { arr.push(info); }
+    if (!arr) {
+      arr = [];
+      symbolLookup.set(bareName, arr);
+    }
+    if (!arr.some((i) => i.name === symName && i.file === file)) {
+      arr.push(info);
+    }
     if (dotIdx !== -1) {
       let qArr = symbolLookup.get(symName);
-      if (!qArr) { qArr = []; symbolLookup.set(symName, qArr); }
-      if (!qArr.some((i) => i.name === symName && i.file === file)) { qArr.push(info); }
+      if (!qArr) {
+        qArr = [];
+        symbolLookup.set(symName, qArr);
+      }
+      if (!qArr.some((i) => i.name === symName && i.file === file)) {
+        qArr.push(info);
+      }
     }
   }
 
@@ -221,7 +246,9 @@ export async function analyzepr(
     try {
       for (const sub of fs.readdirSync(openapiDir)) {
         const subPath = path.join(openapiDir, sub);
-        if (fs.statSync(subPath).isDirectory()) { swaggerDirs.push(subPath); }
+        if (fs.statSync(subPath).isDirectory()) {
+          swaggerDirs.push(subPath);
+        }
       }
     } catch {}
   }
@@ -242,14 +269,20 @@ export async function analyzepr(
   for (const dir of swaggerDirs) {
     for (const fname of ["swagger.json", "openapi.json"]) {
       const fp = path.join(dir, fname);
-      if (!fs.existsSync(fp)) { continue; }
+      if (!fs.existsSync(fp)) {
+        continue;
+      }
       try {
         const spec = JSON.parse(fs.readFileSync(fp, "utf-8"));
         for (const [pathStr, methods] of Object.entries(spec.paths ?? {})) {
           for (const [method, detail] of Object.entries(methods as Record<string, any>)) {
-            if (!["get","post","put","delete","patch"].includes(method)) { continue; }
+            if (!["get", "post", "put", "delete", "patch"].includes(method)) {
+              continue;
+            }
             const opId = detail?.operationId;
-            if (!opId) { continue; }
+            if (!opId) {
+              continue;
+            }
             const displayName = `${method.toUpperCase()} ${pathStr}`;
             const exact = methodNames.get(opId);
             if (exact && exact.length === 1) {
@@ -264,11 +297,11 @@ export async function analyzepr(
   // Go: 変更ファイルのsymbol収集
   for (const { fc, fullPath } of changedGoFiles) {
     const result = goPass2Results.get(fullPath);
-    if (!result) { continue; }
+    if (!result) {
+      continue;
+    }
     for (const sym of result.symbols) {
-      const overlapping = fc.changedLines.filter(
-        (line) => line >= sym.startLine && line <= sym.endLine,
-      );
+      const overlapping = fc.changedLines.filter((line) => line >= sym.startLine && line <= sym.endLine);
       if (overlapping.length > 0) {
         const displayName = goHandlerRenames.get(sym.name) ?? sym.name;
         allSymbols.push({
@@ -298,11 +331,11 @@ export async function analyzepr(
   // TS: 変更ファイルのsymbol収集
   for (const { fc, fullPath } of changedTsFiles) {
     const analysis = tsAnalysisCache.get(fullPath);
-    if (!analysis) { continue; }
+    if (!analysis) {
+      continue;
+    }
     for (const sym of analysis.symbols) {
-      const overlapping = fc.changedLines.filter(
-        (line) => line >= sym.startLine && line <= sym.endLine,
-      );
+      const overlapping = fc.changedLines.filter((line) => line >= sym.startLine && line <= sym.endLine);
       if (overlapping.length > 0) {
         allSymbols.push({
           id: `${fc.file}:${sym.name}`,
@@ -319,8 +352,12 @@ export async function analyzepr(
 
   function deriveApp(file: string): string {
     const parts = file.split("/");
-    if ((parts[0] === "apps" || parts[0] === "packages") && parts.length > 1) { return parts[1]; }
-    if (parts.length >= 2 && (parts[0] === "internal" || parts[0] === "cmd" || parts[0] === "pkg")) { return parts[1]; }
+    if ((parts[0] === "apps" || parts[0] === "packages") && parts.length > 1) {
+      return parts[1];
+    }
+    if (parts.length >= 2 && (parts[0] === "internal" || parts[0] === "cmd" || parts[0] === "pkg")) {
+      return parts[1];
+    }
     return parts[0] || "";
   }
 
@@ -329,19 +366,29 @@ export async function analyzepr(
   const mcContextAdded = new Set<string>();
   for (const call of allHttpCalls) {
     for (const route of allHttpRoutes) {
-      if (call.caller === route.handler) { continue; }
-      if (call.method && route.method && call.method.toUpperCase() !== route.method.toUpperCase()) { continue; }
+      if (call.caller === route.handler) {
+        continue;
+      }
+      if (call.method && route.method && call.method.toUpperCase() !== route.method.toUpperCase()) {
+        continue;
+      }
       const callApp = call.file ? deriveApp(call.file) : "";
       const routeApp = route.file ? deriveApp(route.file) : "";
       if (callApp && routeApp && callApp === routeApp) {
-        if (!matchPaths(call.path, route.path)) { continue; }
+        if (!matchPaths(call.path, route.path)) {
+          continue;
+        }
         const segments = call.path.split("/").filter(Boolean);
-        if (segments.length < 2) { continue; }
+        if (segments.length < 2) {
+          continue;
+        }
         allRelations.push({ from: call.caller, to: route.handler, kind: "http-infer" });
       } else {
         const callNorm = normalizePath(call.path).replace(/^\/(rest|api|v[0-9]+)\//, "/");
         const routeNorm = normalizePath(route.path).replace(/^\/(rest|api|v[0-9]+)\//, "/");
-        if (callNorm !== routeNorm) { continue; }
+        if (callNorm !== routeNorm) {
+          continue;
+        }
         allModuleConnections.push({ from: call.caller, to: route.handler, kind: "http-infer" });
         if (route.file && !mcContextAdded.has(route.handler)) {
           mcContextAdded.add(route.handler);
@@ -397,8 +444,12 @@ export async function analyzepr(
       for (const info of candidates) {
         const toDot = info.name.indexOf(".");
         const toType = toDot !== -1 ? info.name.slice(0, toDot) : "";
-        if (fromType && toType && fromType === toType) { continue; }
-        if (directEdges.has(`${info.name}\t${rel.from}`)) { continue; }
+        if (fromType && toType && fromType === toType) {
+          continue;
+        }
+        if (directEdges.has(`${info.name}\t${rel.from}`)) {
+          continue;
+        }
         resolved.push({ from: rel.from, to: info.name, kind: rel.kind });
       }
     }
@@ -423,17 +474,21 @@ export async function analyzepr(
   const changedApps = new Set(allSymbols.filter((s) => s.changedLines.length > 0).map((s) => deriveApp(s.file)));
 
   const changedNames = new Set(allSymbols.map((s) => s.name));
-  let relevantRelations = resolvedRelations.filter(
-    (r) => changedNames.has(r.from) || changedNames.has(r.to),
-  );
+  let relevantRelations = resolvedRelations.filter((r) => changedNames.has(r.from) || changedNames.has(r.to));
 
   function addContextNode(name: string): boolean {
     const infos = symbolLookup.get(name);
     const info = infos?.find((i) => i.name === name);
     const file = info?.file ?? "";
-    if (!file) { return false; }
-    if (!changedApps.has(deriveApp(file))) { return false; }
-    if (isTestOrMockFile(file)) { return false; }
+    if (!file) {
+      return false;
+    }
+    if (!changedApps.has(deriveApp(file))) {
+      return false;
+    }
+    if (isTestOrMockFile(file)) {
+      return false;
+    }
     allSymbols.push({
       id: `(context):${name}`,
       name,
@@ -464,9 +519,13 @@ export async function analyzepr(
   for (const r of relevantRelations) {
     const fromSym = finalSymbolMap.get(r.from);
     const toSym = finalSymbolMap.get(r.to);
-    if (!fromSym || !toSym) { continue; }
+    if (!fromSym || !toSym) {
+      continue;
+    }
     const key = `${r.from}:${r.to}:${r.kind}`;
-    if (seen.has(key)) { continue; }
+    if (seen.has(key)) {
+      continue;
+    }
     seen.add(key);
     const fromApp = deriveApp(fromSym.file);
     const toApp = deriveApp(toSym.file);

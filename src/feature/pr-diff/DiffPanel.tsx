@@ -24,14 +24,18 @@ type Props = {
 function lineIdxOf(node: Node): { path: string; idx: number } | null {
   const el = (node instanceof Element ? node : node.parentElement)?.closest<HTMLElement>("[data-line-idx]");
   const body = el?.closest<HTMLElement>("[data-path]");
-  if (!el || !body) { return null; }
+  if (!el || !body) {
+    return null;
+  }
   return { path: body.dataset.path!, idx: Number(el.dataset.lineIdx) };
 }
 
 // ハイライトで内容が span に分かれるため、オフセット 0 でも行頭とは限らない。行頭からの文字列で判定する
 function isAtLineStart(container: Node, offset: number): boolean {
   const lineEl = (container instanceof Element ? container : container.parentElement)?.closest("[data-line-idx]");
-  if (!lineEl) { return false; }
+  if (!lineEl) {
+    return false;
+  }
   const r = document.createRange();
   r.setStart(lineEl, 0);
   r.setEnd(container, offset);
@@ -42,7 +46,9 @@ function loadCollapsed(repo: string, prNumber: number): Set<string> {
   try {
     const raw = localStorage.getItem(`gh-chillbox:${repo}:${prNumber}:diff-collapsed`);
     return raw ? new Set(JSON.parse(raw)) : new Set();
-  } catch { return new Set(); }
+  } catch {
+    return new Set();
+  }
 }
 
 function saveCollapsed(repo: string, prNumber: number, collapsed: Set<string>) {
@@ -65,13 +71,19 @@ export function DiffPanel({ repo, prNumber, prTitle = "", prBody = "", onFileHea
   const [viewedStates, setViewedStates] = useState<ViewedStates>({});
   const [previewPaths, setPreviewPaths] = useState<Set<string>>(new Set());
   const [fontSize, setFontSize] = useState(() => {
-    try { return parseFontSize(localStorage.getItem(FONT_SIZE_STORAGE_KEY)); } catch { return parseFontSize(null); }
+    try {
+      return parseFontSize(localStorage.getItem(FONT_SIZE_STORAGE_KEY));
+    } catch {
+      return parseFontSize(null);
+    }
   });
 
   const changeFontSize = (delta: 1 | -1) => {
     const next = stepFontSize(fontSize, delta);
     setFontSize(next);
-    try { localStorage.setItem(FONT_SIZE_STORAGE_KEY, String(next)); } catch {}
+    try {
+      localStorage.setItem(FONT_SIZE_STORAGE_KEY, String(next));
+    } catch {}
   };
 
   useEffect(() => {
@@ -79,40 +91,52 @@ export function DiffPanel({ repo, prNumber, prTitle = "", prBody = "", onFileHea
     setPending(null);
   }, [repo, prNumber]);
 
-  const handleAppend = useCallback((anchor: ThreadAnchor, msg: ThreadMessage) => {
-    setThreads(appendThreadMessage(repo, prNumber, anchor, msg));
-    setPending((p) => (p?.key === anchor.key ? null : p));
-  }, [repo, prNumber]);
+  const handleAppend = useCallback(
+    (anchor: ThreadAnchor, msg: ThreadMessage) => {
+      setThreads(appendThreadMessage(repo, prNumber, anchor, msg));
+      setPending((p) => (p?.key === anchor.key ? null : p));
+    },
+    [repo, prNumber],
+  );
 
-  const handleDelete = useCallback((key: string) => {
-    setThreads(removeThread(repo, prNumber, key));
-    fetch("/api/chat/session", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ repo, prNumber, threadKey: key }),
-    }).catch(() => {});
-  }, [repo, prNumber]);
+  const handleDelete = useCallback(
+    (key: string) => {
+      setThreads(removeThread(repo, prNumber, key));
+      fetch("/api/chat/session", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ repo, prNumber, threadKey: key }),
+      }).catch(() => {});
+    },
+    [repo, prNumber],
+  );
 
-  const setCollapsed = useCallback((path: string, collapsed?: boolean) => {
-    setCollapsedFiles((prev) => {
-      const next = new Set(prev);
-      if (collapsed ?? !next.has(path)) {
-        next.add(path);
-      } else {
-        next.delete(path);
-      }
-      saveCollapsed(repo, prNumber, next);
-      return next;
-    });
-  }, [repo, prNumber]);
+  const setCollapsed = useCallback(
+    (path: string, collapsed?: boolean) => {
+      setCollapsedFiles((prev) => {
+        const next = new Set(prev);
+        if (collapsed ?? !next.has(path)) {
+          next.add(path);
+        } else {
+          next.delete(path);
+        }
+        saveCollapsed(repo, prNumber, next);
+        return next;
+      });
+    },
+    [repo, prNumber],
+  );
 
   const toggleCollapse = useCallback((path: string) => setCollapsed(path), [setCollapsed]);
 
   const setPreview = (path: string, preview: boolean) => {
     setPreviewPaths((prev) => {
       const next = new Set(prev);
-      if (preview) { next.add(path); }
-      else { next.delete(path); }
+      if (preview) {
+        next.add(path);
+      } else {
+        next.delete(path);
+      }
       return next;
     });
   };
@@ -124,7 +148,9 @@ export function DiffPanel({ repo, prNumber, prTitle = "", prBody = "", onFileHea
     fetch(`/api/pr-viewed?${params}`)
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        if (!data) { return; }
+        if (!data) {
+          return;
+        }
         setPullRequestId(data.pullRequestId);
         setViewedStates(data.states);
       })
@@ -132,24 +158,31 @@ export function DiffPanel({ repo, prNumber, prTitle = "", prBody = "", onFileHea
   }, [repo, prNumber]);
 
   // GitHub の Files changed と同じく、viewed にしたら畳み、外したら開く
-  const toggleViewed = useCallback((path: string, viewed: boolean) => {
-    if (!pullRequestId) { return; }
-    const prevState = viewedStates[path];
-    setViewedStates((s) => ({ ...s, [path]: viewed ? "VIEWED" : "UNVIEWED" }));
-    setCollapsed(path, viewed);
-    fetch("/api/pr-viewed", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ pullRequestId, path, viewed }),
-    })
-      .then((res) => {
-        if (!res.ok) { throw new Error(`API error: ${res.status}`); }
+  const toggleViewed = useCallback(
+    (path: string, viewed: boolean) => {
+      if (!pullRequestId) {
+        return;
+      }
+      const prevState = viewedStates[path];
+      setViewedStates((s) => ({ ...s, [path]: viewed ? "VIEWED" : "UNVIEWED" }));
+      setCollapsed(path, viewed);
+      fetch("/api/pr-viewed", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pullRequestId, path, viewed }),
       })
-      .catch(() => {
-        setViewedStates((s) => ({ ...s, [path]: prevState }));
-        setCollapsed(path, !viewed);
-      });
-  }, [pullRequestId, viewedStates, setCollapsed]);
+        .then((res) => {
+          if (!res.ok) {
+            throw new Error(`API error: ${res.status}`);
+          }
+        })
+        .catch(() => {
+          setViewedStates((s) => ({ ...s, [path]: prevState }));
+          setCollapsed(path, !viewed);
+        });
+    },
+    [pullRequestId, viewedStates, setCollapsed],
+  );
 
   useEffect(() => {
     setLoading(true);
@@ -157,7 +190,9 @@ export function DiffPanel({ repo, prNumber, prTitle = "", prBody = "", onFileHea
     const params = new URLSearchParams({ repo, number: String(prNumber) });
     fetch(`/api/pr-diff?${params}`)
       .then((res) => {
-        if (!res.ok) { throw new Error(`API error: ${res.status}`); }
+        if (!res.ok) {
+          throw new Error(`API error: ${res.status}`);
+        }
         return res.json();
       })
       .then((data) => setDiff(data.diff))
@@ -177,21 +212,28 @@ export function DiffPanel({ repo, prNumber, prTitle = "", prBody = "", onFileHea
     return new Set(result.map((f) => f.path));
   }, [filterEntries, pathQuery, textQuery]);
 
-  const filteredFiles = useMemo(
-    () => allFiles.filter((f) => filteredPaths.has(f.path)),
-    [allFiles, filteredPaths],
-  );
+  const filteredFiles = useMemo(() => allFiles.filter((f) => filteredPaths.has(f.path)), [allFiles, filteredPaths]);
 
   const highlightedLines = useMemo(() => {
     const map = new Map<string, string[]>();
     for (const f of allFiles) {
       const language = languageFromPath(f.path);
-      map.set(f.path, f.lines.map((l) => (l.type === "hunk" ? "" : highlightLine(l.content || " ", language))));
+      map.set(
+        f.path,
+        f.lines.map((l) => (l.type === "hunk" ? "" : highlightLine(l.content || " ", language))),
+      );
     }
     return map;
   }, [allFiles]);
 
-  const viewedCount = useMemo(() => countViewed(allFiles.map((f) => f.path), viewedStates), [allFiles, viewedStates]);
+  const viewedCount = useMemo(
+    () =>
+      countViewed(
+        allFiles.map((f) => f.path),
+        viewedStates,
+      ),
+    [allFiles, viewedStates],
+  );
 
   const handleMouseUp = () => {
     const sel = window.getSelection();
@@ -219,14 +261,20 @@ export function DiffPanel({ repo, prNumber, prTitle = "", prBody = "", onFileHea
   };
 
   const handleStartThread = () => {
-    if (!floatingBtn) { return; }
-    if (!threads[floatingBtn.anchor.key]) { setPending(floatingBtn.anchor); }
+    if (!floatingBtn) {
+      return;
+    }
+    if (!threads[floatingBtn.anchor.key]) {
+      setPending(floatingBtn.anchor);
+    }
     setFloatingBtn(null);
     window.getSelection()?.removeAllRanges();
   };
 
   const threadsEndingAt = (path: string, label: string | null) => {
-    if (!label) { return []; }
+    if (!label) {
+      return [];
+    }
     const list: { anchor: ThreadAnchor; messages: ThreadMessage[] }[] = Object.values(threads)
       .filter((t) => t.path === path && t.end === label)
       .map(({ messages, ...anchor }) => ({ anchor, messages }));
@@ -236,9 +284,15 @@ export function DiffPanel({ repo, prNumber, prTitle = "", prBody = "", onFileHea
     return list;
   };
 
-  if (loading) { return <div className="diff-panel-status">diff を読み込み中…</div>; }
-  if (error) { return <div className="diff-panel-status diff-panel-error">{error}</div>; }
-  if (!diff) { return <div className="diff-panel-status">差分なし</div>; }
+  if (loading) {
+    return <div className="diff-panel-status">diff を読み込み中…</div>;
+  }
+  if (error) {
+    return <div className="diff-panel-status diff-panel-error">{error}</div>;
+  }
+  if (!diff) {
+    return <div className="diff-panel-status">差分なし</div>;
+  }
 
   return (
     <div className="diff-panel">
@@ -273,11 +327,21 @@ export function DiffPanel({ repo, prNumber, prTitle = "", prBody = "", onFileHea
           </span>
         )}
         <span className="diff-font-size">
-          <button type="button" className="diff-font-size-btn" onClick={() => changeFontSize(-1)} title="コードの文字を小さくする">
+          <button
+            type="button"
+            className="diff-font-size-btn"
+            onClick={() => changeFontSize(-1)}
+            title="コードの文字を小さくする"
+          >
             A-
           </button>
           <span className="diff-font-size-value">{fontSize}px</span>
-          <button type="button" className="diff-font-size-btn" onClick={() => changeFontSize(1)} title="コードの文字を大きくする">
+          <button
+            type="button"
+            className="diff-font-size-btn"
+            onClick={() => changeFontSize(1)}
+            title="コードの文字を大きくする"
+          >
             A+
           </button>
         </span>
@@ -343,7 +407,13 @@ export function DiffPanel({ repo, prNumber, prTitle = "", prBody = "", onFileHea
                   )}
                 </div>
                 {!collapsed && previewPaths.has(file.path) && (
-                  <MarkdownPreview repo={repo} prNumber={prNumber} path={file.path} lines={file.lines} fontSize={fontSize} />
+                  <MarkdownPreview
+                    repo={repo}
+                    prNumber={prNumber}
+                    path={file.path}
+                    lines={file.lines}
+                    fontSize={fontSize}
+                  />
                 )}
                 {!collapsed && !previewPaths.has(file.path) && (
                   <div className="diff-file-body" data-path={file.path} style={{ fontSize }}>

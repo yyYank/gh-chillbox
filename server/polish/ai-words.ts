@@ -75,19 +75,15 @@ export function replaceAiWords(text: string, detections: Detection[]): ReplaceRe
   for (const d of ordered) {
     const exact = REPLACEMENTS[d.word];
     if (exact && rewritten.startsWith(d.word, d.index)) {
-      rewritten =
-        rewritten.slice(0, d.index) + exact + rewritten.slice(d.index + d.word.length);
+      rewritten = rewritten.slice(0, d.index) + exact + rewritten.slice(d.index + d.word.length);
       replaced.push({ from: d.word, to: exact, index: d.index });
       continue;
     }
 
-    const phrase = PHRASE_REPLACEMENTS[d.word]?.find(([surface]) =>
-      rewritten.startsWith(surface, d.index),
-    );
+    const phrase = PHRASE_REPLACEMENTS[d.word]?.find(([surface]) => rewritten.startsWith(surface, d.index));
     if (phrase) {
       const [surface, to] = phrase;
-      rewritten =
-        rewritten.slice(0, d.index) + to + rewritten.slice(d.index + surface.length);
+      rewritten = rewritten.slice(0, d.index) + to + rewritten.slice(d.index + surface.length);
       replaced.push({ from: surface, to, index: d.index });
     }
   }

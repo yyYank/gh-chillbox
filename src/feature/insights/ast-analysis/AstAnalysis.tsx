@@ -1,15 +1,6 @@
 import { useState, useEffect } from "react";
 
-type SymbolKind =
-  | "function"
-  | "method"
-  | "class"
-  | "component"
-  | "hook"
-  | "interface"
-  | "type"
-  | "struct"
-  | "unknown";
+type SymbolKind = "function" | "method" | "class" | "component" | "hook" | "interface" | "type" | "struct" | "unknown";
 
 type ChangedSymbol = {
   id: string;
@@ -63,16 +54,13 @@ type Props = {
   prNumber: number;
 };
 
-function buildFlowChains(
-  symbols: ChangedSymbol[],
-  relations: SymbolRelation[],
-): string[][] {
+function buildFlowChains(symbols: ChangedSymbol[], relations: SymbolRelation[]): string[][] {
   const symbolNames = new Set(symbols.map((s) => s.name));
-  const relevant = relations.filter(
-    (r) => symbolNames.has(r.from) && symbolNames.has(r.to),
-  );
+  const relevant = relations.filter((r) => symbolNames.has(r.from) && symbolNames.has(r.to));
 
-  if (relevant.length === 0) { return []; }
+  if (relevant.length === 0) {
+    return [];
+  }
 
   const outgoing = new Map<string, string[]>();
   const incoming = new Set<string>();
@@ -83,9 +71,7 @@ function buildFlowChains(
     incoming.add(r.to);
   }
 
-  const roots = [...symbolNames].filter(
-    (name) => !incoming.has(name) && outgoing.has(name),
-  );
+  const roots = [...symbolNames].filter((name) => !incoming.has(name) && outgoing.has(name));
 
   const chains: string[][] = [];
   const visited = new Set<string>();
@@ -126,11 +112,15 @@ export function AstAnalysis({ repo, prNumber }: Props) {
     const params = new URLSearchParams({ repo, number: String(prNumber) });
     fetch(`/api/ast-analysis?${params}`)
       .then((res) => {
-        if (!res.ok) { throw new Error(`API error: ${res.status}`); }
+        if (!res.ok) {
+          throw new Error(`API error: ${res.status}`);
+        }
         return res.json();
       })
       .then((d) => {
-        if (d.error) { throw new Error(d.error); }
+        if (d.error) {
+          throw new Error(d.error);
+        }
         setSymbols(d.symbols ?? []);
         setRelations(d.relations ?? []);
       })
@@ -204,9 +194,7 @@ export function AstAnalysis({ repo, prNumber }: Props) {
               >
                 {r.from}
               </span>
-              <span className="ast-analysis-relation-label">
-                {RELATION_LABELS[r.kind]}
-              </span>
+              <span className="ast-analysis-relation-label">{RELATION_LABELS[r.kind]}</span>
               <span
                 className="ast-analysis-relation-name"
                 style={{ color: KIND_COLORS[symbolKindMap.get(r.to) ?? "unknown"] }}
@@ -224,12 +212,11 @@ export function AstAnalysis({ repo, prNumber }: Props) {
             <div className="ast-analysis-file-path">{file}</div>
             {syms.map((sym) => (
               <div key={sym.id} className="ast-analysis-symbol-row">
-                <span className="ast-analysis-symbol-dot" style={{ color: KIND_COLORS[sym.kind] }}>●</span>
+                <span className="ast-analysis-symbol-dot" style={{ color: KIND_COLORS[sym.kind] }}>
+                  ●
+                </span>
                 <span className="ast-analysis-symbol-name">{sym.name}</span>
-                <span
-                  className="ast-analysis-symbol-kind"
-                  style={{ color: KIND_COLORS[sym.kind] }}
-                >
+                <span className="ast-analysis-symbol-kind" style={{ color: KIND_COLORS[sym.kind] }}>
                   {KIND_LABELS[sym.kind]}
                 </span>
                 {sym.kind !== "unknown" && (

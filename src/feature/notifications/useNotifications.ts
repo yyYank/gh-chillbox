@@ -26,23 +26,25 @@ export function useNotifications(repo: string) {
   const [notifications, setNotifications] = useState<AppNotification[]>(() =>
     loadJson<AppNotification[]>(NOTIFICATIONS_KEY, []),
   );
-  const [dismissedIds, setDismissedIds] = useState<Set<string>>(
-    () => new Set(loadJson<string[]>(DISMISSED_KEY, [])),
-  );
-  const [readIds, setReadIds] = useState<Set<string>>(
-    () => new Set(loadJson<string[]>(READ_KEY, [])),
-  );
+  const [dismissedIds, setDismissedIds] = useState<Set<string>>(() => new Set(loadJson<string[]>(DISMISSED_KEY, [])));
+  const [readIds, setReadIds] = useState<Set<string>>(() => new Set(loadJson<string[]>(READ_KEY, [])));
   const [loading, setLoading] = useState(false);
 
   const fetchNotifications = useCallback(async () => {
-    if (!repo.trim()) { return; }
+    if (!repo.trim()) {
+      return;
+    }
     setLoading(true);
     try {
       const params = new URLSearchParams({ repo: repo.trim() });
       const res = await fetch(`/api/notifications?${params}`);
-      if (!res.ok) { return; }
+      if (!res.ok) {
+        return;
+      }
       const data = await res.json();
-      if (data.error) { return; }
+      if (data.error) {
+        return;
+      }
 
       setNotifications((prev) => {
         const existing = new Map(prev.map((n) => [n.id, n]));
@@ -50,8 +52,7 @@ export function useNotifications(repo: string) {
           existing.set(n.id, n);
         }
         const merged = [...existing.values()].sort(
-          (a, b) =>
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
         );
         saveJson(NOTIFICATIONS_KEY, merged);
         return merged;
@@ -76,10 +77,14 @@ export function useNotifications(repo: string) {
     const closedIds = notifications
       .filter((n) => !dismissedIds.has(n.id) && (n.prState === "closed" || n.prState === "merged"))
       .map((n) => n.id);
-    if (closedIds.length === 0) { return; }
+    if (closedIds.length === 0) {
+      return;
+    }
     setDismissedIds((prev) => {
       const next = new Set(prev);
-      for (const id of closedIds) { next.add(id); }
+      for (const id of closedIds) {
+        next.add(id);
+      }
       saveJson(DISMISSED_KEY, [...next]);
       return next;
     });

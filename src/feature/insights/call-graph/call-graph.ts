@@ -67,12 +67,22 @@ const LOW_CONFIDENCE_KINDS = new Set(["http-infer"]);
 
 function inferNodeType(kind: string, file: string): GraphNodeType {
   const mapped = KIND_TO_TYPE[kind];
-  if (mapped && mapped !== "function") { return mapped; }
+  if (mapped && mapped !== "function") {
+    return mapped;
+  }
 
-  if (/handler|controller|endpoint/i.test(file)) { return "handler"; }
-  if (/service/i.test(file)) { return "service"; }
-  if (/repositor|repo|dao|store/i.test(file)) { return "repository"; }
-  if (/database|migration|db/i.test(file)) { return "database"; }
+  if (/handler|controller|endpoint/i.test(file)) {
+    return "handler";
+  }
+  if (/service/i.test(file)) {
+    return "service";
+  }
+  if (/repositor|repo|dao|store/i.test(file)) {
+    return "repository";
+  }
+  if (/database|migration|db/i.test(file)) {
+    return "database";
+  }
 
   return mapped ?? "unknown";
 }
@@ -159,12 +169,8 @@ export function extractSubgraph(
   }
 
   const nodeMap = new Map(nodes.map((n) => [n.id, n]));
-  const subNodes = [...included]
-    .map((id) => nodeMap.get(id))
-    .filter((n): n is GraphNode => n !== undefined);
-  const subEdges = edges.filter(
-    (e) => included.has(e.from) && included.has(e.to),
-  );
+  const subNodes = [...included].map((id) => nodeMap.get(id)).filter((n): n is GraphNode => n !== undefined);
+  const subEdges = edges.filter((e) => included.has(e.from) && included.has(e.to));
 
   return { nodes: subNodes, edges: subEdges };
 }
@@ -193,15 +199,16 @@ const TYPE_READING_PRIORITY: Record<GraphNodeType, number> = {
   unknown: 8,
 };
 
-export function generateReadingOrder(
-  nodes: GraphNode[],
-  edges: GraphEdge[],
-): GraphNode[] {
+export function generateReadingOrder(nodes: GraphNode[], edges: GraphEdge[]): GraphNode[] {
   const changed = nodes.filter((n) => n.changed);
-  if (changed.length === 0) { return []; }
+  if (changed.length === 0) {
+    return [];
+  }
 
   const inDegree = new Map<string, number>();
-  for (const n of changed) { inDegree.set(n.id, 0); }
+  for (const n of changed) {
+    inDegree.set(n.id, 0);
+  }
   for (const e of edges) {
     if (inDegree.has(e.to)) {
       inDegree.set(e.to, (inDegree.get(e.to) ?? 0) + 1);
@@ -209,18 +216,26 @@ export function generateReadingOrder(
   }
 
   function readingPriority(n: GraphNode): number {
-    if (n.type === "type") { return 0; }
-    if (!n.file) { return TYPE_READING_PRIORITY[n.type]; }
+    if (n.type === "type") {
+      return 0;
+    }
+    if (!n.file) {
+      return TYPE_READING_PRIORITY[n.type];
+    }
     const layer = scoreFile({ path: n.file, additions: 1, deletions: 0 }).primaryLayer;
     const lp = LAYER_READING_PRIORITY[layer];
-    if (lp < 8) { return lp; }
+    if (lp < 8) {
+      return lp;
+    }
     return TYPE_READING_PRIORITY[n.type];
   }
 
   return [...changed].sort((a, b) => {
     const pa = readingPriority(a);
     const pb = readingPriority(b);
-    if (pa !== pb) { return pa - pb; }
+    if (pa !== pb) {
+      return pa - pb;
+    }
 
     const degA = inDegree.get(a.id) ?? 0;
     const degB = inDegree.get(b.id) ?? 0;

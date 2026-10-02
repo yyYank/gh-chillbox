@@ -14,7 +14,9 @@ export function MemoCell({ memo, onChange }: Props) {
 
   useEffect(() => {
     const el = editorRef.current;
-    if (!editing || !el) { return; }
+    if (!editing || !el) {
+      return;
+    }
     el.focus();
     el.setSelectionRange(el.value.length, el.value.length);
   }, [editing]);
@@ -27,9 +29,13 @@ export function MemoCell({ memo, onChange }: Props) {
 
   const finishEdit = () => {
     setEditing(false);
-    if (cancelled.current) { return; }
+    if (cancelled.current) {
+      return;
+    }
     const next = draft.trim() === "" ? "" : draft;
-    if (next !== memo) { onChange(next); }
+    if (next !== memo) {
+      onChange(next);
+    }
   };
 
   return (
@@ -43,7 +49,9 @@ export function MemoCell({ memo, onChange }: Props) {
           onChange={(e) => setDraft(e.target.value)}
           onBlur={finishEdit}
           onKeyDown={(e) => {
-            if (e.nativeEvent.isComposing) { return; }
+            if (e.nativeEvent.isComposing) {
+              return;
+            }
             if (e.key === "Escape") {
               cancelled.current = true;
               e.currentTarget.blur();

@@ -13,23 +13,13 @@ const app = new Hono().basePath("/api");
 
 app.get("/health", (c) => c.json({ status: "ok" }));
 
-const PR_FIELDS =
-  "number,title,author,reviewRequests,url,state,isDraft,createdAt,updatedAt";
+const PR_FIELDS = "number,title,author,reviewRequests,url,state,isDraft,createdAt,updatedAt";
 
 app.get("/prs", async (c) => {
   const reviewer = c.req.query("reviewer");
   const repo = c.req.query("repo");
 
-  const args = [
-    "pr",
-    "list",
-    "--state",
-    "open",
-    "--json",
-    PR_FIELDS,
-    "--limit",
-    "100",
-  ];
+  const args = ["pr", "list", "--state", "open", "--json", PR_FIELDS, "--limit", "100"];
 
   if (repo) {
     args.push("--repo", repo);
@@ -51,16 +41,13 @@ app.get("/prs", async (c) => {
 
 app.get("/notifications", async (c) => {
   const repo = c.req.query("repo");
-  if (!repo) { return c.json({ error: "repo is required" }, 400); }
+  if (!repo) {
+    return c.json({ error: "repo is required" }, 400);
+  }
 
   try {
-    const since = new Date(
-      Date.now() - 30 * 24 * 60 * 60 * 1000,
-    ).toISOString();
-    const { stdout } = await execFileAsync("gh", [
-      "api",
-      `notifications?all=true&per_page=30&since=${since}`,
-    ]);
+    const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+    const { stdout } = await execFileAsync("gh", ["api", `notifications?all=true&per_page=30&since=${since}`]);
 
     const raw = JSON.parse(stdout || "[]") as Array<{
       id: string;
@@ -75,10 +62,7 @@ app.get("/notifications", async (c) => {
       repository: { full_name: string };
     }>;
 
-    const filtered = raw.filter(
-      (n) =>
-        n.repository.full_name === repo && n.subject.type === "PullRequest",
-    );
+    const filtered = raw.filter((n) => n.repository.full_name === repo && n.subject.type === "PullRequest");
 
     const results = await Promise.all(
       filtered.slice(0, 20).map(async (n) => {
@@ -89,10 +73,7 @@ app.get("/notifications", async (c) => {
 
         if (n.reason === "mention" && n.subject.latest_comment_url) {
           try {
-            const commentUrl = n.subject.latest_comment_url.replace(
-              "https://api.github.com/",
-              "",
-            );
+            const commentUrl = n.subject.latest_comment_url.replace("https://api.github.com/", "");
             const { stdout: cStdout } = await execFileAsync("gh", [
               "api",
               commentUrl,
@@ -113,12 +94,25 @@ app.get("/notifications", async (c) => {
         let prState: "open" | "closed" | "merged" = "open";
         try {
           const { stdout: prStdout } = await execFileAsync("gh", [
-            "pr", "view", String(prNumber), "--repo", repo, "--json", "state", "--jq", ".state",
+            "pr",
+            "view",
+            String(prNumber),
+            "--repo",
+            repo,
+            "--json",
+            "state",
+            "--jq",
+            ".state",
           ]);
           const s = prStdout.trim().toUpperCase();
-          if (s === "MERGED") { prState = "merged"; }
-          else if (s === "CLOSED") { prState = "closed"; }
-        } catch { /* default to open */ }
+          if (s === "MERGED") {
+            prState = "merged";
+          } else if (s === "CLOSED") {
+            prState = "closed";
+          }
+        } catch {
+          /* default to open */
+        }
 
         return {
           id: n.id,
@@ -143,13 +137,17 @@ app.get("/notifications", async (c) => {
 
 app.get("/image-proxy", async (c) => {
   const url = c.req.query("url");
-  if (!url) { return c.json({ error: "url is required" }, 400); }
+  if (!url) {
+    return c.json({ error: "url is required" }, 400);
+  }
 
   const allowed =
     url.startsWith("https://user-images.githubusercontent.com/") ||
     url.startsWith("https://private-user-images.githubusercontent.com/") ||
     url.startsWith("https://github.com/user-attachments/assets/");
-  if (!allowed) { return c.json({ error: "url not allowed" }, 403); }
+  if (!allowed) {
+    return c.json({ error: "url not allowed" }, 403);
+  }
 
   try {
     const { stdout: token } = await execFileAsync("gh", ["auth", "token"]);
@@ -157,7 +155,9 @@ app.get("/image-proxy", async (c) => {
       headers: { Authorization: `token ${token.trim()}` },
       redirect: "follow",
     });
-    if (!res.ok) { return c.json({ error: `upstream ${res.status}` }, 502); }
+    if (!res.ok) {
+      return c.json({ error: `upstream ${res.status}` }, 502);
+    }
 
     const contentType = res.headers.get("content-type") || "application/octet-stream";
     const buf = await res.arrayBuffer();
@@ -201,7 +201,9 @@ function filterDiffByFiles(fullDiff: string, files: string[]): string {
   return sections
     .filter((section) => {
       const match = section.match(/^diff --git a\/(.+?) b\/(.+)/);
-      if (!match) { return false; }
+      if (!match) {
+        return false;
+      }
       return fileSet.has(match[1]) || fileSet.has(match[2]);
     })
     .join("");
@@ -216,12 +218,8 @@ app.get("/pr-diff", async (c) => {
   }
 
   try {
-    const { stdout } = await execFileAsync("gh", [
-      "pr", "diff", number, "--repo", repo,
-    ]);
-    const result = filesParam
-      ? filterDiffByFiles(stdout, filesParam.split(","))
-      : stdout;
+    const { stdout } = await execFileAsync("gh", ["pr", "diff", number, "--repo", repo]);
+    const result = filesParam ? filterDiffByFiles(stdout, filesParam.split(",")) : stdout;
     return c.json({ diff: result, charCount: result.length });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Unknown error";
@@ -238,9 +236,7 @@ app.get("/pr-file-content", async (c) => {
   }
 
   try {
-    const { stdout } = await execFileAsync("gh", [
-      "pr", "view", number, "--repo", repo, "--json", "headRefOid",
-    ]);
+    const { stdout } = await execFileAsync("gh", ["pr", "view", number, "--repo", repo, "--json", "headRefOid"]);
     const { headRefOid } = JSON.parse(stdout) as { headRefOid: string };
     const repoDir = await ensureRepo(repo);
     const content = await gitOutput(repoDir, ["show", `${headRefOid}:${path}`]);
@@ -290,14 +286,14 @@ async function buildContextParts(body: ChatBody): Promise<string[]> {
 
     if (includeDiff) {
       try {
-        const { stdout } = await execFileAsync("gh", [
-          "pr", "diff", String(prNumber), "--repo", repo,
-        ]);
+        const { stdout } = await execFileAsync("gh", ["pr", "diff", String(prNumber), "--repo", repo]);
         const filtered = filterDiffByFiles(stdout, files);
         if (filtered) {
           parts.push("", "## 選択ファイルのdiff", "```diff", filtered, "```");
         }
-      } catch { /* diff取得失敗時は無視してファイル一覧のみで続行 */ }
+      } catch {
+        /* diff取得失敗時は無視してファイル一覧のみで続行 */
+      }
     }
   }
 
@@ -314,7 +310,7 @@ async function buildInitialPrompt(body: ChatBody): Promise<string> {
     "## PR本文",
     prBody || "(なし)",
     "",
-    ...await buildContextParts(body),
+    ...(await buildContextParts(body)),
     "",
     "## 回答ルール",
     "- 必ずコードを読んでから答える。カレントディレクトリはPRのheadをcheckoutしたリポジトリ",
@@ -336,12 +332,7 @@ async function buildFollowUpPrompt(body: ChatBody): Promise<string> {
     return question;
   }
 
-  const parts = [
-    ...contextParts,
-    "",
-    "## 質問",
-    question,
-  ];
+  const parts = [...contextParts, "", "## 質問", question];
   return parts.join("\n");
 }
 
@@ -375,7 +366,8 @@ app.post("/chat", async (c) => {
   const sessionKey = chatSessionKey({ repo, prNumber, threadKey: body.diffThread?.key });
   const existingSessionId = chatSessions.get(sessionKey);
 
-  const allowedTools = "WebSearch,Read,Grep,Glob,Bash(gh pr view *),Bash(gh pr diff *),Bash(gh api repos/*/commits/*),Bash(gh api repos/*/compare/*),Bash(gh search *)";
+  const allowedTools =
+    "WebSearch,Read,Grep,Glob,Bash(gh pr view *),Bash(gh pr diff *),Bash(gh api repos/*/commits/*),Bash(gh api repos/*/compare/*),Bash(gh search *)";
   const args: string[] = ["-p"];
 
   if (existingSessionId) {
@@ -388,8 +380,13 @@ app.post("/chat", async (c) => {
 
   try {
     const { stdout: prJson } = await execFileAsync("gh", [
-      "pr", "view", String(prNumber), "--repo", repo,
-      "--json", "headRefOid",
+      "pr",
+      "view",
+      String(prNumber),
+      "--repo",
+      repo,
+      "--json",
+      "headRefOid",
     ]);
     const { headRefOid: sha } = JSON.parse(prJson);
     const repoDir = await ensureRepo(repo);

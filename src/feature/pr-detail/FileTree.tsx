@@ -50,17 +50,33 @@ function sumStats(node: TreeNode): { additions: number; deletions: number } {
   return { additions, deletions };
 }
 
-function FolderNode({ node, depth, parentPath, storagePrefix, selectedFiles, onFileClick }: { node: TreeNode; depth: number; parentPath: string; storagePrefix: string; selectedFiles?: SelectionSet; onFileClick?: (path: string, e: React.MouseEvent) => void }) {
+function FolderNode({
+  node,
+  depth,
+  parentPath,
+  storagePrefix,
+  selectedFiles,
+  onFileClick,
+}: {
+  node: TreeNode;
+  depth: number;
+  parentPath: string;
+  storagePrefix: string;
+  selectedFiles?: SelectionSet;
+  onFileClick?: (path: string, e: React.MouseEvent) => void;
+}) {
   const folderPath = parentPath ? `${parentPath}/${node.name}` : node.name;
   const storageKey = `${storagePrefix}:folder:${folderPath}`;
   const [open, setOpen] = useState(() => {
-    try { return localStorage.getItem(storageKey) !== "false"; } catch { return true; }
+    try {
+      return localStorage.getItem(storageKey) !== "false";
+    } catch {
+      return true;
+    }
   });
   const fileCount = countFiles(node);
   const stats = sumStats(node);
-  const sortedDirs = [...node.children.entries()].sort((a, b) =>
-    a[0].localeCompare(b[0]),
-  );
+  const sortedDirs = [...node.children.entries()].sort((a, b) => a[0].localeCompare(b[0]));
   const sortedFiles = [...node.files].sort((a, b) => {
     const aName = a.path.split("/").pop()!;
     const bName = b.path.split("/").pop()!;
@@ -76,7 +92,9 @@ function FolderNode({ node, depth, parentPath, storagePrefix, selectedFiles, onF
         onClick={() => {
           const next = !open;
           setOpen(next);
-          try { localStorage.setItem(storageKey, String(next)); } catch {}
+          try {
+            localStorage.setItem(storageKey, String(next));
+          } catch {}
         }}
       >
         {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
@@ -91,7 +109,15 @@ function FolderNode({ node, depth, parentPath, storagePrefix, selectedFiles, onF
       {open && (
         <ul className="tree-children">
           {sortedDirs.map(([name, child]) => (
-            <FolderNode key={name} node={child} depth={depth + 1} parentPath={folderPath} storagePrefix={storagePrefix} selectedFiles={selectedFiles} onFileClick={onFileClick} />
+            <FolderNode
+              key={name}
+              node={child}
+              depth={depth + 1}
+              parentPath={folderPath}
+              storagePrefix={storagePrefix}
+              selectedFiles={selectedFiles}
+              onFileClick={onFileClick}
+            />
           ))}
           {sortedFiles.map((f) => {
             const fileName = f.path.split("/").pop()!;
@@ -129,9 +155,7 @@ type Props = {
 export function FileTree({ files, storagePrefix, selectedFiles, onFileClick }: Props) {
   const tree = buildTree(files);
 
-  const sortedDirs = [...tree.children.entries()].sort((a, b) =>
-    a[0].localeCompare(b[0]),
-  );
+  const sortedDirs = [...tree.children.entries()].sort((a, b) => a[0].localeCompare(b[0]));
   const sortedRootFiles = [...tree.files].sort((a, b) => {
     const aName = a.path.split("/").pop()!;
     const bName = b.path.split("/").pop()!;
@@ -141,7 +165,15 @@ export function FileTree({ files, storagePrefix, selectedFiles, onFileClick }: P
   return (
     <ul className="file-tree">
       {sortedDirs.map(([name, child]) => (
-        <FolderNode key={name} node={child} depth={0} parentPath="" storagePrefix={storagePrefix} selectedFiles={selectedFiles} onFileClick={onFileClick} />
+        <FolderNode
+          key={name}
+          node={child}
+          depth={0}
+          parentPath=""
+          storagePrefix={storagePrefix}
+          selectedFiles={selectedFiles}
+          onFileClick={onFileClick}
+        />
       ))}
       {sortedRootFiles.map((f) => {
         const fileName = f.path.split("/").pop()!;

@@ -23,15 +23,23 @@ export function MarkdownPreview({ repo, prNumber, path, lines, fontSize }: Props
 
   // 「全部」は切り替えたときに初めて取得する
   useEffect(() => {
-    if (scope !== "all" || full) { return; }
+    if (scope !== "all" || full) {
+      return;
+    }
     setFull({ loading: true, error: null, content: null });
     const params = new URLSearchParams({ repo, number: String(prNumber), path });
     fetch(`/api/pr-file-content?${params}`)
-      .then((res) => res.json().then((d) => {
-        if (!res.ok || d.error) { throw new Error(d.error ?? `API error: ${res.status}`); }
-        setFull({ loading: false, error: null, content: d.content });
-      }))
-      .catch((e) => setFull({ loading: false, error: e instanceof Error ? e.message : "取得に失敗しました", content: null }));
+      .then((res) =>
+        res.json().then((d) => {
+          if (!res.ok || d.error) {
+            throw new Error(d.error ?? `API error: ${res.status}`);
+          }
+          setFull({ loading: false, error: null, content: d.content });
+        }),
+      )
+      .catch((e) =>
+        setFull({ loading: false, error: e instanceof Error ? e.message : "取得に失敗しました", content: null }),
+      );
   }, [scope, full, repo, prNumber, path]);
 
   const fullHtml = useMemo(() => (full?.content != null ? (marked.parse(full.content) as string) : ""), [full]);

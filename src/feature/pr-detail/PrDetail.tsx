@@ -88,13 +88,25 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filesOpen, setFilesOpen] = useState(() => {
-    try { return localStorage.getItem(`${storagePrefix}:filesOpen`) !== "false"; } catch { return true; }
+    try {
+      return localStorage.getItem(`${storagePrefix}:filesOpen`) !== "false";
+    } catch {
+      return true;
+    }
   });
   const [bodyOpen, setBodyOpen] = useState(() => {
-    try { return localStorage.getItem(`${storagePrefix}:bodyOpen`) !== "false"; } catch { return true; }
+    try {
+      return localStorage.getItem(`${storagePrefix}:bodyOpen`) !== "false";
+    } catch {
+      return true;
+    }
   });
   const [commentsOpen, setCommentsOpen] = useState(() => {
-    try { return localStorage.getItem(`${storagePrefix}:commentsOpen`) !== "false"; } catch { return true; }
+    try {
+      return localStorage.getItem(`${storagePrefix}:commentsOpen`) !== "false";
+    } catch {
+      return true;
+    }
   });
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
   const [quotedText, setQuotedText] = useState<string | null>(null);
@@ -107,16 +119,27 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
   // 右ペインは初期表示から開き、Diff タブを見せる
   const [chatOpen, setChatOpen] = useState(true);
   const [leftOpen, setLeftOpen] = useState(() => {
-    try { return localStorage.getItem(`${storagePrefix}:leftOpen`) !== "false"; } catch { return true; }
+    try {
+      return localStorage.getItem(`${storagePrefix}:leftOpen`) !== "false";
+    } catch {
+      return true;
+    }
   });
-  const applyPane = useCallback((next: PaneVisibility) => {
-    setLeftOpen(next.left);
-    setChatOpen(next.right);
-    try { localStorage.setItem(`${storagePrefix}:leftOpen`, String(next.left)); } catch {}
-  }, [storagePrefix]);
+  const applyPane = useCallback(
+    (next: PaneVisibility) => {
+      setLeftOpen(next.left);
+      setChatOpen(next.right);
+      try {
+        localStorage.setItem(`${storagePrefix}:leftOpen`, String(next.left));
+      } catch {}
+    },
+    [storagePrefix],
+  );
   const [activeTab, setActiveTab] = useState<"chat" | "diff" | "insight">("diff");
   const [insightTab, setInsightTab] = useState<"surface" | "ast" | "callgraph" | "api" | "godoc" | "tests">("tests");
-  const [floatingBtn, setFloatingBtn] = useState<{ x: number; y: number; text: string; fromBody: boolean } | null>(null);
+  const [floatingBtn, setFloatingBtn] = useState<{ x: number; y: number; text: string; fromBody: boolean } | null>(
+    null,
+  );
   const [mermaidModal, setMermaidModal] = useState<string | null>(null);
   const [modalScale, setModalScale] = useState(1);
   const bodyRef = useRef<HTMLDivElement>(null);
@@ -137,11 +160,13 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
     });
   }, []);
 
-  const allFilePaths = useMemo(() => data ? data.files.map(f => f.path) : [], [data]);
+  const allFilePaths = useMemo(() => (data ? data.files.map((f) => f.path) : []), [data]);
 
   const handleSelectAll = useCallback(() => {
-    setSelectedFiles(prev => {
-      if (prev.size === allFilePaths.length) { return new Set(); }
+    setSelectedFiles((prev) => {
+      if (prev.size === allFilePaths.length) {
+        return new Set();
+      }
       return new Set(allFilePaths);
     });
   }, [allFilePaths]);
@@ -172,7 +197,9 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
   }, []);
 
   const handleQuote = useCallback(() => {
-    if (!floatingBtn) { return; }
+    if (!floatingBtn) {
+      return;
+    }
     setSelectedFiles(new Set());
     setQuotedText(floatingBtn.text);
     // 書き換え後タブからの引用は原文に存在しないので、chat 側でその旨を伝える
@@ -186,7 +213,9 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
       if (floatingBtn && !(e.target as HTMLElement).closest(".quote-floating-btn")) {
         setTimeout(() => {
           const sel = window.getSelection()?.toString().trim();
-          if (!sel) { setFloatingBtn(null); }
+          if (!sel) {
+            setFloatingBtn(null);
+          }
         }, 0);
       }
     };
@@ -203,11 +232,15 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
     const params = new URLSearchParams({ repo, number: String(prNumber) });
     fetch(`/api/pr-detail?${params}`)
       .then((res) => {
-        if (!res.ok) { throw new Error(`API error: ${res.status}`); }
+        if (!res.ok) {
+          throw new Error(`API error: ${res.status}`);
+        }
         return res.json();
       })
       .then((d) => {
-        if (d.error) { throw new Error(d.error); }
+        if (d.error) {
+          throw new Error(d.error);
+        }
         setData(d);
       })
       .catch((e) => setError(e instanceof Error ? e.message : "取得に失敗しました"))
@@ -226,7 +259,9 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
   }, [data?.title, data?.number, onTitleChange]);
 
   const runHumanize = useCallback(async () => {
-    if (!data?.body) { return; }
+    if (!data?.body) {
+      return;
+    }
     setHumanizing(true);
     setHumanizeError(null);
     try {
@@ -236,7 +271,9 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
         body: JSON.stringify({ repo, prNumber, body: data.body }),
       });
       const d = await res.json();
-      if (!res.ok || d.error) { throw new Error(d.error ?? `API error: ${res.status}`); }
+      if (!res.ok || d.error) {
+        throw new Error(d.error ?? `API error: ${res.status}`);
+      }
       setHumanized(d);
     } catch (e) {
       setHumanizeError(e instanceof Error ? e.message : "書き換えに失敗しました");
@@ -247,10 +284,12 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
 
   const handleNaturalTab = useCallback(() => {
     setBodyTab("natural");
-    if (!humanized && !humanizing) { runHumanize(); }
+    if (!humanized && !humanizing) {
+      runHumanize();
+    }
   }, [humanized, humanizing, runHumanize]);
 
-  const bodySource = bodyTab === "natural" ? humanized?.rewritten ?? "" : data?.body ?? "";
+  const bodySource = bodyTab === "natural" ? (humanized?.rewritten ?? "") : (data?.body ?? "");
   const rawBodyHtml = useMemo(
     () => (bodySource ? proxyImageUrls(marked.parse(bodySource) as string) : ""),
     [bodySource],
@@ -258,7 +297,10 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
   const [renderedBody, setRenderedBody] = useState("");
 
   useEffect(() => {
-    if (!rawBodyHtml) { setRenderedBody(""); return; }
+    if (!rawBodyHtml) {
+      setRenderedBody("");
+      return;
+    }
     let cancelled = false;
     (async () => {
       const div = document.createElement("div");
@@ -270,11 +312,17 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
           const { svg } = await mermaid.render(id, blocks[i].textContent || "");
           blocks[i].innerHTML = svg;
           blocks[i].setAttribute("data-rendered", "true");
-        } catch { /* keep raw text on parse error */ }
+        } catch {
+          /* keep raw text on parse error */
+        }
       }
-      if (!cancelled) { setRenderedBody(div.innerHTML); }
+      if (!cancelled) {
+        setRenderedBody(div.innerHTML);
+      }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [rawBodyHtml, prNumber]);
 
   const handleMermaidClick = useCallback((e: React.MouseEvent) => {
@@ -286,25 +334,36 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
   }, []);
 
   useEffect(() => {
-    if (!mermaidModal) { return; }
+    if (!mermaidModal) {
+      return;
+    }
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") { setMermaidModal(null); }
+      if (e.key === "Escape") {
+        setMermaidModal(null);
+      }
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [mermaidModal]);
 
-  const handleDiffFileHeaderClick = useCallback((path: string) => {
-    if (!leftOpen) { applyPane({ left: true, right: true }); }
-    if (!filesOpen) {
-      setFilesOpen(true);
-      try { localStorage.setItem(`${storagePrefix}:filesOpen`, "true"); } catch {}
-    }
-    requestAnimationFrame(() => {
-      const el = treeWrapRef.current?.querySelector(`[data-filepath="${CSS.escape(path)}"]`);
-      el?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    });
-  }, [filesOpen, storagePrefix, leftOpen, applyPane]);
+  const handleDiffFileHeaderClick = useCallback(
+    (path: string) => {
+      if (!leftOpen) {
+        applyPane({ left: true, right: true });
+      }
+      if (!filesOpen) {
+        setFilesOpen(true);
+        try {
+          localStorage.setItem(`${storagePrefix}:filesOpen`, "true");
+        } catch {}
+      }
+      requestAnimationFrame(() => {
+        const el = treeWrapRef.current?.querySelector(`[data-filepath="${CSS.escape(path)}"]`);
+        el?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      });
+    },
+    [filesOpen, storagePrefix, leftOpen, applyPane],
+  );
 
   useEffect(() => {
     if (selectedFiles.size > 0 || quotedText) {
@@ -323,7 +382,9 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
     try {
       const stored = localStorage.getItem(SPLIT_STORAGE_KEY);
       return stored ? parseFloat(stored) : 50;
-    } catch { return 50; }
+    } catch {
+      return 50;
+    }
   });
   const draggingRef = useRef(false);
 
@@ -331,7 +392,9 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
     e.preventDefault();
     draggingRef.current = true;
     const onMove = (ev: MouseEvent) => {
-      if (!draggingRef.current || !layoutRef.current) { return; }
+      if (!draggingRef.current || !layoutRef.current) {
+        return;
+      }
       const rect = layoutRef.current.getBoundingClientRect();
       const ratio = ((ev.clientX - rect.left) / rect.width) * 100;
       const clamped = Math.max(20, Math.min(80, ratio));
@@ -342,7 +405,9 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
       document.removeEventListener("mousemove", onMove);
       document.removeEventListener("mouseup", onUp);
       setSplitRatio((r) => {
-        try { localStorage.setItem(SPLIT_STORAGE_KEY, String(r)); } catch {}
+        try {
+          localStorage.setItem(SPLIT_STORAGE_KEY, String(r));
+        } catch {}
         return r;
       });
     };
@@ -384,7 +449,6 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
       </div>
 
       <div className={`pr-detail${pane.left ? "" : " pane-hidden"}`}>
-
         {loading && <div className="pr-detail-loading">読み込み中…</div>}
         {error && <div className="error">{error}</div>}
 
@@ -410,14 +474,14 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
                   onClick={() => {
                     const next = !filesOpen;
                     setFilesOpen(next);
-                    try { localStorage.setItem(`${storagePrefix}:filesOpen`, String(next)); } catch {}
+                    try {
+                      localStorage.setItem(`${storagePrefix}:filesOpen`, String(next));
+                    } catch {}
                   }}
                 >
                   {filesOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                   変更ファイル ({data.files.length})
-                  {selectedFiles.size > 0 && (
-                    <span className="selected-count">{selectedFiles.size} 選択中</span>
-                  )}
+                  {selectedFiles.size > 0 && <span className="selected-count">{selectedFiles.size} 選択中</span>}
                 </button>
                 <input
                   type="checkbox"
@@ -425,7 +489,9 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
                   title="全選択"
                   checked={selectedFiles.size === data.files.length && data.files.length > 0}
                   ref={(el) => {
-                    if (el) { el.indeterminate = selectedFiles.size > 0 && selectedFiles.size < data.files.length; }
+                    if (el) {
+                      el.indeterminate = selectedFiles.size > 0 && selectedFiles.size < data.files.length;
+                    }
                   }}
                   onChange={handleSelectAll}
                 />
@@ -449,14 +515,16 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
                 onClick={() => {
                   const next = !bodyOpen;
                   setBodyOpen(next);
-                  try { localStorage.setItem(`${storagePrefix}:bodyOpen`, String(next)); } catch {}
+                  try {
+                    localStorage.setItem(`${storagePrefix}:bodyOpen`, String(next));
+                  } catch {}
                 }}
               >
                 {bodyOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                 本文
               </button>
-              {bodyOpen && (
-                data.body ? (
+              {bodyOpen &&
+                (data.body ? (
                   <>
                     <div className="pr-body-tabs">
                       <button
@@ -497,8 +565,7 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
                   </>
                 ) : (
                   <p className="pr-detail-empty">本文なし</p>
-                )
-              )}
+                ))}
             </div>
 
             <div className="pr-detail-section">
@@ -508,14 +575,16 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
                 onClick={() => {
                   const next = !commentsOpen;
                   setCommentsOpen(next);
-                  try { localStorage.setItem(`${storagePrefix}:commentsOpen`, String(next)); } catch {}
+                  try {
+                    localStorage.setItem(`${storagePrefix}:commentsOpen`, String(next));
+                  } catch {}
                 }}
               >
                 {commentsOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                 コメント ({data.comments.length})
               </button>
-              {commentsOpen && (
-                data.comments.length > 0 ? (
+              {commentsOpen &&
+                (data.comments.length > 0 ? (
                   <div ref={commentsRef} className="pr-detail-comments" onMouseUp={handleTextMouseUp}>
                     {data.comments.map((comment, i) => (
                       <div key={i} className="pr-comment">
@@ -532,34 +601,28 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
                   </div>
                 ) : (
                   <p className="pr-detail-empty">コメントなし</p>
-                )
-              )}
+                ))}
             </div>
           </>
         )}
       </div>
 
       {mermaidModal && (
-        <div
-          className="mermaid-modal-overlay"
-          onClick={() => setMermaidModal(null)}
-        >
+        <div className="mermaid-modal-overlay" onClick={() => setMermaidModal(null)}>
           <div
             className="mermaid-modal-content"
             onClick={(e) => e.stopPropagation()}
             onWheel={(e) => {
-              if (!e.ctrlKey) { return; }
+              if (!e.ctrlKey) {
+                return;
+              }
               e.preventDefault();
               setModalScale((s) => Math.max(0.2, Math.min(5, s + (e.deltaY > 0 ? -0.1 : 0.1))));
             }}
             style={{ transform: `scale(${modalScale})` }}
             dangerouslySetInnerHTML={{ __html: mermaidModal }}
           />
-          <button
-            type="button"
-            className="mermaid-modal-close"
-            onClick={() => setMermaidModal(null)}
-          >
+          <button type="button" className="mermaid-modal-close" onClick={() => setMermaidModal(null)}>
             &times;
           </button>
         </div>
@@ -577,9 +640,7 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
         </button>
       )}
 
-      {pane.left && pane.right && (
-        <div className="split-resizer" onMouseDown={handleResizeStart} />
-      )}
+      {pane.left && pane.right && <div className="split-resizer" onMouseDown={handleResizeStart} />}
 
       {hasChat && (
         <div className="right-pane">

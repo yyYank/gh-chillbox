@@ -30,7 +30,7 @@ describe("testFileKind", () => {
 describe("extractTestFiles", () => {
   it("種類ごとに抽出して、共通の形にまとめる", async () => {
     const files = await extractTestFiles([
-      { path: "a_test.go", content: "package a\nimport \"testing\"\nfunc TestA(t *testing.T) {}\n" },
+      { path: "a_test.go", content: 'package a\nimport "testing"\nfunc TestA(t *testing.T) {}\n' },
       { path: "a.test.ts", content: `it("a", () => {});` },
       { path: "a.feature", content: "Feature: F\n  Scenario: S\n" },
     ]);

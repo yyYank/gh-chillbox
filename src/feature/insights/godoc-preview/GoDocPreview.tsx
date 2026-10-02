@@ -29,13 +29,17 @@ export function GoDocPreview({ repo, prNumber }: Props) {
           {scope === "changed" ? "この PR で export されたシンボルの変更はありません" : "Go パッケージが見つかりません"}
         </div>
       )}
-      {packages?.map((p) => <PackageView key={`${p.dir}:${p.name}`} pkg={p} />)}
+      {packages?.map((p) => (
+        <PackageView key={`${p.dir}:${p.name}`} pkg={p} />
+      ))}
     </div>
   );
 }
 
 function ChangeBadge({ change }: { change: SymbolChange }) {
-  if (change === "unchanged") { return null; }
+  if (change === "unchanged") {
+    return null;
+  }
   return <span className={`api-badge change-${change}`}>{CHANGE_LABELS[change]}</span>;
 }
 
@@ -49,7 +53,9 @@ function PackageView({ pkg }: { pkg: GoPackage }) {
       </header>
       {/* go/doc の HTML 出力はコメント本文をエスケープ済み */}
       {pkg.docHtml && <div className="godoc-doc" dangerouslySetInnerHTML={{ __html: pkg.docHtml }} />}
-      {pkg.items.map((i) => <ItemView key={`${i.kind}:${i.name}`} item={i} />)}
+      {pkg.items.map((i) => (
+        <ItemView key={`${i.kind}:${i.name}`} item={i} />
+      ))}
     </section>
   );
 }
@@ -61,9 +67,7 @@ function ItemView({ item: i }: { item: GoDocItem }) {
         <span className="godoc-kind">{i.kind}</span>
         <span className={`godoc-name${i.change === "removed" ? " deprecated" : ""}`}>{i.name}</span>
         <ChangeBadge change={i.change} />
-        {i.changedParts.length > 0 && (
-          <span className="api-changed-parts">変更箇所: {i.changedParts.join(", ")}</span>
-        )}
+        {i.changedParts.length > 0 && <span className="api-changed-parts">変更箇所: {i.changedParts.join(", ")}</span>}
       </div>
       <pre className="godoc-decl">{i.decl}</pre>
       {i.docHtml && <div className="godoc-doc" dangerouslySetInnerHTML={{ __html: i.docHtml }} />}

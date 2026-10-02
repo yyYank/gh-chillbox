@@ -16,8 +16,7 @@ type Props = {
 };
 
 export function SortableRow({ pr, rank, reviewers, formatDate, onContextMenu, onDetail, memo, onMemoChange }: Props) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-    useSortable({ id: pr.number });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: pr.number });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -34,7 +33,9 @@ export function SortableRow({ pr, rank, reviewers, formatDate, onContextMenu, on
       onClick={() => onDetail(pr.number)}
     >
       <td className="col-drag" {...attributes} {...listeners} onClick={(e) => e.stopPropagation()}>
-        <span className="drag-handle"><GripVertical size={16} /></span>
+        <span className="drag-handle">
+          <GripVertical size={16} />
+        </span>
       </td>
       <td className="col-rank">{rank ?? "—"}</td>
       <td className="col-number" onClick={(e) => e.stopPropagation()}>
@@ -52,12 +53,7 @@ export function SortableRow({ pr, rank, reviewers, formatDate, onContextMenu, on
       <td className="col-date">{formatDate(pr.updatedAt)}</td>
       <MemoCell memo={memo} onChange={(text) => onMemoChange(pr.number, text)} />
       <td className="col-detail">
-        <button
-          type="button"
-          className="detail-btn"
-          onClick={() => onDetail(pr.number)}
-          title="PR詳細"
-        >
+        <button type="button" className="detail-btn" onClick={() => onDetail(pr.number)} title="PR詳細">
           <ChevronRight size={16} />
         </button>
       </td>

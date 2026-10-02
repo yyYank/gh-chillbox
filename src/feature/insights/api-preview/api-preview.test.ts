@@ -1,7 +1,12 @@
 import { describe, it, expect } from "vitest";
 import { groupByTag, schemaTypeLabel, visibleEndpoints, type ApiEndpoint } from "./api-preview";
 
-function ep(method: string, path: string, tags: string[] = [], change: ApiEndpoint["change"] = "unchanged"): ApiEndpoint {
+function ep(
+  method: string,
+  path: string,
+  tags: string[] = [],
+  change: ApiEndpoint["change"] = "unchanged",
+): ApiEndpoint {
   return { method, path, tags, deprecated: false, parameters: [], responses: [], change, changedParts: [] };
 }
 

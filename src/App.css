@@ -123,7 +123,6 @@ body {
   padding: 24px 0 12px;
 }
 
-
 .header h1 {
   font-family: "Outfit", sans-serif;
   font-size: 1.5rem;
@@ -194,7 +193,9 @@ body {
   color: var(--text);
   cursor: pointer;
   font-size: 0.85rem;
-  transition: background 0.15s, border-color 0.15s;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
 }
 .refresh-btn:hover:not(:disabled) {
   background: var(--hover-bg);
@@ -311,7 +312,9 @@ body {
   font-size: 1rem;
   line-height: 1;
   opacity: 0.4;
-  transition: opacity 0.15s, color 0.15s;
+  transition:
+    opacity 0.15s,
+    color 0.15s;
 }
 .repo-dropdown-delete:hover {
   opacity: 1;
@@ -528,7 +531,9 @@ th.col-rank {
   cursor: pointer;
   font-size: 1.1rem;
   line-height: 1;
-  transition: background 0.15s, border-color 0.15s;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
 }
 .theme-toggle:hover {
   background: var(--hover-bg);
@@ -552,7 +557,9 @@ th.col-rank {
   cursor: pointer;
   font-size: 1.1rem;
   line-height: 1;
-  transition: background 0.15s, border-color 0.15s;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
 }
 .notification-bell:hover {
   background: var(--hover-bg);
@@ -777,7 +784,9 @@ th.col-rank {
   color: var(--text-secondary);
   font-size: 0.8rem;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
 }
 .dismiss-closed-btn:hover {
   background: var(--surface-alt);
@@ -876,7 +885,9 @@ tr:hover .memo-view-empty {
   background: transparent;
   color: var(--text-muted);
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
 }
 .detail-btn:hover {
   background: var(--accent-soft);
@@ -900,7 +911,9 @@ tr:hover .memo-view-empty {
   cursor: pointer;
   font-size: 0.85rem;
   margin-bottom: 20px;
-  transition: background 0.15s, border-color 0.15s;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
 }
 .pr-detail-back:hover {
   background: var(--hover-bg);
@@ -1084,13 +1097,17 @@ tr:hover .memo-view-empty {
   font-weight: 600;
   line-height: 1.3;
 }
-.markdown-body h1 { font-size: 1.3rem; }
+.markdown-body h1 {
+  font-size: 1.3rem;
+}
 .markdown-body h2 {
   font-size: 1.1rem;
   padding-bottom: 0.3em;
   border-bottom: 1px solid var(--border);
 }
-.markdown-body h3 { font-size: 1rem; }
+.markdown-body h3 {
+  font-size: 1rem;
+}
 
 .markdown-body p {
   margin-bottom: 0.8em;
@@ -1366,7 +1383,9 @@ tr:hover .memo-view-empty {
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
-  transition: color 0.15s, background 0.15s;
+  transition:
+    color 0.15s,
+    background 0.15s;
   position: relative;
 }
 .right-pane-tab:hover {
@@ -1451,7 +1470,9 @@ tr:hover .memo-view-empty {
   border-radius: 4px;
   display: inline-flex;
   align-items: center;
-  transition: color 0.15s, background 0.15s;
+  transition:
+    color 0.15s,
+    background 0.15s;
 }
 .chat-reset-btn:hover:not(:disabled) {
   color: var(--danger);
@@ -1660,7 +1681,9 @@ tr:hover .memo-view-empty {
   background: var(--bg-secondary, var(--bg));
   color: var(--text-muted);
   cursor: pointer;
-  transition: border-color 0.15s, color 0.15s;
+  transition:
+    border-color 0.15s,
+    color 0.15s;
 }
 .chat-preview-btn:hover:not(:disabled) {
   border-color: var(--accent);
@@ -1711,7 +1734,7 @@ tr:hover .memo-view-empty {
 }
 .chat-preview-close:hover {
   color: var(--text);
-  background: var(--bg-hover, rgba(255,255,255,0.1));
+  background: var(--bg-hover, rgba(255, 255, 255, 0.1));
 }
 .chat-preview-body {
   padding: 16px;
@@ -1880,11 +1903,19 @@ tr:hover .memo-view-empty {
   padding: 12px 16px;
 }
 
-.diff-md-preview .markdown-body h1 { font-size: 1.3em; }
-.diff-md-preview .markdown-body h2 { font-size: 1.1em; }
-.diff-md-preview .markdown-body h3 { font-size: 1em; }
+.diff-md-preview .markdown-body h1 {
+  font-size: 1.3em;
+}
+.diff-md-preview .markdown-body h2 {
+  font-size: 1.1em;
+}
+.diff-md-preview .markdown-body h3 {
+  font-size: 1em;
+}
 .diff-md-preview .markdown-body th,
-.diff-md-preview .markdown-body td { font-size: 0.85em; }
+.diff-md-preview .markdown-body td {
+  font-size: 0.85em;
+}
 
 .diff-md-chunk + .diff-md-chunk {
   margin-top: 12px;
@@ -1955,8 +1986,12 @@ tr:hover .memo-view-empty {
   font-size: 0.72rem;
   color: var(--text-muted);
 }
-.diff-stat-add { color: var(--success, #22863a); }
-.diff-stat-del { color: var(--danger, #cb2431); }
+.diff-stat-add {
+  color: var(--success, #22863a);
+}
+.diff-stat-del {
+  color: var(--danger, #cb2431);
+}
 
 .diff-file-body {
   font-family: "SF Mono", "Fira Code", "Fira Mono", monospace;
@@ -2066,19 +2101,32 @@ tr:hover .memo-view-empty {
 /* Diff のシンタックスハイライト（highlight.js のトークン） */
 .diff-line-content .hljs-keyword,
 .diff-line-content .hljs-meta,
-.diff-line-content .hljs-selector-tag { color: var(--syntax-keyword); }
+.diff-line-content .hljs-selector-tag {
+  color: var(--syntax-keyword);
+}
 .diff-line-content .hljs-string,
-.diff-line-content .hljs-regexp { color: var(--syntax-string); }
+.diff-line-content .hljs-regexp {
+  color: var(--syntax-string);
+}
 .diff-line-content .hljs-comment,
-.diff-line-content .hljs-quote { color: var(--syntax-comment); font-style: italic; }
+.diff-line-content .hljs-quote {
+  color: var(--syntax-comment);
+  font-style: italic;
+}
 .diff-line-content .hljs-number,
 .diff-line-content .hljs-literal,
 .diff-line-content .hljs-attr,
-.diff-line-content .hljs-variable { color: var(--syntax-number); }
+.diff-line-content .hljs-variable {
+  color: var(--syntax-number);
+}
 .diff-line-content .hljs-title,
-.diff-line-content .hljs-section { color: var(--syntax-title); }
+.diff-line-content .hljs-section {
+  color: var(--syntax-title);
+}
 .diff-line-content .hljs-type,
-.diff-line-content .hljs-built_in { color: var(--syntax-type); }
+.diff-line-content .hljs-built_in {
+  color: var(--syntax-type);
+}
 
 /* ===== Quote floating button ===== */
 .quote-floating-btn {
@@ -2096,7 +2144,9 @@ tr:hover .memo-view-empty {
   box-shadow: var(--context-shadow);
   z-index: 500;
   white-space: nowrap;
-  transition: background 0.15s, border-color 0.15s;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
 }
 .quote-floating-btn:hover {
   background: var(--accent-soft);
@@ -2151,7 +2201,9 @@ tr:hover .memo-view-empty {
   font-size: 0.72rem;
   padding: 4px 10px;
   cursor: pointer;
-  transition: color 0.15s, border-color 0.15s;
+  transition:
+    color 0.15s,
+    border-color 0.15s;
 }
 .change-surface-debug-btn:hover {
   color: var(--accent);
@@ -2650,7 +2702,7 @@ tr:hover .memo-view-empty {
 .cg-box-changed {
   background: var(--surface);
   border-color: var(--border);
-  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
 }
 .cg-box-context {
   opacity: 0.6;
@@ -3061,11 +3113,21 @@ tr:hover .memo-view-empty {
   margin-bottom: 6px;
   background: var(--surface);
 }
-.method-get { --method-color: #38bdf8; }
-.method-post { --method-color: #34d399; }
-.method-put { --method-color: #fbbf24; }
-.method-patch { --method-color: #a78bfa; }
-.method-delete { --method-color: #f87171; }
+.method-get {
+  --method-color: #38bdf8;
+}
+.method-post {
+  --method-color: #34d399;
+}
+.method-put {
+  --method-color: #fbbf24;
+}
+.method-patch {
+  --method-color: #a78bfa;
+}
+.method-delete {
+  --method-color: #f87171;
+}
 .api-endpoint-summary {
   display: flex;
   align-items: center;
@@ -3145,9 +3207,15 @@ tr:hover .memo-view-empty {
   font-family: ui-monospace, monospace;
   font-weight: 700;
 }
-.api-status.status-2 { color: #34d399; }
-.api-status.status-4 { color: #fbbf24; }
-.api-status.status-5 { color: var(--danger); }
+.api-status.status-2 {
+  color: #34d399;
+}
+.api-status.status-4 {
+  color: #fbbf24;
+}
+.api-status.status-5 {
+  color: var(--danger);
+}
 .api-description {
   margin: 6px 0;
   white-space: pre-wrap;

@@ -38,10 +38,14 @@ export function ApiPreview({ repo, prNumber }: Props) {
       {current.error && <div className="error">{current.error}</div>}
       {current.data?.length === 0 && (
         <div className="api-preview-empty">
-          {scope === "changed" ? "この PR で変更された OpenAPI ファイルはありません" : "OpenAPI ファイルが見つかりません"}
+          {scope === "changed"
+            ? "この PR で変更された OpenAPI ファイルはありません"
+            : "OpenAPI ファイルが見つかりません"}
         </div>
       )}
-      {current.data?.map((f) => <SpecView key={f.path} file={f} scope={scope} />)}
+      {current.data?.map((f) => (
+        <SpecView key={f.path} file={f} scope={scope} />
+      ))}
     </div>
   );
 }
@@ -60,7 +64,9 @@ function SpecView({ file, scope }: { file: SpecFile; scope: Scope }) {
       {groups.map((g) => (
         <div key={g.tag} className="api-tag-group">
           <div className="api-tag">{g.tag}</div>
-          {g.endpoints.map((e) => <EndpointView key={`${e.method} ${e.path}`} endpoint={e} />)}
+          {g.endpoints.map((e) => (
+            <EndpointView key={`${e.method} ${e.path}`} endpoint={e} />
+          ))}
         </div>
       ))}
     </section>
@@ -76,18 +82,18 @@ function EndpointView({ endpoint: e }: { endpoint: ApiEndpoint }) {
         {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
         <span className={`api-method method-${method}`}>{e.method}</span>
         <span className={`api-path${e.deprecated || e.change === "removed" ? " deprecated" : ""}`}>{e.path}</span>
-        {e.change !== "unchanged" && (
-          <span className={`api-badge change-${e.change}`}>{CHANGE_LABELS[e.change]}</span>
-        )}
+        {e.change !== "unchanged" && <span className={`api-badge change-${e.change}`}>{CHANGE_LABELS[e.change]}</span>}
         {e.summary && <span className="api-summary">{e.summary}</span>}
       </button>
 
       {open && (
         <div className="api-endpoint-detail">
-          {e.changedParts.length > 0 && (
-            <div className="api-changed-parts">変更箇所: {e.changedParts.join(", ")}</div>
+          {e.changedParts.length > 0 && <div className="api-changed-parts">変更箇所: {e.changedParts.join(", ")}</div>}
+          {e.operationId && (
+            <div className="api-operation-id">
+              operationId: <code>{e.operationId}</code>
+            </div>
           )}
-          {e.operationId && <div className="api-operation-id">operationId: <code>{e.operationId}</code></div>}
           {e.description && <p className="api-description">{e.description}</p>}
 
           {e.parameters.length > 0 && (
@@ -144,7 +150,9 @@ function EndpointView({ endpoint: e }: { endpoint: ApiEndpoint }) {
 }
 
 function SchemaView({ schema, depth }: { schema: unknown; depth: number }) {
-  if (typeof schema !== "object" || schema === null) { return null; }
+  if (typeof schema !== "object" || schema === null) {
+    return null;
+  }
   const s = schema as Record<string, any>;
   const target = s.type === "array" && typeof s.items === "object" ? s.items : s;
   const props = target?.properties;

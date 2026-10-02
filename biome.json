@@ -6,12 +6,7 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": [
-      "src/**",
-      "server/**",
-      "vite.config.ts",
-      "!server/ast/test-fixtures"
-    ]
+    "includes": ["src/**", "server/**", "vite.config.ts", "!server/ast/test-fixtures"]
   },
   "formatter": {
     "enabled": true,

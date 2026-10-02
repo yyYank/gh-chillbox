@@ -6,14 +6,7 @@ import { ensureRepo, checkoutSha, gitOutput } from "../git/repository-cache-hand
 import { extractGoTestCases } from "./test-cases-go";
 import { extractTsTestCases } from "./test-cases-ts";
 import { extractGherkinCases } from "./test-cases-gherkin";
-import {
-  fromGo,
-  fromTs,
-  fromGherkin,
-  diffTestCases,
-  type DiffedTestCase,
-  type TestFile,
-} from "./test-cases-diff";
+import { fromGo, fromTs, fromGherkin, diffTestCases, type DiffedTestCase, type TestFile } from "./test-cases-diff";
 
 const execFileAsync = promisify(execFile);
 
@@ -28,10 +21,18 @@ type Source = { path: string; content: string };
 const MAX_FILE_BYTES = 2 * 1024 * 1024;
 
 export function testFileKind(filePath: string): TestFileKind | null {
-  if (filePath.endsWith("_test.go")) { return "go"; }
-  if (filePath.endsWith(".feature")) { return "gherkin"; }
-  if (!/\.[cm]?[jt]sx?$/.test(filePath)) { return null; }
-  if (/\.(test|spec)\.[cm]?[jt]sx?$/.test(filePath) || /(^|\/)__tests__\//.test(filePath)) { return "ts"; }
+  if (filePath.endsWith("_test.go")) {
+    return "go";
+  }
+  if (filePath.endsWith(".feature")) {
+    return "gherkin";
+  }
+  if (!/\.[cm]?[jt]sx?$/.test(filePath)) {
+    return null;
+  }
+  if (/\.(test|spec)\.[cm]?[jt]sx?$/.test(filePath) || /(^|\/)__tests__\//.test(filePath)) {
+    return "ts";
+  }
   return null;
 }
 
@@ -51,7 +52,9 @@ export async function extractTestFiles(sources: Source[]): Promise<TestFile[]> {
 export function mergeTestFiles(base: TestFile[], head: TestFile[], changedPaths: Set<string>): DiffedTestFile[] {
   const baseByPath = new Map(base.map((f) => [f.path, f]));
   const headByPath = new Map(head.map((f) => [f.path, f]));
-  const paths = [...new Set([...head.map((f) => f.path), ...base.filter((f) => changedPaths.has(f.path)).map((f) => f.path)])];
+  const paths = [
+    ...new Set([...head.map((f) => f.path), ...base.filter((f) => changedPaths.has(f.path)).map((f) => f.path)]),
+  ];
 
   return paths.sort().map((p) => {
     const after = headByPath.get(p);
@@ -70,10 +73,19 @@ export function mergeTestFiles(base: TestFile[], head: TestFile[], changedPaths:
 
 export async function loadTestCases(repo: string, number: number, scope: TestCaseScope): Promise<DiffedTestFile[]> {
   const { stdout } = await execFileAsync("gh", [
-    "pr", "view", String(number), "--repo", repo,
-    "--json", "headRefOid,baseRefOid,files",
+    "pr",
+    "view",
+    String(number),
+    "--repo",
+    repo,
+    "--json",
+    "headRefOid,baseRefOid,files",
   ]);
-  const { headRefOid: sha, baseRefOid, files } = JSON.parse(stdout) as {
+  const {
+    headRefOid: sha,
+    baseRefOid,
+    files,
+  } = JSON.parse(stdout) as {
     headRefOid: string;
     baseRefOid: string;
     files: { path: string }[];
@@ -84,18 +96,23 @@ export async function loadTestCases(repo: string, number: number, scope: TestCas
   const mergeBase = (await gitOutput(repoDir, ["merge-base", baseRefOid, sha])).trim();
 
   const changedPaths = files.map((f) => f.path).filter((p) => testFileKind(p) !== null);
-  const targets = scope === "changed"
-    ? changedPaths
-    : (await gitOutput(repoDir, ["ls-files"])).split("\n").filter((p) => testFileKind(p) !== null);
+  const targets =
+    scope === "changed"
+      ? changedPaths
+      : (await gitOutput(repoDir, ["ls-files"])).split("\n").filter((p) => testFileKind(p) !== null);
 
   const headSources = targets.flatMap((p) => {
     const content = readHead(path.join(repoDir, p));
     return content === null ? [] : [{ path: p, content }];
   });
-  const baseSources = (await Promise.all(changedPaths.map(async (p) => {
-    const content = await gitOutput(repoDir, ["show", `${mergeBase}:${p}`]).catch(() => null);
-    return content === null || content.length > MAX_FILE_BYTES ? [] : [{ path: p, content }];
-  }))).flat();
+  const baseSources = (
+    await Promise.all(
+      changedPaths.map(async (p) => {
+        const content = await gitOutput(repoDir, ["show", `${mergeBase}:${p}`]).catch(() => null);
+        return content === null || content.length > MAX_FILE_BYTES ? [] : [{ path: p, content }];
+      }),
+    )
+  ).flat();
 
   const [head, base] = await Promise.all([extractTestFiles(headSources), extractTestFiles(baseSources)]);
   return mergeTestFiles(base, head, new Set(changedPaths));
@@ -104,7 +121,9 @@ export async function loadTestCases(repo: string, number: number, scope: TestCas
 function readHead(absPath: string): string | null {
   try {
     const stat = fs.statSync(absPath);
-    if (!stat.isFile() || stat.size > MAX_FILE_BYTES) { return null; }
+    if (!stat.isFile() || stat.size > MAX_FILE_BYTES) {
+      return null;
+    }
     return fs.readFileSync(absPath, "utf8");
   } catch {
     return null;

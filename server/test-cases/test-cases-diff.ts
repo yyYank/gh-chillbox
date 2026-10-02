@@ -32,7 +32,11 @@ function toFile(path: string, framework: TestFramework, cases: TestCase[]): Test
 }
 
 export function fromGo(f: GoTestFile): TestFile {
-  return toFile(f.path, "go", f.cases.map((c) => ({ ...c, modifiers: [] })));
+  return toFile(
+    f.path,
+    "go",
+    f.cases.map((c) => ({ ...c, modifiers: [] })),
+  );
 }
 
 export function fromTs(f: TsTestFile): TestFile {
@@ -40,7 +44,11 @@ export function fromTs(f: TsTestFile): TestFile {
 }
 
 export function fromGherkin(f: GherkinFile): TestFile {
-  return toFile(f.path, "gherkin", f.cases.map((c) => ({ ...c, dynamic: false })));
+  return toFile(
+    f.path,
+    "gherkin",
+    f.cases.map((c) => ({ ...c, dynamic: false })),
+  );
 }
 
 // 同じ名前のテストが複数あっても1対1で突き合わせられるよう、出現回数をキーに含める
@@ -67,7 +75,9 @@ export function diffTestCases(base: TestCase[], head: TestCase[]): DiffedTestCas
 
   const current = headKeyed.map(([k, c]): DiffedTestCase => {
     const before = baseByKey.get(k);
-    if (!before) { return { ...c, change: "added" }; }
+    if (!before) {
+      return { ...c, change: "added" };
+    }
     return { ...c, change: sameModifiers(before.modifiers, c.modifiers) ? "unchanged" : "modified" };
   });
   const removed = baseKeyed

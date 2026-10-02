@@ -2,16 +2,18 @@ import { describe, it, expect } from "vitest";
 import { parseDiff } from "./diff-parse";
 import { lineLabel, buildThreadAnchor } from "./diff-threads";
 
-const file = parseDiff([
-  "diff --git a/src/a.ts b/src/a.ts",
-  "--- a/src/a.ts",
-  "+++ b/src/a.ts",
-  "@@ -10,3 +10,3 @@",
-  " keep",
-  "-old",
-  "+new",
-  " tail",
-].join("\n"))[0];
+const file = parseDiff(
+  [
+    "diff --git a/src/a.ts b/src/a.ts",
+    "--- a/src/a.ts",
+    "+++ b/src/a.ts",
+    "@@ -10,3 +10,3 @@",
+    " keep",
+    "-old",
+    "+new",
+    " tail",
+  ].join("\n"),
+)[0];
 
 describe("lineLabel", () => {
   it("新行番号がある行は R+新行番号になる", () => {
