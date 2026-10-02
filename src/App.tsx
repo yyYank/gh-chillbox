@@ -25,6 +25,7 @@ import headerIconDark from "./assets/icon-dark.png";
 import headerLogo from "./assets/logo.png";
 import headerLogoDark from "./assets/logo-dark.png";
 import { setMemo, parseMemos, memoStorageKey, type PrMemos } from "./feature/pull-requests/pr-memo";
+import { MemoCell } from "./feature/pull-requests/MemoCell";
 
 const REPO_STORAGE_KEY = "gh-chillbox:repo";
 const REPO_HISTORY_KEY = "gh-chillbox:repo-history";
@@ -475,14 +476,7 @@ export function App() {
                         <td>{reviewers(pr)}</td>
                         <td className="col-date">{formatDate(pr.createdAt)}</td>
                         <td className="col-date">{formatDate(pr.updatedAt)}</td>
-                        <td className="col-memo">
-                          <input
-                            type="text"
-                            className="memo-input"
-                            value={memos[pr.number] ?? ""}
-                            onChange={(e) => updateMemo(pr.number, e.target.value)}
-                          />
-                        </td>
+                        <MemoCell memo={memos[pr.number] ?? ""} onChange={(text) => updateMemo(pr.number, text)} />
                         <td>
                           <button
                             type="button"

@@ -2,6 +2,7 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, ChevronRight } from "lucide-react";
 import type { PR } from "../../types";
+import { MemoCell } from "./MemoCell";
 
 type Props = {
   pr: PR;
@@ -49,14 +50,7 @@ export function SortableRow({ pr, rank, reviewers, formatDate, onContextMenu, on
       <td>{reviewers}</td>
       <td className="col-date">{formatDate(pr.createdAt)}</td>
       <td className="col-date">{formatDate(pr.updatedAt)}</td>
-      <td className="col-memo" onClick={(e) => e.stopPropagation()} onContextMenu={(e) => e.stopPropagation()}>
-        <input
-          type="text"
-          className="memo-input"
-          value={memo}
-          onChange={(e) => onMemoChange(pr.number, e.target.value)}
-        />
-      </td>
+      <MemoCell memo={memo} onChange={(text) => onMemoChange(pr.number, text)} />
       <td className="col-detail">
         <button
           type="button"

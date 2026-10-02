@@ -816,21 +816,47 @@ th.col-rank {
   color: var(--text-muted);
 }
 
-.col-memo {
-  min-width: 160px;
+/* 表示と編集で同じ幅に固定し、クリックしても列幅と行の高さが変わらないようにする */
+.memo-view {
+  display: block;
+  width: 200px;
+  padding: 4px 6px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  cursor: text;
 }
-.memo-input {
-  width: 100%;
-  padding: 4px 8px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+.memo-view:hover {
+  background: var(--hover-bg);
+}
+/* 空のメモは行にマウスを乗せた時だけ薄く出す */
+.memo-view-empty {
+  color: transparent;
+}
+tr:hover .memo-view-empty {
+  color: var(--text-muted);
+}
+.memo-editor {
+  display: block;
+  width: 200px;
+  padding: 4px 6px;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
   background: var(--surface);
   color: var(--text);
+  font: inherit;
   font-size: 0.8rem;
-}
-.memo-input:focus {
+  line-height: 1.5;
+  resize: none;
+  field-sizing: content;
   outline: none;
-  border-color: var(--accent);
 }
 
 /* ===== Detail chevron column ===== */
