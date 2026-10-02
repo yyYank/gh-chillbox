@@ -35,8 +35,11 @@ export function buildThreadAnchor(file: DiffFile, fromIdx: number, toIdx: number
     return null;
   }
 
-  const start = lineLabel(lines[0])!;
-  const end = lineLabel(lines[lines.length - 1])!;
+  const start = lineLabel(lines[0]);
+  const end = lineLabel(lines[lines.length - 1]);
+  if (!start || !end) {
+    return null;
+  }
   const marker = (l: DiffLine) => (l.type === "add" ? "+" : l.type === "del" ? "-" : " ");
   const code = lines.map((l) => marker(l) + l.content).join("\n");
 

@@ -60,7 +60,10 @@ export function mergeTestFiles(base: TestFile[], head: TestFile[], changedPaths:
     const after = headByPath.get(p);
     const changed = changedPaths.has(p);
     const before = changed ? baseByPath.get(p) : after;
-    const meta = (after ?? before)!;
+    const meta = after ?? before;
+    if (!meta) {
+      throw new Error(`test file not found: ${p}`);
+    }
     return {
       path: p,
       framework: meta.framework,

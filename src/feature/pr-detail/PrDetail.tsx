@@ -181,17 +181,17 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange }: Props) {
   const handleTextMouseUp = useCallback(() => {
     const sel = window.getSelection();
     const text = sel?.toString().trim();
-    if (!text) {
+    if (!sel || !text) {
       setFloatingBtn(null);
       return;
     }
-    const inBody = bodyRef.current?.contains(sel!.anchorNode);
-    const inComments = commentsRef.current?.contains(sel!.anchorNode);
+    const inBody = bodyRef.current?.contains(sel.anchorNode);
+    const inComments = commentsRef.current?.contains(sel.anchorNode);
     if (!inBody && !inComments) {
       setFloatingBtn(null);
       return;
     }
-    const range = sel!.getRangeAt(0);
+    const range = sel.getRangeAt(0);
     const rect = range.getBoundingClientRect();
     setFloatingBtn({ x: rect.left + rect.width / 2, y: rect.top - 8, text, fromBody: !!inBody });
   }, []);

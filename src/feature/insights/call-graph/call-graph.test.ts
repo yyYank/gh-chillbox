@@ -4,7 +4,7 @@ import { buildCallGraph, extractSubgraph, generateReadingOrder, type GraphNode, 
 const sym = (name: string, kind: string, file: string, changed = true) => ({
   id: `${file}:${name}`,
   name,
-  kind: kind as any,
+  kind,
   file,
   startLine: 1,
   endLine: 10,

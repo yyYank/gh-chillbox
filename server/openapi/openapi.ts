@@ -40,7 +40,7 @@ export type ApiSpec = {
   endpoints: ApiEndpoint[];
 };
 
-type Obj = Record<string, any>;
+type Obj = Record<string, unknown>;
 
 const HTTP_METHODS = new Set(["get", "put", "post", "delete", "options", "head", "patch", "trace"]);
 
@@ -80,7 +80,7 @@ export function parseOpenApi(content: string): ApiSpec | null {
 
   return {
     version: isV2 ? "2.0" : "3.x",
-    title: isObj(root.info) ? root.info.title : undefined,
+    title: isObj(root.info) ? (root.info.title as string | undefined) : undefined,
     endpoints,
   };
 }
@@ -93,7 +93,7 @@ function toEndpointV3(method: string, path: string, item: Obj, op: Obj): ApiEndp
     requestBody: body && { required: body.required === true, ...firstContent(body.content) },
     responses: responseEntries(op).map(([status, r]) => ({
       status,
-      description: r.description,
+      description: r.description as string | undefined,
       ...firstContent(r.content),
     })),
   };
@@ -110,7 +110,7 @@ function toEndpointV2(root: Obj, method: string, path: string, item: Obj, op: Ob
     requestBody: body && { required: body.required === true, contentType: consumes, schema: body.schema },
     responses: responseEntries(op).map(([status, r]) => ({
       status,
-      description: r.description,
+      description: r.description as string | undefined,
       contentType: r.schema !== undefined ? produces : undefined,
       schema: r.schema,
     })),
@@ -121,9 +121,9 @@ function baseEndpoint(method: string, path: string, op: Obj) {
   return {
     method: method.toUpperCase(),
     path,
-    operationId: op.operationId,
-    summary: op.summary,
-    description: op.description,
+    operationId: op.operationId as string | undefined,
+    summary: op.summary as string | undefined,
+    description: op.description as string | undefined,
     tags: Array.isArray(op.tags) ? op.tags.filter((t): t is string => typeof t === "string") : [],
     deprecated: op.deprecated === true,
   };
@@ -140,7 +140,13 @@ function mergeParams(pathParams: unknown, opParams: unknown): Obj[] {
 }
 
 function toParam(p: Obj, schema: unknown): ApiParam {
-  return { name: p.name, in: p.in, required: p.required === true, description: p.description, schema };
+  return {
+    name: p.name as string,
+    in: p.in as string,
+    required: p.required === true,
+    description: p.description as string | undefined,
+    schema,
+  };
 }
 
 function v2Schema(p: Obj): Obj | undefined {

@@ -21,9 +21,7 @@ export function parseDiffToChangedLines(diff: string): FileChangedLines[] {
     const changedLines: number[] = [];
 
     const hunkRegex = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@/gm;
-    let hunkMatch: RegExpExecArray | null;
-
-    while ((hunkMatch = hunkRegex.exec(section)) !== null) {
+    for (const hunkMatch of section.matchAll(hunkRegex)) {
       let newLineNum = parseInt(hunkMatch[1], 10);
       const hunkLineEnd = section.indexOf("\n", hunkMatch.index);
       if (hunkLineEnd === -1) {

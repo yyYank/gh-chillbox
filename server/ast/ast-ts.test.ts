@@ -16,21 +16,21 @@ describe("extractSymbolsFromFile", () => {
     const symbols = extractSymbolsFromFile(FIXTURE);
     const hook = symbols.find((s) => s.name === "useUser");
     expect(hook).toBeDefined();
-    expect(hook!.kind).toBe("hook");
+    expect(hook?.kind).toBe("hook");
   });
 
   it("React Componentを検出する", () => {
     const symbols = extractSymbolsFromFile(FIXTURE);
     const comp = symbols.find((s) => s.name === "UserPage");
     expect(comp).toBeDefined();
-    expect(comp!.kind).toBe("component");
+    expect(comp?.kind).toBe("component");
   });
 
   it("classを検出する", () => {
     const symbols = extractSymbolsFromFile(FIXTURE);
     const cls = symbols.find((s) => s.name === "UserService");
     expect(cls).toBeDefined();
-    expect(cls!.kind).toBe("class");
+    expect(cls?.kind).toBe("class");
   });
 
   it("methodを検出する", () => {
@@ -45,21 +45,21 @@ describe("extractSymbolsFromFile", () => {
     const symbols = extractSymbolsFromFile(FIXTURE);
     const iface = symbols.find((s) => s.name === "UserRepository");
     expect(iface).toBeDefined();
-    expect(iface!.kind).toBe("interface");
+    expect(iface?.kind).toBe("interface");
   });
 
   it("type aliasを検出する", () => {
     const symbols = extractSymbolsFromFile(FIXTURE);
     const t = symbols.find((s) => s.name === "UserDTO");
     expect(t).toBeDefined();
-    expect(t!.kind).toBe("type");
+    expect(t?.kind).toBe("type");
   });
 
   it("通常のfunctionを検出する", () => {
     const symbols = extractSymbolsFromFile(FIXTURE);
     const fn = symbols.find((s) => s.name === "helperFn");
     expect(fn).toBeDefined();
-    expect(fn!.kind).toBe("function");
+    expect(fn?.kind).toBe("function");
   });
 
   it("各symbolにstartLine/endLineがある", () => {
@@ -76,7 +76,7 @@ describe("extractRelationsFromFile", () => {
     const relations = extractRelationsFromFile(FIXTURE);
     const hookUse = relations.find((r) => r.from === "UserPage" && r.to === "useUser");
     expect(hookUse).toBeDefined();
-    expect(hookUse!.kind).toBe("hook-use");
+    expect(hookUse?.kind).toBe("hook-use");
   });
 
   it("同一シンボルへの自己参照は含まない", () => {

@@ -20,14 +20,10 @@
       "preset": "recommended",
       "style": {
         "useBlockStatements": "error",
-        "noNonNullAssertion": "off",
         "noDescendingSpecificity": "off"
       },
       "suspicious": {
-        "noArrayIndexKey": "off",
-        "noExplicitAny": "off",
-        "noTemplateCurlyInString": "off",
-        "noAssignInExpressions": "off"
+        "noArrayIndexKey": "off"
       },
       "security": {
         "noDangerouslySetInnerHtml": "off"

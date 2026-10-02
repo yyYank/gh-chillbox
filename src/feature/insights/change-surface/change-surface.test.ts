@@ -159,9 +159,9 @@ describe("computeSummary", () => {
     const api = summary.find((s) => s.layer === "api");
     expect(ui).toBeDefined();
     expect(api).toBeDefined();
-    expect(ui!.percentage + api!.percentage).toBe(100);
-    expect(ui!.percentage).toBe(60);
-    expect(api!.percentage).toBe(40);
+    expect((ui?.percentage ?? 0) + (api?.percentage ?? 0)).toBe(100);
+    expect(ui?.percentage).toBe(60);
+    expect(api?.percentage).toBe(40);
   });
 
   it("割合の降順でソートされる", () => {

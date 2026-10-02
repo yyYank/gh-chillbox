@@ -66,7 +66,7 @@ app.get("/notifications", async (c) => {
 
     const results = await Promise.all(
       filtered.slice(0, 20).map(async (n) => {
-        const prNumber = parseInt(n.subject.url.split("/").pop()!, 10);
+        const prNumber = parseInt(n.subject.url.split("/").pop() ?? "", 10);
         let message = "";
         let actor = "";
         let url = `https://github.com/${repo}/pull/${prNumber}`;

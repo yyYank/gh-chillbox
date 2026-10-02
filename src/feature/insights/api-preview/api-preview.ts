@@ -53,7 +53,7 @@ export function groupByTag(endpoints: ApiEndpoint[]): TagGroup[] {
   return untagged.length > 0 ? [...result, { tag: DEFAULT_TAG, endpoints: untagged }] : result;
 }
 
-type Schema = Record<string, any>;
+type Schema = Record<string, unknown>;
 
 export function schemaTypeLabel(schema: unknown): string {
   if (typeof schema !== "object" || schema === null) {

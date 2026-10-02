@@ -70,9 +70,11 @@ fdescribe("f付き", () => {});
   });
 
   it("名前が式で決まるものは式をそのまま名前にして dynamic を付ける", () => {
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: テンプレートリテラルを含むソースをテスト入力にしている
     const src = "it(`with ${x}`, () => {});\nit(`固定`, () => {});\nit(name, () => {});\n";
     const [file] = extractTsTestCases([{ path: "a.test.ts", content: src }]);
     expect(file.cases.map((c) => [c.names[0], c.dynamic])).toEqual([
+      // biome-ignore lint/suspicious/noTemplateCurlyInString: 抽出結果としてテンプレートリテラルのソースをそのまま期待している
       ["`with ${x}`", true],
       ["固定", false],
       ["name", true],

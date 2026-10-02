@@ -275,7 +275,9 @@ export async function analyzepr(repo: string, prNumber: number): Promise<AstAnal
       try {
         const spec = JSON.parse(fs.readFileSync(fp, "utf-8"));
         for (const [pathStr, methods] of Object.entries(spec.paths ?? {})) {
-          for (const [method, detail] of Object.entries(methods as Record<string, any>)) {
+          for (const [method, detail] of Object.entries(
+            methods as Record<string, { operationId?: string } | undefined>,
+          )) {
             if (!["get", "post", "put", "delete", "patch"].includes(method)) {
               continue;
             }

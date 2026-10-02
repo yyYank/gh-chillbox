@@ -24,10 +24,11 @@ type Props = {
 function lineIdxOf(node: Node): { path: string; idx: number } | null {
   const el = (node instanceof Element ? node : node.parentElement)?.closest<HTMLElement>("[data-line-idx]");
   const body = el?.closest<HTMLElement>("[data-path]");
-  if (!el || !body) {
+  const path = body?.dataset.path;
+  if (!el || path === undefined) {
     return null;
   }
-  return { path: body.dataset.path!, idx: Number(el.dataset.lineIdx) };
+  return { path, idx: Number(el.dataset.lineIdx) };
 }
 
 // ハイライトで内容が span に分かれるため、オフセット 0 でも行頭とは限らない。行頭からの文字列で判定する

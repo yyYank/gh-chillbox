@@ -153,13 +153,13 @@ function SchemaView({ schema, depth }: { schema: unknown; depth: number }) {
   if (typeof schema !== "object" || schema === null) {
     return null;
   }
-  const s = schema as Record<string, any>;
-  const target = s.type === "array" && typeof s.items === "object" ? s.items : s;
+  const s = schema as Record<string, unknown>;
+  const target = (s.type === "array" && typeof s.items === "object" ? s.items : s) as Record<string, unknown> | null;
   const props = target?.properties;
   if (typeof props !== "object" || props === null || depth >= MAX_SCHEMA_DEPTH) {
     return depth === 0 ? <div className="api-type">{schemaTypeLabel(schema)}</div> : null;
   }
-  const required = new Set<string>(Array.isArray(target.required) ? target.required : []);
+  const required = new Set<string>(Array.isArray(target?.required) ? target.required : []);
   return (
     <ul className="api-schema">
       {depth === 0 && <li className="api-type">{schemaTypeLabel(schema)}</li>}
@@ -168,7 +168,9 @@ function SchemaView({ schema, depth }: { schema: unknown; depth: number }) {
           <code>{name}</code>
           {required.has(name) && <span className="api-required">*</span>}
           <span className="api-type"> {schemaTypeLabel(child)}</span>
-          {(child as any)?.description && <span className="api-muted"> — {(child as any).description}</span>}
+          {(child as { description?: string } | null)?.description && (
+            <span className="api-muted"> — {(child as { description?: string }).description}</span>
+          )}
           <SchemaView schema={child} depth={depth + 1} />
         </li>
       ))}

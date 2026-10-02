@@ -236,10 +236,12 @@ export function App() {
     const groups = new Map<string, PR[]>();
     for (const pr of sortedPrs) {
       const author = pr.author.login;
-      if (!groups.has(author)) {
-        groups.set(author, []);
+      let group = groups.get(author);
+      if (!group) {
+        group = [];
+        groups.set(author, group);
       }
-      groups.get(author)!.push(pr);
+      group.push(pr);
     }
     return [...groups.entries()];
   })();

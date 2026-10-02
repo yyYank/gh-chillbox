@@ -11,28 +11,28 @@ describe("extractSymbolsFromGoFile", () => {
     const { symbols } = await extractSymbolsFromGoFile(FIXTURE);
     const s = symbols.find((s) => s.name === "User");
     expect(s).toBeDefined();
-    expect(s!.kind).toBe("struct");
+    expect(s?.kind).toBe("struct");
   });
 
   it("interfaceを検出する", async () => {
     const { symbols } = await extractSymbolsFromGoFile(FIXTURE);
     const iface = symbols.find((s) => s.name === "UserRepository");
     expect(iface).toBeDefined();
-    expect(iface!.kind).toBe("interface");
+    expect(iface?.kind).toBe("interface");
   });
 
   it("functionを検出する", async () => {
     const { symbols } = await extractSymbolsFromGoFile(FIXTURE);
     const fn = symbols.find((s) => s.name === "NewUser");
     expect(fn).toBeDefined();
-    expect(fn!.kind).toBe("function");
+    expect(fn?.kind).toBe("function");
   });
 
   it("methodを検出する", async () => {
     const { symbols } = await extractSymbolsFromGoFile(FIXTURE);
     const m = symbols.find((s) => s.name === "User.UpdateName");
     expect(m).toBeDefined();
-    expect(m!.kind).toBe("method");
+    expect(m?.kind).toBe("method");
   });
 
   it("各symbolにstartLine/endLineがある", async () => {
@@ -61,8 +61,8 @@ describe("Go HTTPルート抽出", () => {
     expect(httpRoutes.length).toBe(4);
     const get = httpRoutes.find((r) => r.handler === "ListUsers");
     expect(get).toBeDefined();
-    expect(get!.method).toBe("GET");
-    expect(get!.path).toBe("/api/users");
+    expect(get?.method).toBe("GET");
+    expect(get?.path).toBe("/api/users");
   });
 
   it("各HTTPルートにmethod, path, handler, lineがある", async () => {
@@ -84,7 +84,7 @@ describe("Go クロスファイルrelation", () => {
     const { relations } = await extractSymbolsFromGoFile(CROSSFILE_FIXTURE, externalNames);
     const callToScanUser = relations.find((r) => r.from === "Anonymize" && r.to === "scanUser");
     expect(callToScanUser).toBeDefined();
-    expect(callToScanUser!.kind).toBe("call");
+    expect(callToScanUser?.kind).toBe("call");
   });
 
   it("外部symbolなしでは同一ファイル内のcallのみ検出する", async () => {

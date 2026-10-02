@@ -17,10 +17,12 @@ function buildTree(files: FileEntry[]): TreeNode {
     let node = root;
     for (let i = 0; i < parts.length - 1; i++) {
       const dir = parts[i];
-      if (!node.children.has(dir)) {
-        node.children.set(dir, { name: dir, children: new Map(), files: [] });
+      let child = node.children.get(dir);
+      if (!child) {
+        child = { name: dir, children: new Map(), files: [] };
+        node.children.set(dir, child);
       }
-      node = node.children.get(dir)!;
+      node = child;
     }
     node.files.push(f);
   }
@@ -78,8 +80,8 @@ function FolderNode({
   const stats = sumStats(node);
   const sortedDirs = [...node.children.entries()].sort((a, b) => a[0].localeCompare(b[0]));
   const sortedFiles = [...node.files].sort((a, b) => {
-    const aName = a.path.split("/").pop()!;
-    const bName = b.path.split("/").pop()!;
+    const aName = a.path.split("/").pop() ?? "";
+    const bName = b.path.split("/").pop() ?? "";
     return aName.localeCompare(bName);
   });
 
@@ -120,7 +122,7 @@ function FolderNode({
             />
           ))}
           {sortedFiles.map((f) => {
-            const fileName = f.path.split("/").pop()!;
+            const fileName = f.path.split("/").pop() ?? "";
             const selected = selectedFiles?.has(f.path) ?? false;
             return (
               <li
@@ -157,8 +159,8 @@ export function FileTree({ files, storagePrefix, selectedFiles, onFileClick }: P
 
   const sortedDirs = [...tree.children.entries()].sort((a, b) => a[0].localeCompare(b[0]));
   const sortedRootFiles = [...tree.files].sort((a, b) => {
-    const aName = a.path.split("/").pop()!;
-    const bName = b.path.split("/").pop()!;
+    const aName = a.path.split("/").pop() ?? "";
+    const bName = b.path.split("/").pop() ?? "";
     return aName.localeCompare(bName);
   });
 
@@ -176,7 +178,7 @@ export function FileTree({ files, storagePrefix, selectedFiles, onFileClick }: P
         />
       ))}
       {sortedRootFiles.map((f) => {
-        const fileName = f.path.split("/").pop()!;
+        const fileName = f.path.split("/").pop() ?? "";
         const selected = selectedFiles?.has(f.path) ?? false;
         return (
           <li
