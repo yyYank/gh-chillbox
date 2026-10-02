@@ -3,7 +3,7 @@ export type DiffFileEntry = {
   rawContent: string;
 };
 
-export function fuzzyMatch(query: string, target: string): boolean {
+export function matchPathPattern(query: string, target: string): boolean {
   if (query === "") {
     return true;
   }
@@ -32,7 +32,7 @@ export function filterDiffFiles(files: DiffFileEntry[], pathQuery: string, textQ
   }
 
   return files.filter((file) => {
-    const pathMatch = !pq || fuzzyMatch(pq, file.path);
+    const pathMatch = !pq || matchPathPattern(pq, file.path);
     const textMatch = !tq || file.rawContent.toLowerCase().includes(tq);
     return pathMatch && textMatch;
   });

@@ -1,37 +1,37 @@
 import { describe, it, expect } from "vitest";
-import { fuzzyMatch, filterDiffFiles, type DiffFileEntry } from "./diff-filters";
+import { matchPathPattern, filterDiffFiles, type DiffFileEntry } from "./diff-filters";
 
-describe("fuzzyMatch", () => {
+describe("matchPathPattern", () => {
   it("クエリが空文字のとき全てにマッチする", () => {
-    expect(fuzzyMatch("", "anything")).toBe(true);
+    expect(matchPathPattern("", "anything")).toBe(true);
   });
 
   it("完全一致でマッチする", () => {
-    expect(fuzzyMatch("index.ts", "index.ts")).toBe(true);
+    expect(matchPathPattern("index.ts", "index.ts")).toBe(true);
   });
 
   it("部分一致でマッチする", () => {
-    expect(fuzzyMatch("index", "src/index.ts")).toBe(true);
+    expect(matchPathPattern("index", "src/index.ts")).toBe(true);
   });
 
   it("文字順が一致すればfuzzyマッチする", () => {
-    expect(fuzzyMatch("rsapi", "rest-api")).toBe(true);
+    expect(matchPathPattern("rsapi", "rest-api")).toBe(true);
   });
 
   it("文字順が一致しない場合マッチしない", () => {
-    expect(fuzzyMatch("xyz", "rest-api")).toBe(false);
+    expect(matchPathPattern("xyz", "rest-api")).toBe(false);
   });
 
   it("大文字小文字を区別しない", () => {
-    expect(fuzzyMatch("README", "readme.md")).toBe(true);
+    expect(matchPathPattern("README", "readme.md")).toBe(true);
   });
 
   it("パスのプレフィックスでマッチする", () => {
-    expect(fuzzyMatch("apps/rest-api", "apps/rest-api/src/index.ts")).toBe(true);
+    expect(matchPathPattern("apps/rest-api", "apps/rest-api/src/index.ts")).toBe(true);
   });
 
   it("ターゲットが空文字でクエリがあるときマッチしない", () => {
-    expect(fuzzyMatch("a", "")).toBe(false);
+    expect(matchPathPattern("a", "")).toBe(false);
   });
 });
 
