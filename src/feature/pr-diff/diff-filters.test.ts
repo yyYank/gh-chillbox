@@ -14,8 +14,25 @@ describe("matchPathPattern", () => {
     expect(matchPathPattern("index", "src/index.ts")).toBe(true);
   });
 
-  it("文字順が一致すればfuzzyマッチする", () => {
-    expect(matchPathPattern("rsapi", "rest-api")).toBe(true);
+  it("文字が離れて含まれるだけではマッチしない", () => {
+    expect(matchPathPattern("rsapi", "rest-api")).toBe(false);
+    expect(matchPathPattern("md", "src/model/data.ts")).toBe(false);
+  });
+
+  it("拡張子だけで中間・末尾にマッチする", () => {
+    expect(matchPathPattern("md", "docs/README.md")).toBe(true);
+    expect(matchPathPattern("tsx", "apps/web/src/App.tsx")).toBe(true);
+  });
+
+  it("*を任意の文字列として扱う", () => {
+    expect(matchPathPattern("*.md", "docs/README.md")).toBe(true);
+    expect(matchPathPattern("*.tsx", "apps/web/src/App.tsx")).toBe(true);
+    expect(matchPathPattern("src/*.tsx", "apps/web/src/App.tsx")).toBe(true);
+    expect(matchPathPattern("*.tsx", "apps/web/src/App.ts")).toBe(false);
+  });
+
+  it("*以外の正規表現記号は文字として扱う", () => {
+    expect(matchPathPattern(".md", "readme_md")).toBe(false);
   });
 
   it("文字順が一致しない場合マッチしない", () => {
@@ -49,11 +66,16 @@ describe("filterDiffFiles", () => {
     { path: "README.md", rawContent: "+## Updated docs\n-## Old docs" },
   ];
 
+  it("*.mdでmdファイルだけに絞り込める", () => {
+    const result = filterDiffFiles(files, "*.md", "");
+    expect(result.map((f) => f.path)).toEqual(["README.md"]);
+  });
+
   it("両方のクエリが空のとき全ファイルを返す", () => {
     expect(filterDiffFiles(files, "", "")).toEqual(files);
   });
 
-  it("パスクエリでfuzzyフィルタできる", () => {
+  it("パスクエリで部分一致フィルタできる", () => {
     const result = filterDiffFiles(files, "rest-api", "");
     expect(result).toHaveLength(1);
     expect(result[0].path).toBe("apps/rest-api/src/index.ts");

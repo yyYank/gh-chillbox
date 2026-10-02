@@ -11,16 +11,11 @@ export function matchPathPattern(query: string, target: string): boolean {
     return false;
   }
 
-  const q = query.toLowerCase();
-  const t = target.toLowerCase();
-
-  let qi = 0;
-  for (let ti = 0; ti < t.length && qi < q.length; ti++) {
-    if (t[ti] === q[qi]) {
-      qi++;
-    }
-  }
-  return qi === q.length;
+  const pattern = query
+    .split("*")
+    .map((part) => part.replace(/[.+?^${}()|[\]\\]/g, "\\$&"))
+    .join(".*");
+  return new RegExp(pattern, "i").test(target);
 }
 
 export function filterDiffFiles(files: DiffFileEntry[], pathQuery: string, textQuery: string): DiffFileEntry[] {
