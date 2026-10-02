@@ -10,6 +10,7 @@ import { languageFromPath, highlightLine } from "./diff-highlight";
 import { stepFontSize, parseFontSize } from "./diff-font-size";
 import { isMarkdown } from "./diff-markdown";
 import { MarkdownPreview } from "./MarkdownPreview";
+import { MarpPreview } from "./MarpPreview";
 
 const FONT_SIZE_STORAGE_KEY = "gh-chillbox:diff-font-size";
 
@@ -58,6 +59,9 @@ function saveCollapsed(repo: string, prNumber: number, collapsed: Set<string>) {
   } catch {}
 }
 
+const MD_MODES = ["raw", "preview", "slide"] as const;
+type MdMode = (typeof MD_MODES)[number];
+
 export function DiffPanel({ repo, prNumber, prTitle = "", prBody = "", onFileHeaderClick }: Props) {
   const [diff, setDiff] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -70,7 +74,7 @@ export function DiffPanel({ repo, prNumber, prTitle = "", prBody = "", onFileHea
   const [floatingBtn, setFloatingBtn] = useState<{ x: number; y: number; anchor: ThreadAnchor } | null>(null);
   const [pullRequestId, setPullRequestId] = useState<string | null>(null);
   const [viewedStates, setViewedStates] = useState<ViewedStates>({});
-  const [previewPaths, setPreviewPaths] = useState<Set<string>>(new Set());
+  const [mdModes, setMdModes] = useState<Map<string, MdMode>>(new Map());
   const [fontSize, setFontSize] = useState(() => {
     try {
       return parseFontSize(localStorage.getItem(FONT_SIZE_STORAGE_KEY));
@@ -130,17 +134,10 @@ export function DiffPanel({ repo, prNumber, prTitle = "", prBody = "", onFileHea
 
   const toggleCollapse = useCallback((path: string) => setCollapsed(path), [setCollapsed]);
 
-  const setPreview = (path: string, preview: boolean) => {
-    setPreviewPaths((prev) => {
-      const next = new Set(prev);
-      if (preview) {
-        next.add(path);
-      } else {
-        next.delete(path);
-      }
-      return next;
-    });
+  const setMdMode = (path: string, mode: MdMode) => {
+    setMdModes((prev) => new Map(prev).set(path, mode));
   };
+  const mdModeOf = (path: string): MdMode => mdModes.get(path) ?? "raw";
 
   useEffect(() => {
     setPullRequestId(null);
@@ -375,12 +372,12 @@ export function DiffPanel({ repo, prNumber, prTitle = "", prBody = "", onFileHea
                   <span className="diff-file-path">{file.path}</span>
                   {isMarkdown(file.path) && (
                     <span className="diff-md-mode" onClick={(e) => e.stopPropagation()}>
-                      {(["raw", "preview"] as const).map((mode) => (
+                      {MD_MODES.map((mode) => (
                         <button
                           key={mode}
                           type="button"
-                          className={`diff-md-mode-btn${previewPaths.has(file.path) === (mode === "preview") ? " active" : ""}`}
-                          onClick={() => setPreview(file.path, mode === "preview")}
+                          className={`diff-md-mode-btn${mdModeOf(file.path) === mode ? " active" : ""}`}
+                          onClick={() => setMdMode(file.path, mode)}
                         >
                           {mode}
                         </button>
@@ -407,7 +404,7 @@ export function DiffPanel({ repo, prNumber, prTitle = "", prBody = "", onFileHea
                     </span>
                   )}
                 </div>
-                {!collapsed && previewPaths.has(file.path) && (
+                {!collapsed && mdModeOf(file.path) === "preview" && (
                   <MarkdownPreview
                     repo={repo}
                     prNumber={prNumber}
@@ -416,7 +413,10 @@ export function DiffPanel({ repo, prNumber, prTitle = "", prBody = "", onFileHea
                     fontSize={fontSize}
                   />
                 )}
-                {!collapsed && !previewPaths.has(file.path) && (
+                {!collapsed && mdModeOf(file.path) === "slide" && (
+                  <MarpPreview repo={repo} prNumber={prNumber} path={file.path} fontSize={fontSize} />
+                )}
+                {!collapsed && mdModeOf(file.path) === "raw" && (
                   <div className="diff-file-body" data-path={file.path} style={{ fontSize }}>
                     {file.lines.map((line, j) => (
                       <Fragment key={j}>
