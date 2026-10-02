@@ -816,6 +816,23 @@ th.col-rank {
   color: var(--text-muted);
 }
 
+.col-memo {
+  min-width: 160px;
+}
+.memo-input {
+  width: 100%;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.8rem;
+}
+.memo-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
 /* ===== Detail chevron column ===== */
 .col-detail {
   width: 40px;

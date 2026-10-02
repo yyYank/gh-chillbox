@@ -24,6 +24,7 @@ import headerIcon from "./assets/icon.png";
 import headerIconDark from "./assets/icon-dark.png";
 import headerLogo from "./assets/logo.png";
 import headerLogoDark from "./assets/logo-dark.png";
+import { setMemo, parseMemos, memoStorageKey, type PrMemos } from "./feature/pull-requests/pr-memo";
 
 const REPO_STORAGE_KEY = "gh-chillbox:repo";
 const REPO_HISTORY_KEY = "gh-chillbox:repo-history";
@@ -183,6 +184,29 @@ export function App() {
       // ignore
     }
   }, [repo]);
+
+  const memoRepo = repo.trim();
+  const [memos, setMemos] = useState<PrMemos>({});
+
+  useEffect(() => {
+    try {
+      setMemos(parseMemos(localStorage.getItem(memoStorageKey(memoRepo))));
+    } catch {
+      setMemos({});
+    }
+  }, [memoRepo]);
+
+  const updateMemo = useCallback((prNumber: number, text: string) => {
+    setMemos((prev) => {
+      const next = setMemo(prev, prNumber, text);
+      try {
+        localStorage.setItem(memoStorageKey(memoRepo), JSON.stringify(next));
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  }, [memoRepo]);
 
   const handleRepoSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -415,6 +439,7 @@ export function App() {
                     <th>Reviewer</th>
                     <th>作成日時</th>
                     <th>更新日時</th>
+                    <th>メモ</th>
                     {filter === "hidden" && <th />}
                     {filter !== "hidden" && <th className="col-detail" />}
                   </tr>
@@ -424,7 +449,7 @@ export function App() {
                   <tbody>
                     {hiddenPrs.length === 0 && (
                       <tr>
-                        <td colSpan={7} className="empty">
+                        <td colSpan={8} className="empty">
                           非表示のPRはありません
                         </td>
                       </tr>
@@ -450,6 +475,14 @@ export function App() {
                         <td>{reviewers(pr)}</td>
                         <td className="col-date">{formatDate(pr.createdAt)}</td>
                         <td className="col-date">{formatDate(pr.updatedAt)}</td>
+                        <td className="col-memo">
+                          <input
+                            type="text"
+                            className="memo-input"
+                            value={memos[pr.number] ?? ""}
+                            onChange={(e) => updateMemo(pr.number, e.target.value)}
+                          />
+                        </td>
                         <td>
                           <button
                             type="button"
@@ -472,7 +505,7 @@ export function App() {
                     >
                       <tbody>
                         <tr className="group-header-row">
-                          <td colSpan={8}>{author}</td>
+                          <td colSpan={10}>{author}</td>
                         </tr>
                         {groupPrs.map((pr, idx) => (
                           <SortableRow
@@ -490,6 +523,8 @@ export function App() {
                               });
                             }}
                             onDetail={navigateToPr}
+                            memo={memos[pr.number] ?? ""}
+                            onMemoChange={updateMemo}
                           />
                         ))}
                       </tbody>
@@ -503,7 +538,7 @@ export function App() {
                     <tbody>
                       {sortedPrs.length === 0 && !loading && (
                         <tr>
-                          <td colSpan={8} className="empty">
+                          <td colSpan={10} className="empty">
                             {repo.trim()
                               ? "該当するPRがありません"
                               : "リポジトリを入力してください"}
@@ -526,6 +561,8 @@ export function App() {
                             });
                           }}
                           onDetail={navigateToPr}
+                          memo={memos[pr.number] ?? ""}
+                          onMemoChange={updateMemo}
                         />
                       ))}
                     </tbody>

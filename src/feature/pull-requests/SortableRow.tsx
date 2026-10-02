@@ -10,9 +10,11 @@ type Props = {
   formatDate: (iso: string) => string;
   onContextMenu: (e: React.MouseEvent) => void;
   onDetail: (prNumber: number) => void;
+  memo: string;
+  onMemoChange: (prNumber: number, text: string) => void;
 };
 
-export function SortableRow({ pr, rank, reviewers, formatDate, onContextMenu, onDetail }: Props) {
+export function SortableRow({ pr, rank, reviewers, formatDate, onContextMenu, onDetail, memo, onMemoChange }: Props) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: pr.number });
 
@@ -47,6 +49,14 @@ export function SortableRow({ pr, rank, reviewers, formatDate, onContextMenu, on
       <td>{reviewers}</td>
       <td className="col-date">{formatDate(pr.createdAt)}</td>
       <td className="col-date">{formatDate(pr.updatedAt)}</td>
+      <td className="col-memo" onClick={(e) => e.stopPropagation()} onContextMenu={(e) => e.stopPropagation()}>
+        <input
+          type="text"
+          className="memo-input"
+          value={memo}
+          onChange={(e) => onMemoChange(pr.number, e.target.value)}
+        />
+      </td>
       <td className="col-detail">
         <button
           type="button"
