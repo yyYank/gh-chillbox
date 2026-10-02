@@ -343,7 +343,7 @@ export function DiffPanel({ repo, prNumber, prTitle = "", prBody = "", onFileHea
                   )}
                 </div>
                 {!collapsed && previewPaths.has(file.path) && (
-                  <MarkdownPreview repo={repo} prNumber={prNumber} path={file.path} lines={file.lines} />
+                  <MarkdownPreview repo={repo} prNumber={prNumber} path={file.path} lines={file.lines} fontSize={fontSize} />
                 )}
                 {!collapsed && !previewPaths.has(file.path) && (
                   <div className="diff-file-body" data-path={file.path} style={{ fontSize }}>

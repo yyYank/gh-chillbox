@@ -1880,6 +1880,12 @@ tr:hover .memo-view-empty {
   padding: 12px 16px;
 }
 
+.diff-md-preview .markdown-body h1 { font-size: 1.3em; }
+.diff-md-preview .markdown-body h2 { font-size: 1.1em; }
+.diff-md-preview .markdown-body h3 { font-size: 1em; }
+.diff-md-preview .markdown-body th,
+.diff-md-preview .markdown-body td { font-size: 0.85em; }
+
 .diff-md-chunk + .diff-md-chunk {
   margin-top: 12px;
   padding-top: 12px;

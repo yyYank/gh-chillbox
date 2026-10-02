@@ -10,11 +10,12 @@ type Props = {
   prNumber: number;
   path: string;
   lines: DiffLine[];
+  fontSize: number;
 };
 
 type FullState = { loading: boolean; error: string | null; content: string | null };
 
-export function MarkdownPreview({ repo, prNumber, path, lines }: Props) {
+export function MarkdownPreview({ repo, prNumber, path, lines, fontSize }: Props) {
   const [scope, setScope] = useState<Scope>("changed");
   const [full, setFull] = useState<FullState | null>(null);
 
@@ -36,7 +37,7 @@ export function MarkdownPreview({ repo, prNumber, path, lines }: Props) {
   const fullHtml = useMemo(() => (full?.content != null ? (marked.parse(full.content) as string) : ""), [full]);
 
   return (
-    <div className="diff-md-preview">
+    <div className="diff-md-preview" style={{ fontSize }}>
       <ScopeToggle scope={scope} onChange={setScope} />
       {scope === "changed" ? (
         changedHtml.length === 0 ? (
