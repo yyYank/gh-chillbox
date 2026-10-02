@@ -6,6 +6,7 @@ import { lintJa } from "./polish/textlint";
 import { replaceAiWords } from "./polish/ai-words";
 import { ensureRepo, checkoutSha, gitOutput } from "./git/repository-cache-handler";
 import { chatSessionKey } from "./chat/chat-session";
+import { UPLOAD_DIR, imagePromptParts, saveUploadedImage } from "./chat/chat-image";
 
 const execFileAsync = promisify(execFile);
 
@@ -260,6 +261,7 @@ type ChatBody = {
   includeDiff?: boolean;
   quotedFromRewritten?: boolean;
   diffThread?: { key: string; path: string; start: string; end: string; code: string };
+  imagePaths?: string[];
 };
 
 async function buildContextParts(body: ChatBody): Promise<string[]> {
@@ -295,6 +297,11 @@ async function buildContextParts(body: ChatBody): Promise<string[]> {
         /* diff取得失敗時は無視してファイル一覧のみで続行 */
       }
     }
+  }
+
+  const imageParts = imagePromptParts(UPLOAD_DIR, body.imagePaths ?? []);
+  if (imageParts.length > 0) {
+    parts.push("", ...imageParts);
   }
 
   return parts;
@@ -355,6 +362,21 @@ app.post("/chat/preview", async (c) => {
   return c.json({ prompt, resumed: false });
 });
 
+app.post("/chat/image", async (c) => {
+  const form = await c.req.parseBody();
+  const file = form.file;
+  if (!(file instanceof File)) {
+    return c.json({ error: "file is required" }, 400);
+  }
+  try {
+    const saved = saveUploadedImage(UPLOAD_DIR, { type: file.type, bytes: new Uint8Array(await file.arrayBuffer()) });
+    return c.json({ path: saved });
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Unknown error";
+    return c.json({ error: message }, 400);
+  }
+});
+
 app.post("/chat", async (c) => {
   const body = await c.req.json<ChatBody>();
 
@@ -377,6 +399,8 @@ app.post("/chat", async (c) => {
     const prompt = await buildInitialPrompt(body);
     args.push(prompt, "--output-format", "json", "--allowedTools", allowedTools);
   }
+  // --add-dir は可変長引数なのでプロンプトを飲み込まないよう末尾に置く
+  args.push("--add-dir", UPLOAD_DIR);
 
   try {
     const { stdout: prJson } = await execFileAsync("gh", [

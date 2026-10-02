@@ -1632,6 +1632,34 @@ tr:hover .memo-view-empty {
   padding: 12px 16px;
   border-top: 1px solid var(--border);
 }
+.chat-input-area-dragover {
+  outline: 2px dashed var(--accent);
+  outline-offset: -4px;
+}
+
+.chat-attached-images {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 16px 0;
+  border-top: 1px solid var(--border);
+}
+.chat-attached-image {
+  position: relative;
+}
+.chat-attached-image img {
+  display: block;
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.chat-attached-image .chat-clear-btn {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+}
 
 .chat-input {
   flex: 1;
