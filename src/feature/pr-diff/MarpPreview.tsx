@@ -107,9 +107,31 @@ function SlideOverlay({ rendered, count, onClose }: { rendered: Rendered; count:
   );
 }
 
+// markdown の文字列をスライドとして描画する。全画面表示のボタンも持つ
+export function MarpSlides({ content, fontSize = DEFAULT_FONT_SIZE }: { content: string; fontSize?: number }) {
+  const [fullscreen, setFullscreen] = useState(false);
+
+  const rendered = useMemo(() => {
+    const scale = fontSize / DEFAULT_FONT_SIZE;
+    const { html, css } = new Marp().render(withMarpDirective(splitLongSections(content, { scale })));
+    const fontCss = `div.marpit > svg > foreignObject > section { font-size: ${THEME_FONT_SIZE * scale}px; }`;
+    return { html, css: css + fontCss };
+  }, [content, fontSize]);
+  const count = useMemo(() => rendered.html.match(/data-marpit-svg/g)?.length ?? 0, [rendered]);
+
+  return (
+    <>
+      <button type="button" className="marp-fullscreen-btn" onClick={() => setFullscreen(true)}>
+        <Maximize2 size={12} /> 全画面
+      </button>
+      <SlideHost rendered={rendered} />
+      {fullscreen && <SlideOverlay rendered={rendered} count={count} onClose={() => setFullscreen(false)} />}
+    </>
+  );
+}
+
 export function MarpPreview({ repo, prNumber, path, fontSize }: Props) {
   const [full, setFull] = useState<FullState>({ loading: true, error: null, content: null });
-  const [fullscreen, setFullscreen] = useState(false);
 
   useEffect(() => {
     setFull({ loading: true, error: null, content: null });
@@ -128,31 +150,14 @@ export function MarpPreview({ repo, prNumber, path, fontSize }: Props) {
       );
   }, [repo, prNumber, path]);
 
-  const rendered = useMemo(() => {
-    if (full.content == null) {
-      return null;
-    }
-    const scale = fontSize / DEFAULT_FONT_SIZE;
-    const { html, css } = new Marp().render(withMarpDirective(splitLongSections(full.content, { scale })));
-    const fontCss = `div.marpit > svg > foreignObject > section { font-size: ${THEME_FONT_SIZE * scale}px; }`;
-    return { html, css: css + fontCss };
-  }, [full.content, fontSize]);
-  const count = useMemo(() => rendered?.html.match(/data-marpit-svg/g)?.length ?? 0, [rendered]);
-
   return (
     <div className="diff-md-preview">
       {full.loading ? (
         <div className="diff-panel-status">ファイルを読み込み中…</div>
       ) : full.error ? (
         <div className="diff-panel-status diff-panel-error">{full.error}</div>
-      ) : rendered ? (
-        <>
-          <button type="button" className="marp-fullscreen-btn" onClick={() => setFullscreen(true)}>
-            <Maximize2 size={12} /> 全画面
-          </button>
-          <SlideHost rendered={rendered} />
-          {fullscreen && <SlideOverlay rendered={rendered} count={count} onClose={() => setFullscreen(false)} />}
-        </>
+      ) : full.content != null ? (
+        <MarpSlides content={full.content} fontSize={fontSize} />
       ) : null}
     </div>
   );
