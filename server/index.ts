@@ -4,7 +4,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { lintJa } from "./polish/textlint";
 import { replaceAiWords } from "./polish/ai-words";
-import { ensureRepo, checkoutSha } from "./git/repository-cache-handler";
+import { ensureRepo, checkoutSha, gitOutput } from "./git/repository-cache-handler";
 import { chatSessionKey } from "./chat/chat-session";
 
 const execFileAsync = promisify(execFile);
@@ -223,6 +223,28 @@ app.get("/pr-diff", async (c) => {
       ? filterDiffByFiles(stdout, filesParam.split(","))
       : stdout;
     return c.json({ diff: result, charCount: result.length });
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Unknown error";
+    return c.json({ error: message }, 500);
+  }
+});
+
+app.get("/pr-file-content", async (c) => {
+  const repo = c.req.query("repo");
+  const number = c.req.query("number");
+  const path = c.req.query("path");
+  if (!repo || !number || !path) {
+    return c.json({ error: "repo, number and path are required" }, 400);
+  }
+
+  try {
+    const { stdout } = await execFileAsync("gh", [
+      "pr", "view", number, "--repo", repo, "--json", "headRefOid",
+    ]);
+    const { headRefOid } = JSON.parse(stdout) as { headRefOid: string };
+    const repoDir = await ensureRepo(repo);
+    const content = await gitOutput(repoDir, ["show", `${headRefOid}:${path}`]);
+    return c.json({ content });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Unknown error";
     return c.json({ error: message }, 500);
