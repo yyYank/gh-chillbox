@@ -469,10 +469,10 @@ th.col-rank {
 }
 
 /* ===== Empty state ===== */
-.empty {
+.pr-table td.empty {
   text-align: center;
   color: var(--text-muted);
-  padding: 48px 20px !important;
+  padding: 48px 20px;
 }
 
 /* ===== Context menu ===== */
@@ -1220,8 +1220,8 @@ th.col-rank {
   cursor: pointer;
   user-select: none;
 }
-.tree-file-selected {
-  background: var(--accent-soft) !important;
+.tree-file.tree-file-selected {
+  background: var(--accent-soft);
   border-radius: 4px;
 }
 
