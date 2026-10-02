@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { marked } from "marked";
-import mermaid from "mermaid";
 import { ArrowLeft, ChevronDown, ChevronRight, MessageSquareQuote, PanelLeft, PanelRight } from "lucide-react";
 import { FileTree } from "./FileTree";
 import { ChatPanel } from "../chat/ChatPanel";
 import { DiffPanel } from "../pr-diff/DiffPanel";
 import { MarpSlides } from "../pr-diff/MarpPreview";
+import { renderMermaidBlocks } from "../mermaid/render-mermaid";
 import { ChangeSurface } from "../insights/change-surface/ChangeSurface";
 import { AstAnalysis } from "../insights/ast-analysis/AstAnalysis";
 import { CallGraph } from "../insights/call-graph/CallGraph";
@@ -44,8 +44,6 @@ renderer.code = (token: Parameters<typeof originalCode>[0]) => {
   return originalCode(token);
 };
 marked.use({ renderer });
-
-mermaid.initialize({ startOnLoad: false, theme: "default" });
 
 type PrComment = {
   author: { login: string };
@@ -315,17 +313,7 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange, toolbarHidden 
     (async () => {
       const div = document.createElement("div");
       div.innerHTML = rawBodyHtml as string;
-      const blocks = div.querySelectorAll("pre.mermaid");
-      for (let i = 0; i < blocks.length; i++) {
-        try {
-          const id = `mmd-${prNumber}-${i}-${Date.now()}`;
-          const { svg } = await mermaid.render(id, blocks[i].textContent || "");
-          blocks[i].innerHTML = svg;
-          blocks[i].setAttribute("data-rendered", "true");
-        } catch {
-          /* keep raw text on parse error */
-        }
-      }
+      await renderMermaidBlocks(div.querySelectorAll("pre.mermaid"), `mmd-${prNumber}`);
       if (!cancelled) {
         setRenderedBody(div.innerHTML);
       }
