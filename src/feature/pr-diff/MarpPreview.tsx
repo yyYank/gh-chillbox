@@ -4,6 +4,7 @@ import { Marp } from "@marp-team/marp-core";
 import { ChevronLeft, ChevronRight, Maximize2, X } from "lucide-react";
 import { splitLongSections, withMarpDirective } from "./diff-marp";
 import { DEFAULT_FONT_SIZE } from "./diff-font-size";
+import { renderMermaidBlocks } from "../mermaid/render-mermaid";
 
 type Props = {
   repo: string;
@@ -37,6 +38,23 @@ const SINGLE_STYLE = `
   svg[data-marpit-svg] { display: block; width: 100%; height: 100%; }
 `;
 
+// mermaid の図をスライドの中に収める
+const MERMAID_STYLE = `
+  pre[data-rendered] { background: none; padding: 0; text-align: center; }
+  pre[data-rendered] svg { max-width: 100%; max-height: 560px; height: auto; }
+`;
+
+// mermaid のコードブロックを図(SVG)に置き換えた html を返す
+async function withMermaidDiagrams(rendered: Rendered): Promise<Rendered> {
+  const div = document.createElement("div");
+  div.innerHTML = rendered.html;
+  const blocks = Array.from(div.querySelectorAll("code.language-mermaid"), (code) => code.parentElement).filter(
+    (pre): pre is HTMLElement => pre != null,
+  );
+  await renderMermaidBlocks(blocks, "marp-mmd");
+  return { ...rendered, html: div.innerHTML };
+}
+
 // index を渡すとそのスライドだけを表示する
 function SlideHost({ rendered, index }: { rendered: Rendered; index?: number }) {
   const hostRef = useRef<HTMLDivElement>(null);
@@ -48,7 +66,7 @@ function SlideHost({ rendered, index }: { rendered: Rendered; index?: number }) 
     }
     const root = host.shadowRoot ?? host.attachShadow({ mode: "open" });
     const style = index == null ? LIST_STYLE : SINGLE_STYLE;
-    root.innerHTML = `<style>${rendered.css}${style}</style>${rendered.html}`;
+    root.innerHTML = `<style>${rendered.css}${style}${MERMAID_STYLE}</style>${rendered.html}`;
   }, [rendered, index]);
 
   useEffect(() => {
@@ -118,14 +136,32 @@ export function MarpSlides({ content, fontSize = DEFAULT_FONT_SIZE }: { content:
     return { html, css: css + fontCss };
   }, [content, fontSize]);
   const count = useMemo(() => rendered.html.match(/data-marpit-svg/g)?.length ?? 0, [rendered]);
+  const [diagrams, setDiagrams] = useState<{ source: Rendered; result: Rendered } | null>(null);
+
+  useEffect(() => {
+    if (!rendered.html.includes("language-mermaid")) {
+      return;
+    }
+    let cancelled = false;
+    withMermaidDiagrams(rendered).then((result) => {
+      if (!cancelled) {
+        setDiagrams({ source: rendered, result });
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [rendered]);
+  // 図の描画が終わるまではコードのまま表示する
+  const shown = diagrams?.source === rendered ? diagrams.result : rendered;
 
   return (
     <>
       <button type="button" className="marp-fullscreen-btn" onClick={() => setFullscreen(true)}>
         <Maximize2 size={12} /> 全画面
       </button>
-      <SlideHost rendered={rendered} />
-      {fullscreen && <SlideOverlay rendered={rendered} count={count} onClose={() => setFullscreen(false)} />}
+      <SlideHost rendered={shown} />
+      {fullscreen && <SlideOverlay rendered={shown} count={count} onClose={() => setFullscreen(false)} />}
     </>
   );
 }
