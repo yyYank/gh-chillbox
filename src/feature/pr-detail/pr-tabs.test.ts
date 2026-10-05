@@ -1,5 +1,24 @@
 import { describe, it, expect } from "vitest";
-import { addTab, closeTab, parseTabs, tabTooltip } from "./pr-tabs";
+import { addTab, closeTab, moveTab, parseTabs, tabTooltip } from "./pr-tabs";
+
+describe("moveTab", () => {
+  it("右へドラッグするとドロップ先の位置に移る", () => {
+    expect(moveTab([1, 2, 3, 4], 1, 3)).toEqual([2, 3, 1, 4]);
+  });
+
+  it("左へドラッグするとドロップ先の位置に移る", () => {
+    expect(moveTab([1, 2, 3, 4], 4, 2)).toEqual([1, 4, 2, 3]);
+  });
+
+  it("存在しない PR 番号なら順番を変えない", () => {
+    expect(moveTab([1, 2, 3], 9, 2)).toEqual([1, 2, 3]);
+    expect(moveTab([1, 2, 3], 1, 9)).toEqual([1, 2, 3]);
+  });
+
+  it("同じ位置にドロップしたら順番を変えない", () => {
+    expect(moveTab([1, 2, 3], 2, 2)).toEqual([1, 2, 3]);
+  });
+});
 
 describe("tabTooltip", () => {
   it("タイトルとメモを改行して並べる", () => {

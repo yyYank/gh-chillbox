@@ -6,12 +6,13 @@ const SHOW_DELAY_MS = 150;
 type Props = {
   content: string;
   className?: string;
+  disabled?: boolean;
   children: ReactNode;
 };
 
 // ブラウザ標準の title より早く出すためのツールチップ。
 // 親が overflow で切れても見えるよう、body 直下に position: fixed で描画する
-export function Tooltip({ content, className, children }: Props) {
+export function Tooltip({ content, className, disabled = false, children }: Props) {
   const anchorRef = useRef<HTMLDivElement>(null);
   const timerRef = useRef<number | null>(null);
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
@@ -26,7 +27,7 @@ export function Tooltip({ content, className, children }: Props) {
   useEffect(() => clearTimer, []);
 
   const show = () => {
-    if (!content) {
+    if (!content || disabled) {
       return;
     }
     clearTimer();
@@ -48,6 +49,7 @@ export function Tooltip({ content, className, children }: Props) {
       {children}
       {pos &&
         content &&
+        !disabled &&
         createPortal(
           <div className="tooltip" role="tooltip" style={{ left: pos.x, top: pos.y }}>
             {content}

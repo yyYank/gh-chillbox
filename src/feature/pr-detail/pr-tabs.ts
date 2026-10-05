@@ -16,6 +16,18 @@ export function closeTab(
   return { tabs: next, active: next[index] ?? next[index - 1] ?? null };
 }
 
+export function moveTab(tabs: number[], from: number, to: number): number[] {
+  const fromIndex = tabs.indexOf(from);
+  const toIndex = tabs.indexOf(to);
+  if (fromIndex === -1 || toIndex === -1) {
+    return tabs;
+  }
+  const next = [...tabs];
+  next.splice(fromIndex, 1);
+  next.splice(toIndex, 0, from);
+  return next;
+}
+
 export function tabTooltip(title: string | undefined, memo: string | undefined): string {
   return [title, memo && `メモ: ${memo}`].filter(Boolean).join("\n");
 }

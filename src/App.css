@@ -3453,11 +3453,14 @@ tr:hover .memo-view-empty {
   margin: 8px 0;
 }
 .pr-tab {
-  display: flex;
-  align-items: center;
   flex-shrink: 0;
   max-width: 240px;
   position: relative;
+}
+.pr-tab-inner {
+  display: flex;
+  align-items: center;
+  min-width: 0;
 }
 .pr-tab-label {
   display: flex;

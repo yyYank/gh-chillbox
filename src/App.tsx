@@ -10,7 +10,7 @@ import { SortableRow } from "./feature/pull-requests/SortableRow";
 import { NotificationDrawer } from "./feature/notifications/NotificationDrawer";
 import { PrDetail } from "./feature/pr-detail/PrDetail";
 import { PrTabBar } from "./feature/pr-detail/PrTabBar";
-import { addTab, closeTab, parseTabs } from "./feature/pr-detail/pr-tabs";
+import { addTab, closeTab, moveTab, parseTabs } from "./feature/pr-detail/pr-tabs";
 import "./App.css";
 import headerIcon from "./assets/icon.png";
 import headerIconDark from "./assets/icon-dark.png";
@@ -285,6 +285,11 @@ export function App() {
     setTabTitles((prev) => (prev[prNumber] === title ? prev : { ...prev, [prNumber]: title }));
   }, []);
 
+  const handleTabReorder = useCallback(
+    (from: number, to: number) => updatePrTabs((prev) => moveTab(prev, from, to)),
+    [updatePrTabs],
+  );
+
   const updateMemo = useCallback(
     (prNumber: number, text: string) => {
       setMemos((prev) => {
@@ -510,6 +515,7 @@ export function App() {
           memos={memos}
           onSelect={navigateToPr}
           onClose={handleCloseTab}
+          onReorder={handleTabReorder}
         />
       )}
       {/* 開いたタブは一覧に戻っても裏で保持し、chat やスクロール位置を残す */}
