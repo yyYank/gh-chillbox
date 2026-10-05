@@ -80,10 +80,21 @@ type Props = {
   prNumber: number;
   onBack: () => void;
   onTitleChange?: (title: string | null) => void;
+  onLoaded?: (title: string) => void;
   toolbarHidden?: boolean;
+  // タブで裏に回っているときは false。ページタイトルの更新をやめる
+  active?: boolean;
 };
 
-export function PrDetail({ repo, prNumber, onBack, onTitleChange, toolbarHidden = false }: Props) {
+export function PrDetail({
+  repo,
+  prNumber,
+  onBack,
+  onTitleChange,
+  onLoaded,
+  toolbarHidden = false,
+  active = true,
+}: Props) {
   const storagePrefix = `gh-chillbox:${repo}:${prNumber}`;
   const [data, setData] = useState<PrDetailData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -265,6 +276,15 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange, toolbarHidden 
 
   useEffect(() => {
     if (data?.title) {
+      onLoaded?.(data.title);
+    }
+  }, [data?.title, onLoaded]);
+
+  useEffect(() => {
+    if (!active) {
+      return;
+    }
+    if (data?.title) {
       document.title = `${data.title} #${data.number} - ChillBox`;
       onTitleChange?.(`${data.title} #${data.number}`);
     }
@@ -272,7 +292,7 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange, toolbarHidden 
       document.title = "gh-chillbox";
       onTitleChange?.(null);
     };
-  }, [data?.title, data?.number, onTitleChange]);
+  }, [active, data?.title, data?.number, onTitleChange]);
 
   const runHumanize = useCallback(async () => {
     if (!data?.body) {

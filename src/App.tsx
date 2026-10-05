@@ -9,6 +9,8 @@ import { ContextMenu } from "./feature/pull-requests/ContextMenu";
 import { SortableRow } from "./feature/pull-requests/SortableRow";
 import { NotificationDrawer } from "./feature/notifications/NotificationDrawer";
 import { PrDetail } from "./feature/pr-detail/PrDetail";
+import { PrTabBar } from "./feature/pr-detail/PrTabBar";
+import { addTab, closeTab, parseTabs } from "./feature/pr-detail/pr-tabs";
 import "./App.css";
 import headerIcon from "./assets/icon.png";
 import headerIconDark from "./assets/icon-dark.png";
@@ -39,6 +41,18 @@ function loadRepo(): string {
     return localStorage.getItem(REPO_STORAGE_KEY) ?? "";
   } catch {
     return "";
+  }
+}
+
+function prTabsStorageKey(repo: string): string {
+  return `gh-chillbox:${repo}:pr-tabs`;
+}
+
+function loadPrTabs(repo: string): number[] {
+  try {
+    return parseTabs(localStorage.getItem(prTabsStorageKey(repo)));
+  } catch {
+    return [];
   }
 }
 
@@ -209,6 +223,64 @@ export function App() {
       setMemos({});
     }
   }, [memoRepo]);
+
+  const [prTabs, setPrTabs] = useState<number[]>(() => loadPrTabs(repo.trim()));
+  // 一度表示したタブだけを裏で開いたままにする(保存済みタブを起動時に一斉に読み込まないため)
+  const [mountedTabs, setMountedTabs] = useState<Set<number>>(new Set());
+  const [tabTitles, setTabTitles] = useState<Record<number, string>>({});
+
+  const updatePrTabs = useCallback(
+    (update: (prev: number[]) => number[]) => {
+      setPrTabs((prev) => {
+        const next = update(prev);
+        try {
+          localStorage.setItem(prTabsStorageKey(memoRepo), JSON.stringify(next));
+        } catch {}
+        return next;
+      });
+    },
+    [memoRepo],
+  );
+
+  useEffect(() => {
+    setPrTabs(loadPrTabs(memoRepo));
+    setMountedTabs(new Set());
+    setTabTitles({});
+  }, [memoRepo]);
+
+  useEffect(() => {
+    if (selectedPr === null) {
+      return;
+    }
+    updatePrTabs((prev) => addTab(prev, selectedPr));
+    setMountedTabs((prev) => (prev.has(selectedPr) ? prev : new Set(prev).add(selectedPr)));
+  }, [selectedPr, updatePrTabs]);
+
+  const visibleTabs = selectedPr === null ? prTabs : addTab(prTabs, selectedPr);
+
+  const handleCloseTab = useCallback(
+    (prNumber: number) => {
+      const result = closeTab(visibleTabs, prNumber, selectedPr);
+      updatePrTabs(() => result.tabs);
+      setMountedTabs((prev) => {
+        const next = new Set(prev);
+        next.delete(prNumber);
+        return next;
+      });
+      if (prNumber === selectedPr) {
+        if (result.active === null) {
+          navigateToList();
+        } else {
+          navigateToPr(result.active);
+        }
+      }
+    },
+    [visibleTabs, selectedPr, updatePrTabs, navigateToList, navigateToPr],
+  );
+
+  const handleTabLoaded = useCallback((prNumber: number, title: string) => {
+    setTabTitles((prev) => (prev[prNumber] === title ? prev : { ...prev, [prNumber]: title }));
+  }, []);
 
   const updateMemo = useCallback(
     (prNumber: number, text: string) => {
@@ -427,15 +499,32 @@ export function App() {
         </div>
       </form>
 
-      {selectedPr !== null ? (
-        <PrDetail
-          repo={repo.trim()}
-          prNumber={selectedPr}
-          onBack={navigateToList}
-          onTitleChange={setPrTitle}
-          toolbarHidden={headerRowsHidden}
+      {selectedPr !== null && visibleTabs.length > 1 && (
+        <PrTabBar
+          tabs={visibleTabs}
+          active={selectedPr}
+          titles={tabTitles}
+          onSelect={navigateToPr}
+          onClose={handleCloseTab}
         />
-      ) : (
+      )}
+      {/* 開いたタブは一覧に戻っても裏で保持し、chat やスクロール位置を残す */}
+      {visibleTabs
+        .filter((n) => mountedTabs.has(n) || n === selectedPr)
+        .map((n) => (
+          <div key={`${memoRepo}:${n}`} hidden={n !== selectedPr}>
+            <PrDetail
+              repo={memoRepo}
+              prNumber={n}
+              onBack={navigateToList}
+              onTitleChange={setPrTitle}
+              onLoaded={(title) => handleTabLoaded(n, title)}
+              toolbarHidden={headerRowsHidden}
+              active={n === selectedPr}
+            />
+          </div>
+        ))}
+      {selectedPr === null && (
         <>
           <div className="filter-bar">
             <button
