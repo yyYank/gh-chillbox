@@ -146,6 +146,7 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange, toolbarHidden 
   const bodyRef = useRef<HTMLDivElement>(null);
   const commentsRef = useRef<HTMLDivElement>(null);
   const treeWrapRef = useRef<HTMLDivElement>(null);
+  const layoutRef = useRef<HTMLDivElement>(null);
 
   const handleFileClick = useCallback(
     (path: string, e: React.MouseEvent) => {
@@ -162,7 +163,7 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange, toolbarHidden 
       });
       // Diff タブを開いているときは、選んだファイルの差分までスクロールする(複数選択中は動かさない)
       if (activeTab === "diff" && !(e.metaKey || e.ctrlKey)) {
-        const header = document.querySelector(`.diff-panel-content [data-file-header="${CSS.escape(path)}"]`);
+        const header = layoutRef.current?.querySelector(`.diff-panel-content [data-file-header="${CSS.escape(path)}"]`);
         header?.scrollIntoView({ behavior: "smooth", block: "start" });
       }
     },
@@ -382,7 +383,6 @@ export function PrDetail({ repo, prNumber, onBack, onTitleChange, toolbarHidden 
   const pane: PaneVisibility = { left: leftOpen, right: chatOpen };
 
   const SPLIT_STORAGE_KEY = "gh-chillbox:split-ratio";
-  const layoutRef = useRef<HTMLDivElement>(null);
   const [splitRatio, setSplitRatio] = useState(() => {
     try {
       const stored = localStorage.getItem(SPLIT_STORAGE_KEY);
