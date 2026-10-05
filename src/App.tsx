@@ -507,6 +507,7 @@ export function App() {
           tabs={visibleTabs}
           active={selectedPr}
           titles={tabTitles}
+          memos={memos}
           onSelect={navigateToPr}
           onClose={handleCloseTab}
         />

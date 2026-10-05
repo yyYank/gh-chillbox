@@ -16,6 +16,10 @@ export function closeTab(
   return { tabs: next, active: next[index] ?? next[index - 1] ?? null };
 }
 
+export function tabTooltip(title: string | undefined, memo: string | undefined): string {
+  return [title, memo && `メモ: ${memo}`].filter(Boolean).join("\n");
+}
+
 export function parseTabs(raw: string | null): number[] {
   if (!raw) {
     return [];

@@ -1,18 +1,24 @@
 import { X } from "lucide-react";
+import { tabTooltip } from "./pr-tabs";
 
 type Props = {
   tabs: number[];
   active: number | null;
   titles: Record<number, string>;
+  memos: Record<number, string>;
   onSelect: (prNumber: number) => void;
   onClose: (prNumber: number) => void;
 };
 
-export function PrTabBar({ tabs, active, titles, onSelect, onClose }: Props) {
+export function PrTabBar({ tabs, active, titles, memos, onSelect, onClose }: Props) {
   return (
     <div className="pr-tab-bar" role="tablist">
       {tabs.map((n) => (
-        <div key={n} className={`pr-tab${n === active ? " active" : ""}`} title={titles[n]}>
+        <div
+          key={n}
+          className={`pr-tab${n === active ? " active" : ""}`}
+          title={tabTooltip(titles[n], memos[n]) || undefined}
+        >
           <button
             type="button"
             className="pr-tab-label"

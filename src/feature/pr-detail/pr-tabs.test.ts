@@ -1,5 +1,19 @@
 import { describe, it, expect } from "vitest";
-import { addTab, closeTab, parseTabs } from "./pr-tabs";
+import { addTab, closeTab, parseTabs, tabTooltip } from "./pr-tabs";
+
+describe("tabTooltip", () => {
+  it("タイトルとメモを改行して並べる", () => {
+    expect(tabTooltip("Fix login", "後で再レビュー")).toBe("Fix login\nメモ: 後で再レビュー");
+  });
+
+  it("メモがなければタイトルだけ", () => {
+    expect(tabTooltip("Fix login", undefined)).toBe("Fix login");
+  });
+
+  it("タイトル読み込み前ならメモだけ", () => {
+    expect(tabTooltip(undefined, "後で再レビュー")).toBe("メモ: 後で再レビュー");
+  });
+});
 
 describe("addTab", () => {
   it("開いた PR を末尾に追加する", () => {
