@@ -3509,3 +3509,20 @@ tr:hover .memo-view-empty {
   background: var(--hover-bg);
   color: var(--text);
 }
+
+.tooltip {
+  position: fixed;
+  z-index: 3100;
+  max-width: 360px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--context-shadow);
+  font-size: 0.75rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  pointer-events: none;
+}

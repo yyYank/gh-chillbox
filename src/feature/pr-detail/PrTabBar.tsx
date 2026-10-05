@@ -1,5 +1,6 @@
 import { X } from "lucide-react";
 import { tabTooltip } from "./pr-tabs";
+import { Tooltip } from "./Tooltip";
 
 type Props = {
   tabs: number[];
@@ -14,11 +15,7 @@ export function PrTabBar({ tabs, active, titles, memos, onSelect, onClose }: Pro
   return (
     <div className="pr-tab-bar" role="tablist">
       {tabs.map((n) => (
-        <div
-          key={n}
-          className={`pr-tab${n === active ? " active" : ""}`}
-          title={tabTooltip(titles[n], memos[n]) || undefined}
-        >
+        <Tooltip key={n} className={`pr-tab${n === active ? " active" : ""}`} content={tabTooltip(titles[n], memos[n])}>
           <button
             type="button"
             className="pr-tab-label"
@@ -32,7 +29,7 @@ export function PrTabBar({ tabs, active, titles, memos, onSelect, onClose }: Pro
           <button type="button" className="pr-tab-close" onClick={() => onClose(n)} title="タブを閉じる">
             <X size={12} />
           </button>
-        </div>
+        </Tooltip>
       ))}
     </div>
   );
