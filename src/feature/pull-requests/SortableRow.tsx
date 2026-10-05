@@ -3,6 +3,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, ChevronRight } from "lucide-react";
 import type { PR } from "../../types";
 import { MemoCell } from "./MemoCell";
+import { prStateBadge } from "./pr-state";
 
 type Props = {
   pr: PR;
@@ -23,6 +24,7 @@ export function SortableRow({ pr, rank, reviewers, formatDate, onContextMenu, on
     transition,
     opacity: isDragging ? 0.5 : undefined,
   };
+  const stateBadge = prStateBadge(pr.state);
 
   return (
     <tr
@@ -44,6 +46,7 @@ export function SortableRow({ pr, rank, reviewers, formatDate, onContextMenu, on
         </a>
       </td>
       <td className="col-title">
+        {stateBadge && <span className={`draft-badge state-badge-${stateBadge.className}`}>{stateBadge.label}</span>}
         {pr.isDraft && <span className="draft-badge">Draft</span>}
         {pr.title}
       </td>

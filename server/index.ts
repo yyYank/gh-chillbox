@@ -16,7 +16,11 @@ const app = new Hono().basePath("/api");
 app.get("/health", (c) => c.json({ status: "ok" }));
 
 app.get("/prs", async (c) => {
-  const args = prListArgs({ repo: c.req.query("repo"), reviewer: c.req.query("reviewer") });
+  const args = prListArgs({
+    repo: c.req.query("repo"),
+    reviewer: c.req.query("reviewer"),
+    state: c.req.query("state"),
+  });
 
   try {
     const { stdout } = await execFileAsync("gh", args);

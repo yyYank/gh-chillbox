@@ -10,7 +10,7 @@ export type PR = {
   updatedAt: string;
 };
 
-export type Filter = "open" | "reviewer-me" | "group-by-author" | "hidden";
+export type Filter = "open" | "reviewer-me" | "closed" | "group-by-author" | "hidden";
 
 export type AppNotification = {
   id: string;

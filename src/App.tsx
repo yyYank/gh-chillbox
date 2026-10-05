@@ -161,7 +161,7 @@ export function App() {
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
-  const apiMode = filter === "reviewer-me" ? "reviewer-me" : "open";
+  const apiMode = filter === "reviewer-me" || filter === "closed" ? filter : "open";
 
   const fetchPrs = useCallback(async () => {
     if (!repo.trim()) {
@@ -175,6 +175,9 @@ export function App() {
       params.set("repo", repo.trim());
       if (apiMode === "reviewer-me") {
         params.set("reviewer", "@me");
+      }
+      if (apiMode === "closed") {
+        params.set("state", "closed");
       }
       const res = await fetch(`/api/prs?${params}`);
       if (!res.ok) {
@@ -540,6 +543,13 @@ export function App() {
               onClick={() => setFilter("reviewer-me")}
             >
               Open PR &amp; Reviewer @me
+            </button>
+            <button
+              type="button"
+              className={`filter-btn ${filter === "closed" ? "active" : ""}`}
+              onClick={() => setFilter("closed")}
+            >
+              Closed PR
             </button>
             <button
               type="button"

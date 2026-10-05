@@ -437,6 +437,14 @@ body {
   border-radius: 6px;
   vertical-align: middle;
 }
+.draft-badge.state-badge-merged {
+  background: #8250df;
+  color: #fff;
+}
+.draft-badge.state-badge-closed {
+  background: var(--danger);
+  color: #fff;
+}
 
 /* ===== Drag handle ===== */
 .col-drag {
