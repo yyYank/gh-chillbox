@@ -389,7 +389,7 @@ app.post("/chat", async (c) => {
   const existingSessionId = chatSessions.get(sessionKey);
 
   const allowedTools =
-    "WebSearch,Read,Grep,Glob,Bash(gh pr view *),Bash(gh pr diff *),Bash(gh api repos/*/commits/*),Bash(gh api repos/*/compare/*),Bash(gh search *)";
+    "WebSearch,Read,Grep,Glob,Bash(gh pr view *),Bash(gh pr diff *),Bash(gh issue view *),Bash(gh issue list *),Bash(gh api repos/*/commits/*),Bash(gh api repos/*/compare/*),Bash(gh search *)";
   const args: string[] = ["-p"];
 
   if (existingSessionId) {
