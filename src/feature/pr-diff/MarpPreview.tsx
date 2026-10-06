@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 import { Marp } from "@marp-team/marp-core";
 import { ChevronLeft, ChevronRight, Maximize2, X } from "lucide-react";
-import { splitLongSections, withMarpDirective } from "./diff-marp";
+import { splitLongSections, stepSlide, withMarpDirective } from "./diff-marp";
 import { DEFAULT_FONT_SIZE } from "./diff-font-size";
 import { renderMermaidBlocks } from "../mermaid/render-mermaid";
 
@@ -169,6 +169,62 @@ export function MarpSlides({ content, fontSize = DEFAULT_FONT_SIZE }: { content:
       <SlideHost rendered={shown} />
       {fullscreen && <SlideOverlay rendered={shown} count={count} onClose={() => setFullscreen(false)} />}
     </>
+  );
+}
+
+// スライドを 1 枚ずつ表示し、左右のボタンや ← → キーでめくる
+export function MarpDeck({ content, fontSize = DEFAULT_FONT_SIZE }: { content: string; fontSize?: number }) {
+  const [fullscreen, setFullscreen] = useState(false);
+  const [index, setIndex] = useState(0);
+  const { shown, count } = useMarpRendered(content, fontSize);
+  // 本文が変わって枚数が減っても範囲外を指さないようにする
+  const current = stepSlide(index, 0, count);
+  const step = (delta: number) => setIndex(stepSlide(current, delta, count));
+
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "ArrowRight") {
+      e.preventDefault();
+      step(1);
+    } else if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      step(-1);
+    }
+  };
+
+  return (
+    // biome-ignore lint/a11y/noNoninteractiveTabindex: フォーカス中だけ ← → キーでめくれるようにする
+    <div className="marp-deck" tabIndex={0} onKeyDown={onKeyDown}>
+      <div className="marp-deck-stage">
+        <SlideHost rendered={shown} index={current} className="marp-deck-slide" />
+        <button
+          type="button"
+          className="marp-deck-nav marp-deck-prev"
+          onClick={() => step(-1)}
+          disabled={current === 0}
+          title="前へ (←)"
+        >
+          <ChevronLeft size={20} />
+        </button>
+        <button
+          type="button"
+          className="marp-deck-nav marp-deck-next"
+          onClick={() => step(1)}
+          disabled={current >= count - 1}
+          title="次へ (→)"
+        >
+          <ChevronRight size={20} />
+        </button>
+      </div>
+      <div className="marp-deck-footer">
+        <span>
+          {count === 0 ? 0 : current + 1} / {count}
+        </span>
+        <button type="button" className="marp-fullscreen-btn" onClick={() => setFullscreen(true)}>
+          <Maximize2 size={12} /> 全画面
+        </button>
+      </div>
+      {fullscreen && <SlideOverlay rendered={shown} count={count} onClose={() => setFullscreen(false)} />}
+    </div>
   );
 }
 

@@ -87,3 +87,8 @@ export function splitLongSections(md: string, { maxLines = DEFAULT_MAX_LINES, sc
   }
   return out;
 }
+
+// スライドを delta 枚だけめくった先の番号。最初と最後で止める
+export function stepSlide(index: number, delta: number, count: number): number {
+  return Math.max(0, Math.min(count - 1, index + delta));
+}

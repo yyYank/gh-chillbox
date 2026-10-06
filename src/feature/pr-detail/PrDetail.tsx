@@ -5,7 +5,7 @@ import { FileTree } from "./FileTree";
 import { toggleFolderSelection } from "./file-tree";
 import { ChatPanel } from "../chat/ChatPanel";
 import { DiffPanel } from "../pr-diff/DiffPanel";
-import { MarpSlides } from "../pr-diff/MarpPreview";
+import { MarpDeck, MarpSlides } from "../pr-diff/MarpPreview";
 import { renderMermaidBlocks } from "../mermaid/render-mermaid";
 import { ChangeSurface } from "../insights/change-surface/ChangeSurface";
 import { AstAnalysis } from "../insights/ast-analysis/AstAnalysis";
@@ -102,6 +102,13 @@ export function PrDetail({
   const [filesOpen, setFilesOpen] = useState(() => {
     try {
       return localStorage.getItem(`${storagePrefix}:filesOpen`) !== "false";
+    } catch {
+      return true;
+    }
+  });
+  const [slidesOpen, setSlidesOpen] = useState(() => {
+    try {
+      return localStorage.getItem(`${storagePrefix}:slidesOpen`) !== "false";
     } catch {
       return true;
     }
@@ -490,6 +497,25 @@ export function PrDetail({
                 #{data.number}
               </a>
             </h2>
+
+            <div className="pr-detail-section">
+              <button
+                type="button"
+                className="pr-detail-accordion"
+                onClick={() => {
+                  const next = !slidesOpen;
+                  setSlidesOpen(next);
+                  try {
+                    localStorage.setItem(`${storagePrefix}:slidesOpen`, String(next));
+                  } catch {}
+                }}
+              >
+                {slidesOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                スライド
+              </button>
+              {slidesOpen &&
+                (data.body ? <MarpDeck content={data.body} /> : <p className="pr-detail-empty">本文なし</p>)}
+            </div>
 
             <div className="pr-detail-section">
               <div className="pr-detail-accordion-row">

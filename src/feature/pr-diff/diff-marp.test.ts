@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { splitLongSections, withMarpDirective } from "./diff-marp";
+import { splitLongSections, stepSlide, withMarpDirective } from "./diff-marp";
 
 describe("withMarpDirective", () => {
   it("front matter がない md の先頭に marp: true と headingDivider: 2 の front matter を付け足す", () => {
@@ -81,5 +81,21 @@ describe("splitLongSections", () => {
     const md = `${line}\n\n${line}`;
     expect(splitLongSections(md, { maxLines: 8, scale: 2 })).not.toBe(md);
     expect(slides(splitLongSections(md, { maxLines: 8, scale: 2 }))).toEqual([line, line]);
+  });
+});
+
+describe("stepSlide", () => {
+  it("前後のスライドへ 1 枚ずつ移動する", () => {
+    expect(stepSlide(1, 1, 3)).toBe(2);
+    expect(stepSlide(1, -1, 3)).toBe(0);
+  });
+
+  it("最初のスライドより前、最後のスライドより後には移動しない", () => {
+    expect(stepSlide(0, -1, 3)).toBe(0);
+    expect(stepSlide(2, 1, 3)).toBe(2);
+  });
+
+  it("スライドがないときは 0 を返す", () => {
+    expect(stepSlide(0, 1, 0)).toBe(0);
   });
 });
