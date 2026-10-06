@@ -82,6 +82,16 @@ describe("splitLongSections", () => {
     expect(splitLongSections(md, { maxLines: 8, scale: 2 })).not.toBe(md);
     expect(slides(splitLongSections(md, { maxLines: 8, scale: 2 }))).toEqual([line, line]);
   });
+
+  it("本文の後に表が来たら、上限に収まっていても表の手前で次のスライドに分ける", () => {
+    const table = "| a | b |\n| - | - |\n| 1 | 2 |";
+    expect(slides(splitLongSections(`p1\n\n${table}`, { maxLines: 100 }))).toEqual(["p1", table]);
+  });
+
+  it("見出しの直後の表は見出しと同じスライドに残す", () => {
+    const md = "## A\n\n| a | b |\n| - | - |\n| 1 | 2 |";
+    expect(splitLongSections(md, { maxLines: 100 })).toBe(md);
+  });
 });
 
 describe("stepSlide", () => {

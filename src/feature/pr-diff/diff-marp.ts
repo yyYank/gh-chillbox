@@ -74,8 +74,9 @@ export function splitLongSections(md: string, { maxLines = DEFAULT_MAX_LINES, sc
       hasBody = false;
     }
     const lines = estimateLines(token, lineWidth);
-    // 見出しだけが取り残されないよう、本文があるスライドでだけ分ける
-    if (lines > 0 && hasBody && used + lines > budget) {
+    // 見出しだけが取り残されないよう、本文があるスライドでだけ分ける。
+    // 表は描画時に縮小して 1 枚に収めるので、本文の後に来たら常に新しいスライドから始める
+    if (lines > 0 && hasBody && (used + lines > budget || token.type === "table")) {
       out = `${out.trimEnd()}\n\n---\n\n`;
       used = 0;
     }
