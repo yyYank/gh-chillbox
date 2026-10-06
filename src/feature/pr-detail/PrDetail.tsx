@@ -5,7 +5,7 @@ import { FileTree } from "./FileTree";
 import { toggleFolderSelection } from "./file-tree";
 import { ChatPanel } from "../chat/ChatPanel";
 import { DiffPanel } from "../pr-diff/DiffPanel";
-import { MarpDeck, MarpSlides } from "../pr-diff/MarpPreview";
+import { MarpDeck } from "../pr-diff/MarpPreview";
 import { renderMermaidBlocks } from "../mermaid/render-mermaid";
 import { ChangeSurface } from "../insights/change-surface/ChangeSurface";
 import { AstAnalysis } from "../insights/ast-analysis/AstAnalysis";
@@ -131,7 +131,7 @@ export function PrDetail({
   const [quotedText, setQuotedText] = useState<string | null>(null);
   const [quotedFromRewritten, setQuotedFromRewritten] = useState(false);
   // タブ状態は localStorage に保存しない（復元するとPRを開くたびに claude -p が走るため）
-  const [bodyTab, setBodyTab] = useState<"raw" | "natural" | "slide">("raw");
+  const [bodyTab, setBodyTab] = useState<"raw" | "natural">("raw");
   const [humanized, setHumanized] = useState<HumanizeResult | null>(null);
   const [humanizing, setHumanizing] = useState(false);
   const [humanizeError, setHumanizeError] = useState<string | null>(null);
@@ -593,13 +593,6 @@ export function PrDetail({
                       >
                         AIぽさを無くす
                       </button>
-                      <button
-                        type="button"
-                        className={`pr-body-tab${bodyTab === "slide" ? " active" : ""}`}
-                        onClick={() => setBodyTab("slide")}
-                      >
-                        スライド
-                      </button>
                       {bodyTab === "natural" && humanized && (
                         <span className="pr-body-lint-summary">
                           AIっぽい語 {humanized.before.length}件 → {humanized.after.length}件
@@ -608,11 +601,7 @@ export function PrDetail({
                         </span>
                       )}
                     </div>
-                    {bodyTab === "slide" ? (
-                      <div className="diff-md-preview">
-                        <MarpSlides content={data.body} />
-                      </div>
-                    ) : bodyTab === "natural" && humanizing ? (
+                    {bodyTab === "natural" && humanizing ? (
                       <p className="pr-detail-empty">書き換え中…</p>
                     ) : bodyTab === "natural" && humanizeError ? (
                       <p className="pr-detail-empty">書き換えに失敗しました: {humanizeError}</p>
