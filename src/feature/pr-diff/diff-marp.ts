@@ -93,3 +93,22 @@ export function splitLongSections(md: string, { maxLines = DEFAULT_MAX_LINES, sc
 export function stepSlide(index: number, delta: number, count: number): number {
   return Math.max(0, Math.min(count - 1, index + delta));
 }
+
+// 縮小すると折り返しが変わって大きさが比例しないため、実際に fits で試しながら二分探索する。
+// min までは収まるものとして扱う
+export function largestFittingScale(fits: (scale: number) => boolean, min = 0.05, steps = 10): number {
+  if (fits(1)) {
+    return 1;
+  }
+  let lo = min;
+  let hi = 1;
+  for (let i = 0; i < steps; i++) {
+    const mid = (lo + hi) / 2;
+    if (fits(mid)) {
+      lo = mid;
+    } else {
+      hi = mid;
+    }
+  }
+  return lo;
+}

@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 import { Marp } from "@marp-team/marp-core";
 import { ChevronLeft, ChevronRight, Maximize2, X } from "lucide-react";
-import { splitLongSections, stepSlide, withMarpDirective } from "./diff-marp";
+import { largestFittingScale, splitLongSections, stepSlide, withMarpDirective } from "./diff-marp";
 import { DEFAULT_FONT_SIZE } from "./diff-font-size";
 import { renderMermaidBlocks } from "../mermaid/render-mermaid";
 
@@ -44,6 +44,36 @@ const MERMAID_STYLE = `
   pre[data-rendered] svg { max-width: 100%; max-height: 560px; height: auto; }
 `;
 
+// 表は横スクロールさせず、スライドの幅に収まるようセルの中で折り返す。
+// 折り返してもはみ出す分は fitTables で縮小する
+const TABLE_STYLE = `
+  div.marpit > svg > foreignObject > section table { display: table; width: auto; max-width: none; overflow: visible; }
+`;
+
+// スライドからはみ出す表を、縦横とも収まるまで縮小する。表示中のスライドでしか大きさを測れない
+function fitTables(svg: SVGElement) {
+  svg.querySelectorAll<HTMLElement>("section table").forEach((table) => {
+    const section = table.closest("section");
+    if (!section || section.offsetWidth === 0) {
+      return;
+    }
+    table.style.zoom = "";
+    // スライドは SVG で拡大縮小されているので、画面上の大きさに換算して比べる
+    const sec = section.getBoundingClientRect();
+    const ratio = sec.width / section.offsetWidth;
+    const style = getComputedStyle(section);
+    const right = sec.right - Number.parseFloat(style.paddingRight) * ratio;
+    const bottom = sec.bottom - Number.parseFloat(style.paddingBottom) * ratio;
+    const fits = (scale: number) => {
+      table.style.zoom = String(scale);
+      const rect = table.getBoundingClientRect();
+      return rect.right <= right + 1 && rect.bottom <= bottom + 1;
+    };
+    const scale = largestFittingScale(fits);
+    table.style.zoom = scale < 1 ? String(scale) : "";
+  });
+}
+
 // mermaid のコードブロックを図(SVG)に置き換えた html を返す
 async function withMermaidDiagrams(rendered: Rendered): Promise<Rendered> {
   const div = document.createElement("div");
@@ -66,16 +96,21 @@ function SlideHost({ rendered, index, className }: { rendered: Rendered; index?:
     }
     const root = host.shadowRoot ?? host.attachShadow({ mode: "open" });
     const style = index == null ? LIST_STYLE : SINGLE_STYLE;
-    root.innerHTML = `<style>${rendered.css}${style}${MERMAID_STYLE}</style>${rendered.html}`;
+    root.innerHTML = `<style>${rendered.css}${style}${MERMAID_STYLE}${TABLE_STYLE}</style>${rendered.html}`;
   }, [rendered, index]);
 
   useEffect(() => {
     const root = hostRef.current?.shadowRoot;
-    if (!root || index == null) {
+    if (!root) {
       return;
     }
     root.querySelectorAll<SVGElement>("svg[data-marpit-svg]").forEach((svg, i) => {
-      svg.style.display = i === index ? "block" : "none";
+      if (index != null) {
+        svg.style.display = i === index ? "block" : "none";
+      }
+      if (svg.style.display !== "none") {
+        fitTables(svg);
+      }
     });
   }, [rendered, index]);
 

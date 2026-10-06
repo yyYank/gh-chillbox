@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { splitLongSections, stepSlide, withMarpDirective } from "./diff-marp";
+import { largestFittingScale, splitLongSections, stepSlide, withMarpDirective } from "./diff-marp";
 
 describe("withMarpDirective", () => {
   it("front matter がない md の先頭に marp: true と headingDivider: 2 の front matter を付け足す", () => {
@@ -107,5 +107,17 @@ describe("stepSlide", () => {
 
   it("スライドがないときは 0 を返す", () => {
     expect(stepSlide(0, 1, 0)).toBe(0);
+  });
+});
+
+describe("largestFittingScale", () => {
+  it("1 倍で収まるときは 1 を返す", () => {
+    expect(largestFittingScale(() => true)).toBe(1);
+  });
+
+  it("収まる倍率のうち一番大きいものを返す", () => {
+    const scale = largestFittingScale((s) => s <= 0.6);
+    expect(scale).toBeLessThanOrEqual(0.6);
+    expect(scale).toBeGreaterThan(0.59);
   });
 });
