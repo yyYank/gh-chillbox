@@ -56,7 +56,7 @@ async function withMermaidDiagrams(rendered: Rendered): Promise<Rendered> {
 }
 
 // index を渡すとそのスライドだけを表示する
-function SlideHost({ rendered, index }: { rendered: Rendered; index?: number }) {
+function SlideHost({ rendered, index, className }: { rendered: Rendered; index?: number; className?: string }) {
   const hostRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -79,7 +79,7 @@ function SlideHost({ rendered, index }: { rendered: Rendered; index?: number }) 
     });
   }, [rendered, index]);
 
-  return <div ref={hostRef} className={index == null ? undefined : "marp-overlay-slide"} />;
+  return <div ref={hostRef} className={className} />;
 }
 
 function SlideOverlay({ rendered, count, onClose }: { rendered: Rendered; count: number; onClose: () => void }) {
@@ -105,7 +105,7 @@ function SlideOverlay({ rendered, count, onClose }: { rendered: Rendered; count:
 
   return createPortal(
     <div className="marp-overlay">
-      <SlideHost rendered={rendered} index={index} />
+      <SlideHost rendered={rendered} index={index} className="marp-overlay-slide" />
       <div className="marp-overlay-controls">
         <button type="button" onClick={prev} disabled={index === 0} title="前へ (←)">
           <ChevronLeft size={16} />
@@ -125,10 +125,8 @@ function SlideOverlay({ rendered, count, onClose }: { rendered: Rendered; count:
   );
 }
 
-// markdown の文字列をスライドとして描画する。全画面表示のボタンも持つ
-export function MarpSlides({ content, fontSize = DEFAULT_FONT_SIZE }: { content: string; fontSize?: number }) {
-  const [fullscreen, setFullscreen] = useState(false);
-
+// markdown をスライドの html に変換する。mermaid の図は描画が終わるまでコードのまま返す
+function useMarpRendered(content: string, fontSize: number): { shown: Rendered; count: number } {
   const rendered = useMemo(() => {
     const scale = fontSize / DEFAULT_FONT_SIZE;
     const { html, css } = new Marp().render(withMarpDirective(splitLongSections(content, { scale })));
@@ -154,6 +152,14 @@ export function MarpSlides({ content, fontSize = DEFAULT_FONT_SIZE }: { content:
   }, [rendered]);
   // 図の描画が終わるまではコードのまま表示する
   const shown = diagrams?.source === rendered ? diagrams.result : rendered;
+
+  return { shown, count };
+}
+
+// markdown の文字列をスライドとして描画する。全画面表示のボタンも持つ
+export function MarpSlides({ content, fontSize = DEFAULT_FONT_SIZE }: { content: string; fontSize?: number }) {
+  const [fullscreen, setFullscreen] = useState(false);
+  const { shown, count } = useMarpRendered(content, fontSize);
 
   return (
     <>
