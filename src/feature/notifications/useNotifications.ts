@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import type { AppNotification } from "../../types";
+import { appStorage } from "../../app-storage";
 
 const NOTIFICATIONS_KEY = "gh-chillbox:notifications";
 const DISMISSED_KEY = "gh-chillbox:notifications-dismissed";
@@ -7,7 +8,7 @@ const READ_KEY = "gh-chillbox:notifications-read";
 
 function loadJson<T>(key: string, fallback: T): T {
   try {
-    const raw = localStorage.getItem(key);
+    const raw = appStorage.getItem(key);
     return raw ? JSON.parse(raw) : fallback;
   } catch {
     return fallback;
@@ -16,7 +17,7 @@ function loadJson<T>(key: string, fallback: T): T {
 
 function saveJson(key: string, value: unknown) {
   try {
-    localStorage.setItem(key, JSON.stringify(value));
+    appStorage.setItem(key, JSON.stringify(value));
   } catch {
     // storage full or unavailable
   }

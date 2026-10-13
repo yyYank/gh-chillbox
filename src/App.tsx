@@ -18,6 +18,7 @@ import headerLogo from "./assets/logo.png";
 import headerLogoDark from "./assets/logo-dark.png";
 import { setMemo, parseMemos, memoStorageKey, type PrMemos } from "./feature/pull-requests/pr-memo";
 import { MemoCell } from "./feature/pull-requests/MemoCell";
+import { appStorage } from "./app-storage";
 
 const REPO_STORAGE_KEY = "gh-chillbox:repo";
 const REPO_HISTORY_KEY = "gh-chillbox:repo-history";
@@ -28,7 +29,7 @@ type Theme = "light" | "dark";
 
 function getInitialTheme(): Theme {
   try {
-    const stored = localStorage.getItem(THEME_STORAGE_KEY);
+    const stored = appStorage.getItem(THEME_STORAGE_KEY);
     if (stored === "light" || stored === "dark") {
       return stored;
     }
@@ -38,7 +39,7 @@ function getInitialTheme(): Theme {
 
 function loadRepo(): string {
   try {
-    return localStorage.getItem(REPO_STORAGE_KEY) ?? "";
+    return appStorage.getItem(REPO_STORAGE_KEY) ?? "";
   } catch {
     return "";
   }
@@ -50,7 +51,7 @@ function prTabsStorageKey(repo: string): string {
 
 function loadPrTabs(repo: string): number[] {
   try {
-    return parseTabs(localStorage.getItem(prTabsStorageKey(repo)));
+    return parseTabs(appStorage.getItem(prTabsStorageKey(repo)));
   } catch {
     return [];
   }
@@ -58,7 +59,7 @@ function loadPrTabs(repo: string): number[] {
 
 function loadHeaderCollapsed(): boolean {
   try {
-    return localStorage.getItem(HEADER_COLLAPSED_KEY) === "true";
+    return appStorage.getItem(HEADER_COLLAPSED_KEY) === "true";
   } catch {
     return false;
   }
@@ -66,7 +67,7 @@ function loadHeaderCollapsed(): boolean {
 
 function loadRepoHistory(): string[] {
   try {
-    const raw = localStorage.getItem(REPO_HISTORY_KEY);
+    const raw = appStorage.getItem(REPO_HISTORY_KEY);
     return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
@@ -75,7 +76,7 @@ function loadRepoHistory(): string[] {
 
 function saveRepoHistory(history: string[]) {
   try {
-    localStorage.setItem(REPO_HISTORY_KEY, JSON.stringify(history));
+    appStorage.setItem(REPO_HISTORY_KEY, JSON.stringify(history));
   } catch {}
 }
 
@@ -108,13 +109,13 @@ export function App() {
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
     try {
-      localStorage.setItem(THEME_STORAGE_KEY, theme);
+      appStorage.setItem(THEME_STORAGE_KEY, theme);
     } catch {}
   }, [theme]);
 
   useEffect(() => {
     try {
-      localStorage.setItem(HEADER_COLLAPSED_KEY, String(headerCollapsed));
+      appStorage.setItem(HEADER_COLLAPSED_KEY, String(headerCollapsed));
     } catch {}
   }, [headerCollapsed]);
 
@@ -210,7 +211,7 @@ export function App() {
 
   useEffect(() => {
     try {
-      localStorage.setItem(REPO_STORAGE_KEY, repo.trim());
+      appStorage.setItem(REPO_STORAGE_KEY, repo.trim());
     } catch {
       // ignore
     }
@@ -221,7 +222,7 @@ export function App() {
 
   useEffect(() => {
     try {
-      setMemos(parseMemos(localStorage.getItem(memoStorageKey(memoRepo))));
+      setMemos(parseMemos(appStorage.getItem(memoStorageKey(memoRepo))));
     } catch {
       setMemos({});
     }
@@ -237,7 +238,7 @@ export function App() {
       setPrTabs((prev) => {
         const next = update(prev);
         try {
-          localStorage.setItem(prTabsStorageKey(memoRepo), JSON.stringify(next));
+          appStorage.setItem(prTabsStorageKey(memoRepo), JSON.stringify(next));
         } catch {}
         return next;
       });
@@ -295,7 +296,7 @@ export function App() {
       setMemos((prev) => {
         const next = setMemo(prev, prNumber, text);
         try {
-          localStorage.setItem(memoStorageKey(memoRepo), JSON.stringify(next));
+          appStorage.setItem(memoStorageKey(memoRepo), JSON.stringify(next));
         } catch {
           // ignore
         }

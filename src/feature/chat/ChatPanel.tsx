@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Send, X, HelpCircle, RotateCcw, AlertTriangle, Eye } from "lucide-react";
 import { marked } from "marked";
+import { appStorage } from "../../app-storage";
 
 type Message = {
   role: "user" | "assistant";
@@ -26,7 +27,7 @@ type Props = {
 
 function loadMessages(key: string): Message[] {
   try {
-    const raw = localStorage.getItem(key);
+    const raw = appStorage.getItem(key);
     return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
@@ -95,7 +96,7 @@ export function ChatPanel({
 
   useEffect(() => {
     try {
-      localStorage.setItem(storageKey, JSON.stringify(messages));
+      appStorage.setItem(storageKey, JSON.stringify(messages));
     } catch {}
   }, [messages, storageKey]);
 
@@ -235,7 +236,7 @@ export function ChatPanel({
           onClick={async () => {
             setMessages([]);
             try {
-              localStorage.removeItem(storageKey);
+              appStorage.removeItem(storageKey);
             } catch {}
             try {
               await fetch("/api/chat/session", {

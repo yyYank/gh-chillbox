@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ChevronDown, ChevronRight, Folder, FileText } from "lucide-react";
 import { buildTree, collectFilePaths, folderSelectionState, type FileEntry, type TreeNode } from "./file-tree";
+import { appStorage } from "../../app-storage";
 
 type SelectionSet = Set<string>;
 
@@ -48,7 +49,7 @@ function FolderNode({
   const storageKey = `${storagePrefix}:folder:${folderPath}`;
   const [open, setOpen] = useState(() => {
     try {
-      return localStorage.getItem(storageKey) !== "false";
+      return appStorage.getItem(storageKey) !== "false";
     } catch {
       return true;
     }
@@ -75,7 +76,7 @@ function FolderNode({
             const next = !open;
             setOpen(next);
             try {
-              localStorage.setItem(storageKey, String(next));
+              appStorage.setItem(storageKey, String(next));
             } catch {}
           }}
         >

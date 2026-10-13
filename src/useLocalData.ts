@@ -1,11 +1,12 @@
 import { useState, useCallback } from "react";
+import { appStorage } from "./app-storage";
 
 const ORDER_KEY = "gh-chillbox:pr-order";
 const HIDDEN_KEY = "gh-chillbox:pr-hidden";
 
 function loadJson<T>(key: string, fallback: T): T {
   try {
-    const raw = localStorage.getItem(key);
+    const raw = appStorage.getItem(key);
     return raw ? JSON.parse(raw) : fallback;
   } catch {
     return fallback;
@@ -14,7 +15,7 @@ function loadJson<T>(key: string, fallback: T): T {
 
 function saveJson(key: string, value: unknown) {
   try {
-    localStorage.setItem(key, JSON.stringify(value));
+    appStorage.setItem(key, JSON.stringify(value));
   } catch {
     // storage full or unavailable
   }

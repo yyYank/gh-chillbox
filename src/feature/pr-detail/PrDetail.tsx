@@ -14,6 +14,7 @@ import { ApiPreview } from "../insights/api-preview/ApiPreview";
 import { GoDocPreview } from "../insights/godoc-preview/GoDocPreview";
 import { TestsPreview } from "../insights/tests-preview/TestsPreview";
 import { toggleLeft, toggleRight, gridColumns, type PaneVisibility } from "./pane-visibility";
+import { appStorage } from "../../app-storage";
 
 marked.setOptions({ gfm: true, breaks: true });
 
@@ -101,28 +102,28 @@ export function PrDetail({
   const [error, setError] = useState<string | null>(null);
   const [filesOpen, setFilesOpen] = useState(() => {
     try {
-      return localStorage.getItem(`${storagePrefix}:filesOpen`) !== "false";
+      return appStorage.getItem(`${storagePrefix}:filesOpen`) !== "false";
     } catch {
       return true;
     }
   });
   const [slidesOpen, setSlidesOpen] = useState(() => {
     try {
-      return localStorage.getItem(`${storagePrefix}:slidesOpen`) !== "false";
+      return appStorage.getItem(`${storagePrefix}:slidesOpen`) !== "false";
     } catch {
       return true;
     }
   });
   const [bodyOpen, setBodyOpen] = useState(() => {
     try {
-      return localStorage.getItem(`${storagePrefix}:bodyOpen`) !== "false";
+      return appStorage.getItem(`${storagePrefix}:bodyOpen`) !== "false";
     } catch {
       return true;
     }
   });
   const [commentsOpen, setCommentsOpen] = useState(() => {
     try {
-      return localStorage.getItem(`${storagePrefix}:commentsOpen`) !== "false";
+      return appStorage.getItem(`${storagePrefix}:commentsOpen`) !== "false";
     } catch {
       return true;
     }
@@ -139,7 +140,7 @@ export function PrDetail({
   const [chatOpen, setChatOpen] = useState(true);
   const [leftOpen, setLeftOpen] = useState(() => {
     try {
-      return localStorage.getItem(`${storagePrefix}:leftOpen`) !== "false";
+      return appStorage.getItem(`${storagePrefix}:leftOpen`) !== "false";
     } catch {
       return true;
     }
@@ -149,7 +150,7 @@ export function PrDetail({
       setLeftOpen(next.left);
       setChatOpen(next.right);
       try {
-        localStorage.setItem(`${storagePrefix}:leftOpen`, String(next.left));
+        appStorage.setItem(`${storagePrefix}:leftOpen`, String(next.left));
       } catch {}
     },
     [storagePrefix],
@@ -387,7 +388,7 @@ export function PrDetail({
       if (!filesOpen) {
         setFilesOpen(true);
         try {
-          localStorage.setItem(`${storagePrefix}:filesOpen`, "true");
+          appStorage.setItem(`${storagePrefix}:filesOpen`, "true");
         } catch {}
       }
       requestAnimationFrame(() => {
@@ -412,7 +413,7 @@ export function PrDetail({
   const SPLIT_STORAGE_KEY = "gh-chillbox:split-ratio";
   const [splitRatio, setSplitRatio] = useState(() => {
     try {
-      const stored = localStorage.getItem(SPLIT_STORAGE_KEY);
+      const stored = appStorage.getItem(SPLIT_STORAGE_KEY);
       return stored ? parseFloat(stored) : 50;
     } catch {
       return 50;
@@ -438,7 +439,7 @@ export function PrDetail({
       document.removeEventListener("mouseup", onUp);
       setSplitRatio((r) => {
         try {
-          localStorage.setItem(SPLIT_STORAGE_KEY, String(r));
+          appStorage.setItem(SPLIT_STORAGE_KEY, String(r));
         } catch {}
         return r;
       });
@@ -506,7 +507,7 @@ export function PrDetail({
                   const next = !slidesOpen;
                   setSlidesOpen(next);
                   try {
-                    localStorage.setItem(`${storagePrefix}:slidesOpen`, String(next));
+                    appStorage.setItem(`${storagePrefix}:slidesOpen`, String(next));
                   } catch {}
                 }}
               >
@@ -526,7 +527,7 @@ export function PrDetail({
                     const next = !filesOpen;
                     setFilesOpen(next);
                     try {
-                      localStorage.setItem(`${storagePrefix}:filesOpen`, String(next));
+                      appStorage.setItem(`${storagePrefix}:filesOpen`, String(next));
                     } catch {}
                   }}
                 >
@@ -568,7 +569,7 @@ export function PrDetail({
                   const next = !bodyOpen;
                   setBodyOpen(next);
                   try {
-                    localStorage.setItem(`${storagePrefix}:bodyOpen`, String(next));
+                    appStorage.setItem(`${storagePrefix}:bodyOpen`, String(next));
                   } catch {}
                 }}
               >
@@ -628,7 +629,7 @@ export function PrDetail({
                   const next = !commentsOpen;
                   setCommentsOpen(next);
                   try {
-                    localStorage.setItem(`${storagePrefix}:commentsOpen`, String(next));
+                    appStorage.setItem(`${storagePrefix}:commentsOpen`, String(next));
                   } catch {}
                 }}
               >

@@ -11,6 +11,7 @@ import { stepFontSize, parseFontSize } from "./diff-font-size";
 import { isMarkdown } from "./diff-markdown";
 import { MarkdownPreview } from "./MarkdownPreview";
 import { MarpPreview } from "./MarpPreview";
+import { appStorage } from "../../app-storage";
 
 const FONT_SIZE_STORAGE_KEY = "gh-chillbox:diff-font-size";
 
@@ -46,7 +47,7 @@ function isAtLineStart(container: Node, offset: number): boolean {
 
 function loadCollapsed(repo: string, prNumber: number): Set<string> {
   try {
-    const raw = localStorage.getItem(`gh-chillbox:${repo}:${prNumber}:diff-collapsed`);
+    const raw = appStorage.getItem(`gh-chillbox:${repo}:${prNumber}:diff-collapsed`);
     return raw ? new Set(JSON.parse(raw)) : new Set();
   } catch {
     return new Set();
@@ -55,7 +56,7 @@ function loadCollapsed(repo: string, prNumber: number): Set<string> {
 
 function saveCollapsed(repo: string, prNumber: number, collapsed: Set<string>) {
   try {
-    localStorage.setItem(`gh-chillbox:${repo}:${prNumber}:diff-collapsed`, JSON.stringify([...collapsed]));
+    appStorage.setItem(`gh-chillbox:${repo}:${prNumber}:diff-collapsed`, JSON.stringify([...collapsed]));
   } catch {}
 }
 
@@ -77,7 +78,7 @@ export function DiffPanel({ repo, prNumber, prTitle = "", prBody = "", onFileHea
   const [mdModes, setMdModes] = useState<Map<string, MdMode>>(new Map());
   const [fontSize, setFontSize] = useState(() => {
     try {
-      return parseFontSize(localStorage.getItem(FONT_SIZE_STORAGE_KEY));
+      return parseFontSize(appStorage.getItem(FONT_SIZE_STORAGE_KEY));
     } catch {
       return parseFontSize(null);
     }
@@ -87,7 +88,7 @@ export function DiffPanel({ repo, prNumber, prTitle = "", prBody = "", onFileHea
     const next = stepFontSize(fontSize, delta);
     setFontSize(next);
     try {
-      localStorage.setItem(FONT_SIZE_STORAGE_KEY, String(next));
+      appStorage.setItem(FONT_SIZE_STORAGE_KEY, String(next));
     } catch {}
   };
 

@@ -1,4 +1,5 @@
 import type { DiffThread, ThreadAnchor, ThreadMessage } from "./diff-threads";
+import { appStorage } from "../../app-storage";
 
 export type ThreadMap = Record<string, DiffThread>;
 
@@ -8,7 +9,7 @@ function storageKey(repo: string, prNumber: number) {
 
 export function loadThreads(repo: string, prNumber: number): ThreadMap {
   try {
-    const raw = localStorage.getItem(storageKey(repo, prNumber));
+    const raw = appStorage.getItem(storageKey(repo, prNumber));
     return raw ? JSON.parse(raw) : {};
   } catch {
     return {};
@@ -17,7 +18,7 @@ export function loadThreads(repo: string, prNumber: number): ThreadMap {
 
 function saveThreads(repo: string, prNumber: number, threads: ThreadMap) {
   try {
-    localStorage.setItem(storageKey(repo, prNumber), JSON.stringify(threads));
+    appStorage.setItem(storageKey(repo, prNumber), JSON.stringify(threads));
   } catch {}
 }
 
