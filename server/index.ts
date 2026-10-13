@@ -2,12 +2,14 @@ import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
+import { resolve } from "node:path";
 import { lintJa } from "./polish/textlint";
 import { replaceAiWords } from "./polish/ai-words";
 import { ensureRepo, checkoutSha, gitOutput } from "./git/repository-cache-handler";
 import { chatSessionKey } from "./chat/chat-session";
 import { UPLOAD_DIR, imagePromptParts, saveUploadedImage } from "./chat/chat-image";
 import { prListArgs } from "./pr-list/pr-list-args";
+import { createKvStore } from "./store/kv-store";
 
 const execFileAsync = promisify(execFile);
 
@@ -554,6 +556,25 @@ app.post("/pr-viewed", async (c) => {
     const message = e instanceof Error ? e.message : "Unknown error";
     return c.json({ error: message }, 500);
   }
+});
+
+const store = createKvStore(resolve(process.cwd(), ".cache/store.json"));
+
+app.get("/store", async (c) => c.json(await store.all()));
+
+// キーに repo 名の "/" が含まれるため、残りのパスをすべてキーとして受け取る
+app.put("/store/:key{.+}", async (c) => {
+  const { value } = await c.req.json<{ value: string }>();
+  if (typeof value !== "string") {
+    return c.json({ error: "value must be a string" }, 400);
+  }
+  await store.set(c.req.param("key"), value);
+  return c.json({ ok: true });
+});
+
+app.delete("/store/:key{.+}", async (c) => {
+  await store.remove(c.req.param("key"));
+  return c.json({ ok: true });
 });
 
 serve({ fetch: app.fetch, port: 3001 }, (info) => {
