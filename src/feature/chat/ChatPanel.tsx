@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { Send, X, HelpCircle, RotateCcw, AlertTriangle, Eye } from "lucide-react";
 import { marked } from "marked";
 import { appStorage } from "../../app-storage";
+import { getSession, initSession, setSession, useSession } from "../session-store/session-store";
 
 type Message = {
   role: "user" | "assistant";
@@ -25,6 +26,14 @@ type Props = {
   onCloseChat: () => void;
 };
 
+// 画面が破棄されていても届いた返事を残せるよう、置き場所と appStorage の両方に書く
+function appendMessage(key: string, msg: Message) {
+  setSession<Message[]>(key, (prev) => [...(prev ?? []), msg]);
+  try {
+    appStorage.setItem(key, JSON.stringify(getSession<Message[]>(key, [])));
+  } catch {}
+}
+
 function loadMessages(key: string): Message[] {
   try {
     const raw = appStorage.getItem(key);
@@ -46,9 +55,10 @@ export function ChatPanel({
   onCloseChat,
 }: Props) {
   const storageKey = `gh-chillbox:chat:${repo}:${prNumber}`;
-  const [messages, setMessages] = useState<Message[]>(() => loadMessages(storageKey));
+  initSession(storageKey, () => loadMessages(storageKey));
+  const [messages, setMessages] = useSession<Message[]>(storageKey, []);
   const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useSession(`${storageKey}:loading`, false);
   const [includeDiff, setIncludeDiff] = useState(false);
   const [diffCharCount, setDiffCharCount] = useState<number | null>(null);
   const [diffLoading, setDiffLoading] = useState(false);
@@ -93,12 +103,6 @@ export function ChatPanel({
   useEffect(() => {
     bodyRef.current?.scrollTo({ top: bodyRef.current.scrollHeight, behavior: "smooth" });
   }, [messages]);
-
-  useEffect(() => {
-    try {
-      appStorage.setItem(storageKey, JSON.stringify(messages));
-    } catch {}
-  }, [messages, storageKey]);
 
   const handleDropImages = async (e: React.DragEvent) => {
     e.preventDefault();
@@ -179,8 +183,7 @@ export function ChatPanel({
       return;
     }
 
-    const userMsg: Message = { role: "user", content: question };
-    setMessages((prev) => [...prev, userMsg]);
+    appendMessage(storageKey, { role: "user", content: question });
     setInput("");
     for (const img of images) {
       URL.revokeObjectURL(img.previewUrl);
@@ -213,10 +216,10 @@ export function ChatPanel({
         throw new Error(`API error: ${res.status}`);
       }
       const data = await res.json();
-      setMessages((prev) => [...prev, { role: "assistant", content: data.answer }]);
+      appendMessage(storageKey, { role: "assistant", content: data.answer });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "エラーが発生しました";
-      setMessages((prev) => [...prev, { role: "assistant", content: `エラー: ${msg}` }]);
+      appendMessage(storageKey, { role: "assistant", content: `エラー: ${msg}` });
     } finally {
       setLoading(false);
     }

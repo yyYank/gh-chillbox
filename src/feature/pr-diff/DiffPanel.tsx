@@ -5,6 +5,7 @@ import { parseDiff } from "./diff-parse";
 import { buildThreadAnchor, lineLabel, type ThreadAnchor, type ThreadMessage } from "./diff-threads";
 import { loadThreads, appendThreadMessage, removeThread, type ThreadMap } from "./diff-thread-storage";
 import { DiffThreadView } from "./DiffThreadView";
+import { initSession, useSession } from "../session-store/session-store";
 import { countViewed, type ViewedStates } from "./diff-viewed";
 import { languageFromPath, highlightLine } from "./diff-highlight";
 import { stepFontSize, parseFontSize } from "./diff-font-size";
@@ -70,7 +71,10 @@ export function DiffPanel({ repo, prNumber, prTitle = "", prBody = "", onFileHea
   const [pathQuery, setPathQuery] = useState("");
   const [textQuery, setTextQuery] = useState("");
   const [collapsedFiles, setCollapsedFiles] = useState<Set<string>>(() => loadCollapsed(repo, prNumber));
-  const [threads, setThreads] = useState<ThreadMap>(() => loadThreads(repo, prNumber));
+  // Diff タブを離れている間に届いた回答も、戻ったときにすぐ表示できるよう置き場所に持つ
+  const threadsKey = `diff-threads:${repo}:${prNumber}`;
+  initSession(threadsKey, () => loadThreads(repo, prNumber));
+  const [threads, setThreads] = useSession<ThreadMap>(threadsKey, {});
   const [pending, setPending] = useState<ThreadAnchor | null>(null);
   const [floatingBtn, setFloatingBtn] = useState<{ x: number; y: number; anchor: ThreadAnchor } | null>(null);
   const [pullRequestId, setPullRequestId] = useState<string | null>(null);
@@ -93,7 +97,6 @@ export function DiffPanel({ repo, prNumber, prTitle = "", prBody = "", onFileHea
   };
 
   useEffect(() => {
-    setThreads(loadThreads(repo, prNumber));
     setPending(null);
   }, [repo, prNumber]);
 

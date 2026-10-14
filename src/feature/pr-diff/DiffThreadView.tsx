@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Send, Trash2, X } from "lucide-react";
 import { marked } from "marked";
 import type { ThreadAnchor, ThreadMessage } from "./diff-threads";
+import { useSession } from "../session-store/session-store";
 
 type Props = {
   anchor: ThreadAnchor;
@@ -27,7 +28,8 @@ export function DiffThreadView({
   onCancel,
 }: Props) {
   const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
+  // 返事待ちの間に画面が破棄されても、戻ったときに待ち状態を出せるよう置き場所に持つ
+  const [loading, setLoading] = useSession(`diff-thread:${repo}:${prNumber}:${anchor.key}:loading`, false);
   const isNew = messages.length === 0;
   const range = anchor.start === anchor.end ? anchor.start : `${anchor.start}〜${anchor.end}`;
 
