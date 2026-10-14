@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useAstAnalysis } from "./useAstAnalysis";
 
 type SymbolKind = "function" | "method" | "class" | "component" | "hook" | "interface" | "type" | "struct" | "unknown";
 
@@ -101,32 +101,7 @@ function buildFlowChains(symbols: ChangedSymbol[], relations: SymbolRelation[]):
 }
 
 export function AstAnalysis({ repo, prNumber }: Props) {
-  const [symbols, setSymbols] = useState<ChangedSymbol[]>([]);
-  const [relations, setRelations] = useState<SymbolRelation[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    setLoading(true);
-    setError(null);
-    const params = new URLSearchParams({ repo, number: String(prNumber) });
-    fetch(`/api/ast-analysis?${params}`)
-      .then((res) => {
-        if (!res.ok) {
-          throw new Error(`API error: ${res.status}`);
-        }
-        return res.json();
-      })
-      .then((d) => {
-        if (d.error) {
-          throw new Error(d.error);
-        }
-        setSymbols(d.symbols ?? []);
-        setRelations(d.relations ?? []);
-      })
-      .catch((e) => setError(e instanceof Error ? e.message : "解析に失敗しました"))
-      .finally(() => setLoading(false));
-  }, [repo, prNumber]);
+  const { symbols, relations, loading, error } = useAstAnalysis<ChangedSymbol, SymbolRelation>(repo, prNumber);
 
   if (loading) {
     return <div className="ast-analysis-loading">AST解析中…</div>;

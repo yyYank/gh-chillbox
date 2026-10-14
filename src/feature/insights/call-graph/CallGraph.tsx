@@ -1,4 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useSession } from "../../session-store/session-store";
+import { useAstAnalysis } from "../ast-analysis/useAstAnalysis";
 import { Star } from "lucide-react";
 import { buildCallGraph, extractSubgraph, generateReadingOrder, type GraphNode, type GraphEdge } from "./call-graph";
 
@@ -83,37 +85,14 @@ function buildEdgeConfidenceMap(edges: GraphEdge[]): Map<string, GraphEdge["conf
 }
 
 export function CallGraph({ repo, prNumber }: Props) {
-  const [symbols, setSymbols] = useState<ChangedSymbol[]>([]);
-  const [relations, setRelations] = useState<SymbolRelation[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [moduleConnections, setModuleConnections] = useState<SymbolRelation[]>([]);
-  const [hops, setHops] = useState(1);
-  const [includeTests, setIncludeTests] = useState(false);
-  const [activeTab, setActiveTab] = useState<"callgraph" | "module-connections">("callgraph");
-
-  useEffect(() => {
-    setLoading(true);
-    setError(null);
-    const params = new URLSearchParams({ repo, number: String(prNumber) });
-    fetch(`/api/ast-analysis?${params}`)
-      .then((res) => {
-        if (!res.ok) {
-          throw new Error(`API error: ${res.status}`);
-        }
-        return res.json();
-      })
-      .then((d) => {
-        if (d.error) {
-          throw new Error(d.error);
-        }
-        setSymbols(d.symbols ?? []);
-        setRelations(d.relations ?? []);
-        setModuleConnections(d.moduleConnections ?? []);
-      })
-      .catch((e) => setError(e instanceof Error ? e.message : "解析に失敗しました"))
-      .finally(() => setLoading(false));
-  }, [repo, prNumber]);
+  const { symbols, relations, moduleConnections, loading, error } = useAstAnalysis<ChangedSymbol, SymbolRelation>(
+    repo,
+    prNumber,
+  );
+  const uiKey = `insight:callgraph:${repo}:${prNumber}`;
+  const [hops, setHops] = useSession(`${uiKey}:hops`, 1);
+  const [includeTests, setIncludeTests] = useSession(`${uiKey}:includeTests`, false);
+  const [activeTab, setActiveTab] = useSession<"callgraph" | "module-connections">(`${uiKey}:tab`, "callgraph");
 
   if (loading) {
     return <div className="cg-status">AST解析中…</div>;
