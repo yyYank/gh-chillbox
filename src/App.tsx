@@ -10,6 +10,7 @@ import { SortableRow } from "./feature/pull-requests/SortableRow";
 import { NotificationDrawer } from "./feature/notifications/NotificationDrawer";
 import { PrDetail } from "./feature/pr-detail/PrDetail";
 import { PrTabBar } from "./feature/pr-detail/PrTabBar";
+import { broadcastChat } from "./feature/chat/chat-store";
 import { addTab, closeTab, moveTab, parseTabs } from "./feature/pr-detail/pr-tabs";
 import "./App.css";
 import headerIcon from "./assets/icon.png";
@@ -517,6 +518,7 @@ export function App() {
           onSelect={navigateToPr}
           onClose={handleCloseTab}
           onReorder={handleTabReorder}
+          onBroadcast={(question) => broadcastChat(repo, visibleTabs, question)}
         />
       )}
       {/* 開いたタブは一覧に戻っても裏で保持し、chat やスクロール位置を残す */}
