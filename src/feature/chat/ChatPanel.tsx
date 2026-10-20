@@ -2,12 +2,8 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { Send, X, HelpCircle, RotateCcw, AlertTriangle, Eye } from "lucide-react";
 import { marked } from "marked";
 import { appStorage } from "../../app-storage";
-import { getSession, initSession, setSession, useSession } from "../session-store/session-store";
-
-type Message = {
-  role: "user" | "assistant";
-  content: string;
-};
+import { initSession, useSession } from "../session-store/session-store";
+import { type Message, appendMessage, chatLoadingKey, chatStorageKey, loadMessages, postChat } from "./chat-store";
 
 type AttachedImage = {
   path: string;
@@ -26,23 +22,6 @@ type Props = {
   onCloseChat: () => void;
 };
 
-// 画面が破棄されていても届いた返事を残せるよう、置き場所と appStorage の両方に書く
-function appendMessage(key: string, msg: Message) {
-  setSession<Message[]>(key, (prev) => [...(prev ?? []), msg]);
-  try {
-    appStorage.setItem(key, JSON.stringify(getSession<Message[]>(key, [])));
-  } catch {}
-}
-
-function loadMessages(key: string): Message[] {
-  try {
-    const raw = appStorage.getItem(key);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
-
 export function ChatPanel({
   selectedFiles,
   quotedText,
@@ -54,11 +33,11 @@ export function ChatPanel({
   onClearSelection,
   onCloseChat,
 }: Props) {
-  const storageKey = `gh-chillbox:chat:${repo}:${prNumber}`;
+  const storageKey = chatStorageKey(repo, prNumber);
   initSession(storageKey, () => loadMessages(storageKey));
   const [messages, setMessages] = useSession<Message[]>(storageKey, []);
   const [input, setInput] = useState("");
-  const [loading, setLoading] = useSession(`${storageKey}:loading`, false);
+  const [loading, setLoading] = useSession(chatLoadingKey(storageKey), false);
   const [includeDiff, setIncludeDiff] = useState(false);
   const [diffCharCount, setDiffCharCount] = useState<number | null>(null);
   const [diffLoading, setDiffLoading] = useState(false);
@@ -207,16 +186,8 @@ export function ChatPanel({
           payload.includeDiff = true;
         }
       }
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        throw new Error(`API error: ${res.status}`);
-      }
-      const data = await res.json();
-      appendMessage(storageKey, { role: "assistant", content: data.answer });
+      const answer = await postChat(payload);
+      appendMessage(storageKey, { role: "assistant", content: answer });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "エラーが発生しました";
       appendMessage(storageKey, { role: "assistant", content: `エラー: ${msg}` });
