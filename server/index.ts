@@ -5,7 +5,7 @@ import { promisify } from "node:util";
 import { resolve } from "node:path";
 import { lintJa } from "./polish/textlint";
 import { replaceAiWords } from "./polish/ai-words";
-import { ensureRepo, checkoutSha, gitOutput } from "./git/repository-cache-handler";
+import { ensureRepo, ensureWorktree, gitOutput } from "./git/repository-cache-handler";
 import { chatSessionKey } from "./chat/chat-session";
 import { UPLOAD_DIR, imagePromptParts, saveUploadedImage } from "./chat/chat-image";
 import { prListArgs } from "./pr-list/pr-list-args";
@@ -408,10 +408,10 @@ app.post("/chat", async (c) => {
     ]);
     const { headRefOid: sha } = JSON.parse(prJson);
     const repoDir = await ensureRepo(repo);
-    await checkoutSha(repoDir, sha);
+    const worktreeDir = await ensureWorktree(repoDir, prNumber, sha);
 
     const { stdout } = await execFileAsync("claude", args, {
-      cwd: repoDir,
+      cwd: worktreeDir,
       timeout: 120000,
     });
     const parsed = JSON.parse(stdout);
