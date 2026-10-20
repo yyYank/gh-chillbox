@@ -14,68 +14,103 @@ type Props = {
   onSelect: (prNumber: number) => void;
   onClose: (prNumber: number) => void;
   onReorder: (from: number, to: number) => void;
-  onBroadcast: (question: string) => Promise<{ sent: number[]; skipped: number[] }>;
+  onBroadcast: (
+    question: string,
+    options: { skipWithHistory: boolean },
+  ) => Promise<{ sent: number[]; skipped: number[] }>;
 };
 
-// 開いている全タブの Chat に同じ質問を送る。会話があるタブは飛ばす
+// 開いている全タブの Chat に同じ質問を送る。会話があるタブを飛ばすかは選べる
 function BroadcastAsk({ onBroadcast }: { onBroadcast: Props["onBroadcast"] }) {
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
+  const [skipWithHistory, setSkipWithHistory] = useState(false);
   const [sending, setSending] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const submit = async () => {
     const question = input.trim();
     if (!question) {
       return;
     }
+    // 返事を待つ間も操作できるよう、送ったらすぐ閉じて結果はボタンの横に出す
+    setOpen(false);
+    setInput("");
     setSending(true);
     setStatus(null);
     try {
-      const { sent, skipped } = await onBroadcast(question);
-      setInput("");
+      const { sent, skipped } = await onBroadcast(question, { skipWithHistory });
       setStatus(`送信 ${sent.length}件 / スキップ ${skipped.length}件`);
     } finally {
       setSending(false);
     }
   };
 
-  if (!open) {
-    return (
+  return (
+    <div className="pr-tab-broadcast">
+      {(sending || status) && <span className="pr-tab-broadcast-status">{sending ? "送信中…" : status}</span>}
       <button
         type="button"
         className="pr-tab-broadcast-toggle"
         onClick={() => setOpen(true)}
-        title="全タブの Chat に同じ質問を送る（会話があるタブは飛ばす）"
+        title="全タブの Chat に同じ質問を送る"
       >
         <MessagesSquare size={14} />
       </button>
-    );
-  }
-
-  return (
-    <form className="pr-tab-broadcast" onSubmit={handleSubmit}>
-      <input
-        autoFocus
-        value={input}
-        onChange={(e) => setInput(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Escape") {
-            setOpen(false);
-          }
-        }}
-        placeholder="全タブに質問（例: このPRを要約して）"
-        disabled={sending}
-      />
-      <button type="submit" disabled={sending || !input.trim()} title="全タブに送信">
-        <Send size={14} />
-      </button>
-      <button type="button" onClick={() => setOpen(false)} title="閉じる">
-        <X size={14} />
-      </button>
-      {(sending || status) && <span className="pr-tab-broadcast-status">{sending ? "送信中…" : status}</span>}
-    </form>
+      {open && (
+        <div className="chat-preview-overlay" onClick={() => setOpen(false)}>
+          <form
+            className="chat-preview-modal pr-broadcast-modal"
+            onClick={(e) => e.stopPropagation()}
+            onSubmit={(e) => {
+              e.preventDefault();
+              submit();
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") {
+                setOpen(false);
+              }
+            }}
+          >
+            <div className="chat-preview-header">
+              <span>全タブに質問</span>
+              <button type="button" className="chat-preview-close" onClick={() => setOpen(false)}>
+                <X size={16} />
+              </button>
+            </div>
+            <div className="pr-broadcast-body">
+              <textarea
+                autoFocus
+                rows={4}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                    e.preventDefault();
+                    submit();
+                  }
+                }}
+                placeholder="例: このPRを要約して"
+              />
+              <label className="pr-broadcast-skip">
+                <input
+                  type="checkbox"
+                  checked={skipWithHistory}
+                  onChange={(e) => setSkipWithHistory(e.target.checked)}
+                />
+                チャット履歴があるタブはスキップ
+              </label>
+            </div>
+            <div className="pr-broadcast-footer">
+              <button type="submit" className="pr-broadcast-send" disabled={!input.trim()}>
+                <Send size={14} />
+                送信
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+    </div>
   );
 }
 

@@ -518,7 +518,7 @@ export function App() {
           onSelect={navigateToPr}
           onClose={handleCloseTab}
           onReorder={handleTabReorder}
-          onBroadcast={(question) => broadcastChat(repo, visibleTabs, question, { skipWithHistory: true })}
+          onBroadcast={(question, options) => broadcastChat(repo, visibleTabs, question, options)}
         />
       )}
       {/* 開いたタブは一覧に戻っても裏で保持し、chat やスクロール位置を残す */}
