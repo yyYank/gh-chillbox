@@ -1,5 +1,5 @@
 import { appStorage } from "../../app-storage";
-import { getSession, setSession } from "../session-store/session-store";
+import { getSession, initSession, setSession } from "../session-store/session-store";
 
 export type Message = {
   role: "user" | "assistant";
@@ -42,4 +42,41 @@ export async function postChat(payload: Record<string, unknown>): Promise<string
   }
   const data = await res.json();
   return data.answer;
+}
+
+type Post = (payload: Record<string, unknown>) => Promise<string>;
+
+// 開いている全タブに同じ質問を並列で送る。すでに会話があるタブや送信中のタブは飛ばす
+export async function broadcastChat(
+  repo: string,
+  prNumbers: number[],
+  question: string,
+  post: Post = postChat,
+): Promise<{ sent: number[]; skipped: number[] }> {
+  const sent: number[] = [];
+  const skipped: number[] = [];
+  for (const prNumber of prNumbers) {
+    const key = chatStorageKey(repo, prNumber);
+    initSession(key, () => loadMessages(key));
+    const busy = getSession(chatLoadingKey(key), false) || getSession<Message[]>(key, []).length > 0;
+    (busy ? skipped : sent).push(prNumber);
+  }
+
+  await Promise.all(
+    sent.map(async (prNumber) => {
+      const key = chatStorageKey(repo, prNumber);
+      appendMessage(key, { role: "user", content: question });
+      setSession(chatLoadingKey(key), true);
+      try {
+        const answer = await post({ repo, prNumber, question });
+        appendMessage(key, { role: "assistant", content: answer });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "エラーが発生しました";
+        appendMessage(key, { role: "assistant", content: `エラー: ${msg}` });
+      } finally {
+        setSession(chatLoadingKey(key), false);
+      }
+    }),
+  );
+  return { sent, skipped };
 }
