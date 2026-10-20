@@ -8,6 +8,7 @@ import { replaceAiWords } from "./polish/ai-words";
 import { ensureRepo, ensureWorktree, gitOutput } from "./git/repository-cache-handler";
 import { chatSessionKey } from "./chat/chat-session";
 import { fillPrInfo } from "./chat/chat-pr-info";
+import { isApproved } from "./approval/pr-approval";
 import { UPLOAD_DIR, imagePromptParts, saveUploadedImage } from "./chat/chat-image";
 import { prListArgs } from "./pr-list/pr-list-args";
 import { createKvStore } from "./store/kv-store";
@@ -185,6 +186,49 @@ app.get("/pr-detail", async (c) => {
     ]);
     const data = JSON.parse(stdout);
     return c.json(data);
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Unknown error";
+    return c.json({ error: message }, 500);
+  }
+});
+
+// 自分のアカウント名はサーバーが動いている間変わらないので1回だけ取得する
+let viewerLogin: Promise<string> | null = null;
+function getViewerLogin(): Promise<string> {
+  viewerLogin ??= execFileAsync("gh", ["api", "user", "--jq", ".login"]).then(
+    ({ stdout }) => stdout.trim(),
+    (e) => {
+      viewerLogin = null;
+      throw e;
+    },
+  );
+  return viewerLogin;
+}
+
+app.get("/pr-approvals", async (c) => {
+  const repo = c.req.query("repo");
+  const numbers = (c.req.query("numbers") ?? "").split(",").filter((n) => /^\d+$/.test(n));
+  if (!repo || numbers.length === 0) {
+    return c.json({ error: "repo and numbers are required" }, 400);
+  }
+
+  try {
+    const me = await getViewerLogin();
+    const results = await Promise.all(
+      numbers.map(async (number) => {
+        const { stdout } = await execFileAsync("gh", [
+          "pr",
+          "view",
+          number,
+          "--repo",
+          repo,
+          "--json",
+          "reviewDecision,latestReviews",
+        ]);
+        return isApproved(JSON.parse(stdout), me) ? Number(number) : null;
+      }),
+    );
+    return c.json({ approved: results.filter((n): n is number => n !== null) });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Unknown error";
     return c.json({ error: message }, 500);
