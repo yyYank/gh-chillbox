@@ -5,6 +5,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { MessagesSquare, Send, X } from "lucide-react";
 import { tabTooltip } from "./pr-tabs";
 import { Tooltip } from "./Tooltip";
+import { BroadcastPresets } from "../chat/BroadcastPresets";
 
 type Props = {
   tabs: number[];
@@ -83,6 +84,7 @@ function BroadcastAsk({ onBroadcast }: { onBroadcast: Props["onBroadcast"] }) {
               </button>
             </div>
             <div className="pr-broadcast-body">
+              <BroadcastPresets input={input} onPick={setInput} />
               <textarea
                 autoFocus
                 rows={4}
