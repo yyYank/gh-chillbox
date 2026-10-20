@@ -2,8 +2,10 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import fs from "node:fs";
 import path from "node:path";
+import { createInFlight } from "./in-flight";
 
 const execFileAsync = promisify(execFile);
+const fetchInFlight = createInFlight<string>();
 
 const CACHE_ROOT = path.resolve(process.cwd(), ".cache/repos");
 
@@ -11,7 +13,12 @@ function repoDir(owner: string, repo: string): string {
   return path.join(CACHE_ROOT, owner, repo);
 }
 
-export async function ensureRepo(fullRepo: string): Promise<string> {
+// 並列に呼ばれても同じ repo の clone/fetch は1回にまとめ、git のロックの取り合いを防ぐ
+export function ensureRepo(fullRepo: string): Promise<string> {
+  return fetchInFlight(fullRepo, () => cloneOrFetch(fullRepo));
+}
+
+async function cloneOrFetch(fullRepo: string): Promise<string> {
   const [owner, repo] = fullRepo.split("/");
   const dir = repoDir(owner, repo);
 
