@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { toggleLeft, toggleRight, gridColumns } from "./pane-visibility";
+import { toggleLeft, toggleRight, gridColumns, parseRightTab } from "./pane-visibility";
 
 describe("toggleLeft", () => {
   it("両方表示中なら左だけ非表示になる", () => {
@@ -37,5 +37,21 @@ describe("gridColumns", () => {
   it("片方だけ表示なら1列になる", () => {
     expect(gridColumns({ left: false, right: true }, 40)).toBe("1fr");
     expect(gridColumns({ left: true, right: false }, 40)).toBe("1fr");
+  });
+});
+
+describe("parseRightTab", () => {
+  it("保存された chat / diff / insight はそのタブに戻す", () => {
+    expect(parseRightTab("chat")).toBe("chat");
+    expect(parseRightTab("diff")).toBe("diff");
+    expect(parseRightTab("insight")).toBe("insight");
+  });
+
+  it("保存されていなければ diff にする", () => {
+    expect(parseRightTab(null)).toBe("diff");
+  });
+
+  it("知らない値が保存されていたら diff にする", () => {
+    expect(parseRightTab("unknown")).toBe("diff");
   });
 });

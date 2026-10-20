@@ -13,7 +13,14 @@ import { CallGraph } from "../insights/call-graph/CallGraph";
 import { ApiPreview } from "../insights/api-preview/ApiPreview";
 import { GoDocPreview } from "../insights/godoc-preview/GoDocPreview";
 import { TestsPreview } from "../insights/tests-preview/TestsPreview";
-import { toggleLeft, toggleRight, gridColumns, type PaneVisibility } from "./pane-visibility";
+import {
+  toggleLeft,
+  toggleRight,
+  gridColumns,
+  parseRightTab,
+  type PaneVisibility,
+  type RightTab,
+} from "./pane-visibility";
 import { appStorage } from "../../app-storage";
 
 marked.setOptions({ gfm: true, breaks: true });
@@ -155,7 +162,22 @@ export function PrDetail({
     },
     [storagePrefix],
   );
-  const [activeTab, setActiveTab] = useState<"chat" | "diff" | "insight">("diff");
+  const [activeTab, setActiveTabState] = useState<RightTab>(() => {
+    try {
+      return parseRightTab(appStorage.getItem(`${storagePrefix}:rightTab`));
+    } catch {
+      return "diff";
+    }
+  });
+  const setActiveTab = useCallback(
+    (tab: RightTab) => {
+      setActiveTabState(tab);
+      try {
+        appStorage.setItem(`${storagePrefix}:rightTab`, tab);
+      } catch {}
+    },
+    [storagePrefix],
+  );
   const [insightTab, setInsightTab] = useState<"surface" | "ast" | "callgraph" | "api" | "godoc" | "tests">("tests");
   const [floatingBtn, setFloatingBtn] = useState<{ x: number; y: number; text: string; fromBody: boolean } | null>(
     null,
@@ -404,7 +426,7 @@ export function PrDetail({
       setChatOpen(true);
       setActiveTab("chat");
     }
-  }, [selectedFiles.size, quotedText]);
+  }, [selectedFiles.size, quotedText, setActiveTab]);
 
   const selectedArray = [...selectedFiles];
   const hasChat = chatOpen;

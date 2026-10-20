@@ -12,3 +12,10 @@ export function toggleRight(v: PaneVisibility): PaneVisibility {
 export function gridColumns(v: PaneVisibility, splitRatio: number): string {
   return v.left && v.right ? `${splitRatio}% 6px 1fr` : "1fr";
 }
+
+export type RightTab = "chat" | "diff" | "insight";
+
+// リロード後も最後に選んだ右ペインのタブに戻す。保存値が無い・壊れているときは diff
+export function parseRightTab(raw: string | null): RightTab {
+  return raw === "chat" || raw === "insight" || raw === "diff" ? raw : "diff";
+}
