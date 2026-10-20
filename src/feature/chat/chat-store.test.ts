@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { initAppStorage } from "../../app-storage";
-import { clearSessionStore, getSession } from "../session-store/session-store";
+import { clearSessionStore, getSession, setSession } from "../session-store/session-store";
 import { appendMessage, broadcastChat, chatLoadingKey, chatStorageKey, loadMessages } from "./chat-store";
 
 const emptyLegacy = { length: 0, key: () => null, getItem: () => null };
@@ -41,11 +41,11 @@ describe("broadcastChat", () => {
     await initAppStorage({ fetch, legacy: emptyLegacy });
   });
 
-  it("履歴が空のタブにだけ並列で送り、回答を各タブの履歴に追加する", async () => {
+  it("履歴があるタブをスキップする指定なら、履歴が空のタブにだけ並列で送り、回答を各タブの履歴に追加する", async () => {
     appendMessage(chatStorageKey("o/r", 2), { role: "user", content: "前の質問" });
     const post = vi.fn(async (payload: Record<string, unknown>) => `#${payload.prNumber} の要約`);
 
-    const result = await broadcastChat("o/r", [1, 2, 3], "このPRを要約して", post);
+    const result = await broadcastChat("o/r", [1, 2, 3], "このPRを要約して", { skipWithHistory: true }, post);
 
     expect(result).toEqual({ sent: [1, 3], skipped: [2] });
     expect(post).toHaveBeenCalledTimes(2);
@@ -57,6 +57,29 @@ describe("broadcastChat", () => {
     expect(loadMessages(chatStorageKey("o/r", 2))).toEqual([{ role: "user", content: "前の質問" }]);
   });
 
+  it("スキップしない指定なら、履歴があるタブにも会話の続きとして送る", async () => {
+    appendMessage(chatStorageKey("o/r", 2), { role: "user", content: "前の質問" });
+    const post = vi.fn(async () => "回答");
+
+    const result = await broadcastChat("o/r", [1, 2], "このPRを要約して", { skipWithHistory: false }, post);
+
+    expect(result).toEqual({ sent: [1, 2], skipped: [] });
+    expect(loadMessages(chatStorageKey("o/r", 2))).toEqual([
+      { role: "user", content: "前の質問" },
+      { role: "user", content: "このPRを要約して" },
+      { role: "assistant", content: "回答" },
+    ]);
+  });
+
+  it("スキップしない指定でも、送信中のタブには送らない", async () => {
+    setSession(chatLoadingKey(chatStorageKey("o/r", 1)), true);
+    const post = vi.fn(async () => "回答");
+
+    const result = await broadcastChat("o/r", [1, 2], "質問", { skipWithHistory: false }, post);
+
+    expect(result).toEqual({ sent: [2], skipped: [1] });
+  });
+
   it("送信中はタブを送信中にし、終わったら解除する", async () => {
     const key = chatStorageKey("o/r", 1);
     let loadingWhileSending = false;
@@ -64,7 +87,7 @@ describe("broadcastChat", () => {
       loadingWhileSending = getSession(chatLoadingKey(key), false);
       return "回答";
     };
-    await broadcastChat("o/r", [1], "質問", post);
+    await broadcastChat("o/r", [1], "質問", { skipWithHistory: false }, post);
     expect(loadingWhileSending).toBe(true);
     expect(getSession(chatLoadingKey(key), false)).toBe(false);
   });
@@ -76,7 +99,7 @@ describe("broadcastChat", () => {
       }
       return "回答";
     };
-    await broadcastChat("o/r", [1, 2], "質問", post);
+    await broadcastChat("o/r", [1, 2], "質問", { skipWithHistory: false }, post);
     expect(loadMessages(chatStorageKey("o/r", 1)).at(-1)).toEqual({
       role: "assistant",
       content: "エラー: API error: 500",

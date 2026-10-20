@@ -46,11 +46,12 @@ export async function postChat(payload: Record<string, unknown>): Promise<string
 
 type Post = (payload: Record<string, unknown>) => Promise<string>;
 
-// 開いている全タブに同じ質問を並列で送る。すでに会話があるタブや送信中のタブは飛ばす
+// 開いている全タブに同じ質問を並列で送る。送信中のタブと、指定があれば会話があるタブは飛ばす
 export async function broadcastChat(
   repo: string,
   prNumbers: number[],
   question: string,
+  { skipWithHistory }: { skipWithHistory: boolean },
   post: Post = postChat,
 ): Promise<{ sent: number[]; skipped: number[] }> {
   const sent: number[] = [];
@@ -58,8 +59,9 @@ export async function broadcastChat(
   for (const prNumber of prNumbers) {
     const key = chatStorageKey(repo, prNumber);
     initSession(key, () => loadMessages(key));
-    const busy = getSession(chatLoadingKey(key), false) || getSession<Message[]>(key, []).length > 0;
-    (busy ? skipped : sent).push(prNumber);
+    const hasHistory = getSession<Message[]>(key, []).length > 0;
+    const skip = getSession(chatLoadingKey(key), false) || (skipWithHistory && hasHistory);
+    (skip ? skipped : sent).push(prNumber);
   }
 
   await Promise.all(
