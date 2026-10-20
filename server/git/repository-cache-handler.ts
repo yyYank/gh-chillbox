@@ -34,6 +34,22 @@ export async function checkoutSha(repoDir: string, sha: string): Promise<void> {
   });
 }
 
+// PR ごとに作業ディレクトリを分け、並列実行でも互いの checkout を上書きしない
+export async function ensureWorktree(repoDir: string, prNumber: number, sha: string): Promise<string> {
+  const dir = path.join(`${repoDir}.worktrees`, String(prNumber));
+
+  if (fs.existsSync(dir)) {
+    await checkoutSha(dir, sha);
+  } else {
+    await execFileAsync("git", ["worktree", "add", "--quiet", "--detach", dir, sha], {
+      cwd: repoDir,
+      timeout: 60000,
+    });
+  }
+
+  return dir;
+}
+
 export async function gitOutput(repoDir: string, args: string[]): Promise<string> {
   const { stdout } = await execFileAsync("git", args, {
     cwd: repoDir,
