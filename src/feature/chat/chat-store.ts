@@ -45,22 +45,35 @@ export async function postChat(payload: Record<string, unknown>): Promise<string
 }
 
 type Post = (payload: Record<string, unknown>) => Promise<string>;
+type FetchApproved = (repo: string, prNumbers: number[]) => Promise<number[]>;
 
-// 開いている全タブに同じ質問を並列で送る。送信中のタブと、指定があれば会話があるタブは飛ばす
+export async function fetchApprovedPrs(repo: string, prNumbers: number[]): Promise<number[]> {
+  const params = new URLSearchParams({ repo, numbers: prNumbers.join(",") });
+  const res = await fetch(`/api/pr-approvals?${params}`);
+  if (!res.ok) {
+    throw new Error(`API error: ${res.status}`);
+  }
+  const data = await res.json();
+  return data.approved;
+}
+
+// 開いている全タブに同じ質問を並列で送る。送信中のタブと、指定があれば会話があるタブや approve 済みのタブは飛ばす
 export async function broadcastChat(
   repo: string,
   prNumbers: number[],
   question: string,
-  { skipWithHistory }: { skipWithHistory: boolean },
+  { skipWithHistory, skipApproved }: { skipWithHistory: boolean; skipApproved: boolean },
   post: Post = postChat,
+  fetchApproved: FetchApproved = fetchApprovedPrs,
 ): Promise<{ sent: number[]; skipped: number[] }> {
+  const approved = new Set(skipApproved ? await fetchApproved(repo, prNumbers) : []);
   const sent: number[] = [];
   const skipped: number[] = [];
   for (const prNumber of prNumbers) {
     const key = chatStorageKey(repo, prNumber);
     initSession(key, () => loadMessages(key));
     const hasHistory = getSession<Message[]>(key, []).length > 0;
-    const skip = getSession(chatLoadingKey(key), false) || (skipWithHistory && hasHistory);
+    const skip = getSession(chatLoadingKey(key), false) || (skipWithHistory && hasHistory) || approved.has(prNumber);
     (skip ? skipped : sent).push(prNumber);
   }
 

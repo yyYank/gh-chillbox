@@ -16,7 +16,7 @@ type Props = {
   onReorder: (from: number, to: number) => void;
   onBroadcast: (
     question: string,
-    options: { skipWithHistory: boolean },
+    options: { skipWithHistory: boolean; skipApproved: boolean },
   ) => Promise<{ sent: number[]; skipped: number[] }>;
 };
 
@@ -25,6 +25,7 @@ function BroadcastAsk({ onBroadcast }: { onBroadcast: Props["onBroadcast"] }) {
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [skipWithHistory, setSkipWithHistory] = useState(false);
+  const [skipApproved, setSkipApproved] = useState(false);
   const [sending, setSending] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
 
@@ -39,8 +40,11 @@ function BroadcastAsk({ onBroadcast }: { onBroadcast: Props["onBroadcast"] }) {
     setSending(true);
     setStatus(null);
     try {
-      const { sent, skipped } = await onBroadcast(question, { skipWithHistory });
+      const { sent, skipped } = await onBroadcast(question, { skipWithHistory, skipApproved });
       setStatus(`送信 ${sent.length}件 / スキップ ${skipped.length}件`);
+    } catch (err) {
+      // approve 状態を取得できなかったときは、どのタブにも送らずに止める
+      setStatus(`送信できませんでした: ${err instanceof Error ? err.message : "エラー"}`);
     } finally {
       setSending(false);
     }
@@ -99,6 +103,10 @@ function BroadcastAsk({ onBroadcast }: { onBroadcast: Props["onBroadcast"] }) {
                   onChange={(e) => setSkipWithHistory(e.target.checked)}
                 />
                 チャット履歴があるタブはスキップ
+              </label>
+              <label className="pr-broadcast-skip">
+                <input type="checkbox" checked={skipApproved} onChange={(e) => setSkipApproved(e.target.checked)} />
+                approve済みのタブはスキップ
               </label>
             </div>
             <div className="pr-broadcast-footer">

@@ -45,7 +45,13 @@ describe("broadcastChat", () => {
     appendMessage(chatStorageKey("o/r", 2), { role: "user", content: "前の質問" });
     const post = vi.fn(async (payload: Record<string, unknown>) => `#${payload.prNumber} の要約`);
 
-    const result = await broadcastChat("o/r", [1, 2, 3], "このPRを要約して", { skipWithHistory: true }, post);
+    const result = await broadcastChat(
+      "o/r",
+      [1, 2, 3],
+      "このPRを要約して",
+      { skipWithHistory: true, skipApproved: false },
+      post,
+    );
 
     expect(result).toEqual({ sent: [1, 3], skipped: [2] });
     expect(post).toHaveBeenCalledTimes(2);
@@ -61,7 +67,13 @@ describe("broadcastChat", () => {
     appendMessage(chatStorageKey("o/r", 2), { role: "user", content: "前の質問" });
     const post = vi.fn(async () => "回答");
 
-    const result = await broadcastChat("o/r", [1, 2], "このPRを要約して", { skipWithHistory: false }, post);
+    const result = await broadcastChat(
+      "o/r",
+      [1, 2],
+      "このPRを要約して",
+      { skipWithHistory: false, skipApproved: false },
+      post,
+    );
 
     expect(result).toEqual({ sent: [1, 2], skipped: [] });
     expect(loadMessages(chatStorageKey("o/r", 2))).toEqual([
@@ -75,9 +87,42 @@ describe("broadcastChat", () => {
     setSession(chatLoadingKey(chatStorageKey("o/r", 1)), true);
     const post = vi.fn(async () => "回答");
 
-    const result = await broadcastChat("o/r", [1, 2], "質問", { skipWithHistory: false }, post);
+    const result = await broadcastChat("o/r", [1, 2], "質問", { skipWithHistory: false, skipApproved: false }, post);
 
     expect(result).toEqual({ sent: [2], skipped: [1] });
+  });
+
+  it("approve済みをスキップする指定なら、approve済みのタブには送らない", async () => {
+    const post = vi.fn(async () => "回答");
+    const fetchApproved = vi.fn(async () => [2]);
+
+    const result = await broadcastChat(
+      "o/r",
+      [1, 2, 3],
+      "質問",
+      { skipWithHistory: false, skipApproved: true },
+      post,
+      fetchApproved,
+    );
+
+    expect(fetchApproved).toHaveBeenCalledWith("o/r", [1, 2, 3]);
+    expect(result).toEqual({ sent: [1, 3], skipped: [2] });
+    expect(loadMessages(chatStorageKey("o/r", 2))).toEqual([]);
+  });
+
+  it("approve済みをスキップしない指定なら、approve 状態を問い合わせない", async () => {
+    const fetchApproved = vi.fn(async () => [1]);
+
+    await broadcastChat(
+      "o/r",
+      [1],
+      "質問",
+      { skipWithHistory: false, skipApproved: false },
+      async () => "回答",
+      fetchApproved,
+    );
+
+    expect(fetchApproved).not.toHaveBeenCalled();
   });
 
   it("送信中はタブを送信中にし、終わったら解除する", async () => {
@@ -87,7 +132,7 @@ describe("broadcastChat", () => {
       loadingWhileSending = getSession(chatLoadingKey(key), false);
       return "回答";
     };
-    await broadcastChat("o/r", [1], "質問", { skipWithHistory: false }, post);
+    await broadcastChat("o/r", [1], "質問", { skipWithHistory: false, skipApproved: false }, post);
     expect(loadingWhileSending).toBe(true);
     expect(getSession(chatLoadingKey(key), false)).toBe(false);
   });
@@ -99,7 +144,7 @@ describe("broadcastChat", () => {
       }
       return "回答";
     };
-    await broadcastChat("o/r", [1, 2], "質問", { skipWithHistory: false }, post);
+    await broadcastChat("o/r", [1, 2], "質問", { skipWithHistory: false, skipApproved: false }, post);
     expect(loadMessages(chatStorageKey("o/r", 1)).at(-1)).toEqual({
       role: "assistant",
       content: "エラー: API error: 500",
