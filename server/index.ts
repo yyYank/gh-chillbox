@@ -7,6 +7,7 @@ import { lintJa } from "./polish/textlint";
 import { replaceAiWords } from "./polish/ai-words";
 import { ensureRepo, ensureWorktree, gitOutput } from "./git/repository-cache-handler";
 import { chatSessionKey } from "./chat/chat-session";
+import { fillPrInfo } from "./chat/chat-pr-info";
 import { UPLOAD_DIR, imagePromptParts, saveUploadedImage } from "./chat/chat-image";
 import { prListArgs } from "./pr-list/pr-list-args";
 import { createKvStore } from "./store/kv-store";
@@ -384,17 +385,6 @@ app.post("/chat", async (c) => {
 
   const allowedTools =
     "WebSearch,Read,Grep,Glob,Bash(gh pr view *),Bash(gh pr diff *),Bash(gh issue view *),Bash(gh issue list *),Bash(gh api repos/*/commits/*),Bash(gh api repos/*/compare/*),Bash(gh search *)";
-  const args: string[] = ["-p"];
-
-  if (existingSessionId) {
-    const prompt = await buildFollowUpPrompt(body);
-    args.push(prompt, "--resume", existingSessionId, "--output-format", "json", "--allowedTools", allowedTools);
-  } else {
-    const prompt = await buildInitialPrompt(body);
-    args.push(prompt, "--output-format", "json", "--allowedTools", allowedTools);
-  }
-  // --add-dir は可変長引数なのでプロンプトを飲み込まないよう末尾に置く
-  args.push("--add-dir", UPLOAD_DIR);
 
   try {
     const { stdout: prJson } = await execFileAsync("gh", [
@@ -404,9 +394,22 @@ app.post("/chat", async (c) => {
       "--repo",
       repo,
       "--json",
-      "headRefOid",
+      "headRefOid,title,body",
     ]);
-    const { headRefOid: sha } = JSON.parse(prJson);
+    const { headRefOid: sha, title, body: prBody } = JSON.parse(prJson);
+    const filledBody: ChatBody = { ...body, ...fillPrInfo(body, { title, body: prBody }) };
+
+    const args: string[] = ["-p"];
+    if (existingSessionId) {
+      const prompt = await buildFollowUpPrompt(filledBody);
+      args.push(prompt, "--resume", existingSessionId, "--output-format", "json", "--allowedTools", allowedTools);
+    } else {
+      const prompt = await buildInitialPrompt(filledBody);
+      args.push(prompt, "--output-format", "json", "--allowedTools", allowedTools);
+    }
+    // --add-dir は可変長引数なのでプロンプトを飲み込まないよう末尾に置く
+    args.push("--add-dir", UPLOAD_DIR);
+
     const repoDir = await ensureRepo(repo);
     const worktreeDir = await ensureWorktree(repoDir, prNumber, sha);
 
