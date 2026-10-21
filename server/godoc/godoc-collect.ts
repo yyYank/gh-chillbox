@@ -68,7 +68,7 @@ export async function loadGoDocs(repo: string, number: number, scope: GoDocScope
     files: { path: string }[];
   };
 
-  const repoDir = await ensureRepo(repo);
+  const repoDir = await ensureRepo(repo, [baseRefOid, sha]);
   await checkoutSha(repoDir, sha);
   const mergeBase = (await gitOutput(repoDir, ["merge-base", baseRefOid, sha])).trim();
 

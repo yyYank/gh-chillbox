@@ -278,7 +278,7 @@ app.get("/pr-file-content", async (c) => {
   try {
     const { stdout } = await execFileAsync("gh", ["pr", "view", number, "--repo", repo, "--json", "headRefOid"]);
     const { headRefOid } = JSON.parse(stdout) as { headRefOid: string };
-    const repoDir = await ensureRepo(repo);
+    const repoDir = await ensureRepo(repo, [headRefOid]);
     const content = await gitOutput(repoDir, ["show", `${headRefOid}:${path}`]);
     return c.json({ content });
   } catch (e) {
@@ -454,7 +454,7 @@ app.post("/chat", async (c) => {
     // --add-dir は可変長引数なのでプロンプトを飲み込まないよう末尾に置く
     args.push("--add-dir", UPLOAD_DIR);
 
-    const repoDir = await ensureRepo(repo);
+    const repoDir = await ensureRepo(repo, [sha]);
     const worktreeDir = await ensureWorktree(repoDir, prNumber, sha);
 
     const { stdout } = await execFileAsync("claude", args, {

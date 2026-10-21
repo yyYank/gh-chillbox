@@ -94,7 +94,7 @@ export async function loadTestCases(repo: string, number: number, scope: TestCas
     files: { path: string }[];
   };
 
-  const repoDir = await ensureRepo(repo);
+  const repoDir = await ensureRepo(repo, [baseRefOid, sha]);
   await checkoutSha(repoDir, sha);
   const mergeBase = (await gitOutput(repoDir, ["merge-base", baseRefOid, sha])).trim();
 

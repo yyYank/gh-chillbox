@@ -112,7 +112,7 @@ export async function analyzepr(repo: string, prNumber: number): Promise<AstAnal
 
   let cachedRepoDir = "";
   if (supportedFiles.length > 0) {
-    cachedRepoDir = await ensureRepo(repo);
+    cachedRepoDir = await ensureRepo(repo, [sha]);
     await checkoutSha(cachedRepoDir, sha);
   }
 

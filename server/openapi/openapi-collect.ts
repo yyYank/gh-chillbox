@@ -75,7 +75,7 @@ export async function loadOpenApiSpecs(repo: string, number: number, scope: Open
   };
   const changedPaths = new Set(files.map((f) => f.path));
 
-  const repoDir = await ensureRepo(repo);
+  const repoDir = await ensureRepo(repo, [baseRefOid, sha]);
   await checkoutSha(repoDir, sha);
   const mergeBase = (await gitOutput(repoDir, ["merge-base", baseRefOid, sha])).trim();
 
