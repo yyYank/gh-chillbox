@@ -8,6 +8,7 @@ import { replaceAiWords } from "./polish/ai-words";
 import { ensureRepo, ensureWorktree, gitOutput } from "./git/repository-cache-handler";
 import { chatSessionKey } from "./chat/chat-session";
 import { isValidChatTarget } from "./chat/chat-target";
+import { newNonce, untrustedBlock, untrustedRule } from "./chat/untrusted";
 import { claudeArgs, execWithStdin } from "./chat/claude-cli";
 import { fillPrInfo } from "./chat/chat-pr-info";
 import { isApproved } from "./approval/pr-approval";
@@ -305,34 +306,32 @@ type ChatBody = {
   imagePaths?: string[];
 };
 
-async function buildContextParts(body: ChatBody): Promise<string[]> {
+async function buildContextParts(body: ChatBody, nonce: string): Promise<string[]> {
   const { repo, prNumber, files, quotedText, includeDiff, quotedFromRewritten, diffThread } = body;
   const parts: string[] = [];
 
   if (diffThread) {
     parts.push(
       `## 質問対象のdiff行（${diffThread.path} ${diffThread.start}〜${diffThread.end}、R=変更後の行番号 L=変更前の行番号）`,
-      "```diff",
-      diffThread.code,
-      "```",
+      untrustedBlock("diff", diffThread.code, nonce),
     );
   } else if (quotedText) {
     parts.push(
       quotedFromRewritten
         ? "## 引用テキスト（PR本文から選択・textlint適用後の書き換え文なので原文とは表現が異なります）"
         : "## 引用テキスト（PR本文から選択）",
-      `> ${quotedText.replace(/\n/g, "\n> ")}`,
+      untrustedBlock("引用テキスト", quotedText, nonce),
     );
   } else if (files && files.length > 0) {
     const fileList = files.map((f) => `- ${f}`).join("\n");
-    parts.push("## 質問対象の変更ファイル", fileList);
+    parts.push("## 質問対象の変更ファイル", untrustedBlock("変更ファイル", fileList, nonce));
 
     if (includeDiff) {
       try {
         const { stdout } = await execFileAsync("gh", ["pr", "diff", String(prNumber), "--repo", repo]);
         const filtered = filterDiffByFiles(stdout, files);
         if (filtered) {
-          parts.push("", "## 選択ファイルのdiff", "```diff", filtered, "```");
+          parts.push("", "## 選択ファイルのdiff", untrustedBlock("diff", filtered, nonce));
         }
       } catch {
         /* diff取得失敗時は無視してファイル一覧のみで続行 */
@@ -348,19 +347,23 @@ async function buildContextParts(body: ChatBody): Promise<string[]> {
   return parts;
 }
 
-async function buildInitialPrompt(body: ChatBody): Promise<string> {
+async function buildInitialPrompt(body: ChatBody, nonce: string): Promise<string> {
   const { repo, prNumber, question, prTitle, prBody } = body;
   const prUrl = `https://github.com/${repo}/pull/${prNumber}`;
   const parts = [
-    `GitHub PR: ${prTitle} (${prUrl})`,
+    `GitHub PR: ${prUrl}`,
     `リポジトリ: ${repo}  PR #${prNumber}`,
     "",
-    "## PR本文",
-    prBody || "(なし)",
+    "## PRタイトル",
+    untrustedBlock("PRタイトル", prTitle, nonce),
     "",
-    ...(await buildContextParts(body)),
+    "## PR本文",
+    untrustedBlock("PR本文", prBody || "(なし)", nonce),
+    "",
+    ...(await buildContextParts(body, nonce)),
     "",
     "## 回答ルール",
+    untrustedRule(nonce),
     "- 必ずコードを読んでから答える。カレントディレクトリはPRのheadをcheckoutしたリポジトリ",
     "- PR本文やdiffだけを根拠に結論を出さない",
     "- 影響を答えるときは、画面から部品に渡される値までたどって実際に表示・実行されるかを確かめる",
@@ -372,15 +375,15 @@ async function buildInitialPrompt(body: ChatBody): Promise<string> {
   return parts.join("\n");
 }
 
-async function buildFollowUpPrompt(body: ChatBody): Promise<string> {
+async function buildFollowUpPrompt(body: ChatBody, nonce: string): Promise<string> {
   const { question } = body;
-  const contextParts = await buildContextParts(body);
+  const contextParts = await buildContextParts(body, nonce);
 
   if (contextParts.length === 0) {
     return question;
   }
 
-  const parts = [...contextParts, "", "## 質問", question];
+  const parts = [...contextParts, "", "## 回答ルール", untrustedRule(nonce), "", "## 質問", question];
   return parts.join("\n");
 }
 
@@ -398,11 +401,11 @@ app.post("/chat/preview", async (c) => {
   const hasSession = chatSessions.has(sessionKey);
 
   if (hasSession) {
-    const prompt = await buildFollowUpPrompt(body);
+    const prompt = await buildFollowUpPrompt(body, newNonce());
     return c.json({ prompt, resumed: true });
   }
 
-  const prompt = await buildInitialPrompt(body);
+  const prompt = await buildInitialPrompt(body, newNonce());
   return c.json({ prompt, resumed: false });
 });
 
@@ -451,7 +454,10 @@ app.post("/chat", async (c) => {
     const { headRefOid: sha, title, body: prBody } = JSON.parse(prJson);
     const filledBody: ChatBody = { ...body, ...fillPrInfo(body, { title, body: prBody }) };
 
-    const prompt = existingSessionId ? await buildFollowUpPrompt(filledBody) : await buildInitialPrompt(filledBody);
+    const nonce = newNonce();
+    const prompt = existingSessionId
+      ? await buildFollowUpPrompt(filledBody, nonce)
+      : await buildInitialPrompt(filledBody, nonce);
     const args = claudeArgs({ sessionId: existingSessionId, allowedTools, addDir: UPLOAD_DIR });
 
     const repoDir = await ensureRepo(repo, [sha]);
