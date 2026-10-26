@@ -7,6 +7,7 @@ import { lintJa } from "./polish/textlint";
 import { replaceAiWords } from "./polish/ai-words";
 import { ensureRepo, ensureWorktree, gitOutput } from "./git/repository-cache-handler";
 import { chatSessionKey } from "./chat/chat-session";
+import { isValidChatTarget } from "./chat/chat-target";
 import { claudeArgs, execWithStdin } from "./chat/claude-cli";
 import { fillPrInfo } from "./chat/chat-pr-info";
 import { isApproved } from "./approval/pr-approval";
@@ -389,6 +390,9 @@ app.post("/chat/preview", async (c) => {
   if (!repo || !prNumber || !question) {
     return c.json({ error: "repo, prNumber, and question are required" }, 400);
   }
+  if (!isValidChatTarget(repo, prNumber)) {
+    return c.json({ error: "repo must be owner/name and prNumber must be a positive integer" }, 400);
+  }
 
   const sessionKey = chatSessionKey({ repo, prNumber, threadKey: body.diffThread?.key });
   const hasSession = chatSessions.has(sessionKey);
@@ -423,6 +427,9 @@ app.post("/chat", async (c) => {
   const { repo, prNumber, question } = body;
   if (!repo || !prNumber || !question) {
     return c.json({ error: "repo, prNumber, and question are required" }, 400);
+  }
+  if (!isValidChatTarget(repo, prNumber)) {
+    return c.json({ error: "repo must be owner/name and prNumber must be a positive integer" }, 400);
   }
 
   const sessionKey = chatSessionKey({ repo, prNumber, threadKey: body.diffThread?.key });
