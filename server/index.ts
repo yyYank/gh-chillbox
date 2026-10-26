@@ -8,7 +8,8 @@ import { replaceAiWords } from "./polish/ai-words";
 import { ensureRepo, ensureWorktree, gitOutput } from "./git/repository-cache-handler";
 import { chatSessionKey } from "./chat/chat-session";
 import { isValidChatTarget } from "./chat/chat-target";
-import { newNonce, untrustedBlock, untrustedRule } from "./chat/untrusted";
+import { newNonce, untrustedBlock } from "./chat/untrusted";
+import { chatSystemPrompt } from "./chat/chat-system-prompt";
 import { claudeArgs, execWithStdin } from "./chat/claude-cli";
 import { fillPrInfo } from "./chat/chat-pr-info";
 import { isApproved } from "./approval/pr-approval";
@@ -362,13 +363,6 @@ async function buildInitialPrompt(body: ChatBody, nonce: string): Promise<string
     "",
     ...(await buildContextParts(body, nonce)),
     "",
-    "## 回答ルール",
-    untrustedRule(nonce),
-    "- 必ずコードを読んでから答える。カレントディレクトリはPRのheadをcheckoutしたリポジトリ",
-    "- PR本文やdiffだけを根拠に結論を出さない",
-    "- 影響を答えるときは、画面から部品に渡される値までたどって実際に表示・実行されるかを確かめる",
-    "- コードを読めないときは「読めていないので判断できない」と答える",
-    "",
     "## 質問",
     question,
   ];
@@ -383,7 +377,7 @@ async function buildFollowUpPrompt(body: ChatBody, nonce: string): Promise<strin
     return question;
   }
 
-  const parts = [...contextParts, "", "## 回答ルール", untrustedRule(nonce), "", "## 質問", question];
+  const parts = [...contextParts, "", "## 質問", question];
   return parts.join("\n");
 }
 
@@ -458,7 +452,12 @@ app.post("/chat", async (c) => {
     const prompt = existingSessionId
       ? await buildFollowUpPrompt(filledBody, nonce)
       : await buildInitialPrompt(filledBody, nonce);
-    const args = claudeArgs({ sessionId: existingSessionId, allowedTools, addDir: UPLOAD_DIR });
+    const args = claudeArgs({
+      sessionId: existingSessionId,
+      allowedTools,
+      addDir: UPLOAD_DIR,
+      systemPrompt: chatSystemPrompt(nonce),
+    });
 
     const repoDir = await ensureRepo(repo, [sha]);
     const worktreeDir = await ensureWorktree(repoDir, prNumber, sha);

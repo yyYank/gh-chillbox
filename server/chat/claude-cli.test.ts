@@ -3,8 +3,9 @@ import { claudeArgs, execWithStdin } from "./claude-cli";
 
 describe("claudeArgs", () => {
   it("引数にプロンプトを含めない（- 始まりの質問がオプション扱いされないように）", () => {
-    expect(claudeArgs({ allowedTools: "Read", addDir: "/tmp/up" })).toEqual([
+    expect(claudeArgs({ allowedTools: "Read", addDir: "/tmp/up", systemPrompt: "rules" })).toEqual([
       "-p",
+      "--append-system-prompt=rules",
       "--output-format",
       "json",
       "--allowedTools",
@@ -15,8 +16,9 @@ describe("claudeArgs", () => {
   });
 
   it("セッション ID があれば --resume を付ける", () => {
-    expect(claudeArgs({ sessionId: "abc", allowedTools: "Read", addDir: "/tmp/up" })).toEqual([
+    expect(claudeArgs({ sessionId: "abc", allowedTools: "Read", addDir: "/tmp/up", systemPrompt: "rules" })).toEqual([
       "-p",
+      "--append-system-prompt=rules",
       "--resume",
       "abc",
       "--output-format",

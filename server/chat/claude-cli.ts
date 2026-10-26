@@ -5,12 +5,15 @@ export function claudeArgs({
   sessionId,
   allowedTools,
   addDir,
+  systemPrompt,
 }: {
   sessionId?: string;
   allowedTools: string;
   addDir: string;
+  systemPrompt: string;
 }): string[] {
-  const args = ["-p"];
+  // = でつなげて、- 始まりの値でもオプションとして解釈させない
+  const args = ["-p", `--append-system-prompt=${systemPrompt}`];
   if (sessionId) {
     args.push("--resume", sessionId);
   }
