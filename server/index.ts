@@ -7,6 +7,7 @@ import { lintJa } from "./polish/textlint";
 import { replaceAiWords } from "./polish/ai-words";
 import { ensureRepo, ensureWorktree, gitOutput } from "./git/repository-cache-handler";
 import { chatSessionKey } from "./chat/chat-session";
+import { claudeArgs, execWithStdin } from "./chat/claude-cli";
 import { fillPrInfo } from "./chat/chat-pr-info";
 import { isApproved } from "./approval/pr-approval";
 import { UPLOAD_DIR, imagePromptParts, saveUploadedImage } from "./chat/chat-image";
@@ -443,21 +444,13 @@ app.post("/chat", async (c) => {
     const { headRefOid: sha, title, body: prBody } = JSON.parse(prJson);
     const filledBody: ChatBody = { ...body, ...fillPrInfo(body, { title, body: prBody }) };
 
-    const args: string[] = ["-p"];
-    if (existingSessionId) {
-      const prompt = await buildFollowUpPrompt(filledBody);
-      args.push(prompt, "--resume", existingSessionId, "--output-format", "json", "--allowedTools", allowedTools);
-    } else {
-      const prompt = await buildInitialPrompt(filledBody);
-      args.push(prompt, "--output-format", "json", "--allowedTools", allowedTools);
-    }
-    // --add-dir は可変長引数なのでプロンプトを飲み込まないよう末尾に置く
-    args.push("--add-dir", UPLOAD_DIR);
+    const prompt = existingSessionId ? await buildFollowUpPrompt(filledBody) : await buildInitialPrompt(filledBody);
+    const args = claudeArgs({ sessionId: existingSessionId, allowedTools, addDir: UPLOAD_DIR });
 
     const repoDir = await ensureRepo(repo, [sha]);
     const worktreeDir = await ensureWorktree(repoDir, prNumber, sha);
 
-    const { stdout } = await execFileAsync("claude", args, {
+    const { stdout } = await execWithStdin("claude", args, prompt, {
       cwd: worktreeDir,
       timeout: 120000,
     });
