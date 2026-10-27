@@ -3,7 +3,7 @@ import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type D
 import { SortableContext, horizontalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { ListX, MessagesSquare, Send, X } from "lucide-react";
-import { tabTooltip } from "./pr-tabs";
+import { closeConfirmMessage, tabTooltip } from "./pr-tabs";
 import { Tooltip } from "./Tooltip";
 import { BroadcastPresets } from "../chat/BroadcastPresets";
 
@@ -19,20 +19,34 @@ type Props = {
     question: string,
     options: { skipWithHistory: boolean; skipApproved: boolean },
   ) => Promise<{ sent: number[]; skipped: number[] }>;
-  onCloseClosed: () => Promise<number>;
+  onFindClosed: () => Promise<number[]>;
+  onCloseTabs: (prNumbers: number[]) => void;
 };
 
-// 押したときに gh で状態を確かめ、close / merge 済みの PR のタブをまとめて閉じる
-function CloseClosedTabs({ onCloseClosed }: { onCloseClosed: Props["onCloseClosed"] }) {
+// 押したときに gh で状態を確かめ、確認してから close / merge 済みの PR のタブをまとめて閉じる
+function CloseClosedTabs({
+  titles,
+  onFindClosed,
+  onCloseTabs,
+}: {
+  titles: Props["titles"];
+  onFindClosed: Props["onFindClosed"];
+  onCloseTabs: Props["onCloseTabs"];
+}) {
   const [checking, setChecking] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
+  const [pending, setPending] = useState<number[] | null>(null);
 
   const run = async () => {
     setChecking(true);
     setStatus(null);
     try {
-      const count = await onCloseClosed();
-      setStatus(`閉じた ${count}件`);
+      const closed = await onFindClosed();
+      if (closed.length === 0) {
+        setStatus("閉じるタブはありません");
+      } else {
+        setPending(closed);
+      }
     } catch (err) {
       setStatus(`確認できませんでした: ${err instanceof Error ? err.message : "エラー"}`);
     } finally {
@@ -52,6 +66,51 @@ function CloseClosedTabs({ onCloseClosed }: { onCloseClosed: Props["onCloseClose
       >
         <ListX size={14} />
       </button>
+      {pending && (
+        <div className="chat-preview-overlay" onClick={() => setPending(null)}>
+          <div
+            className="chat-preview-modal pr-broadcast-modal"
+            role="dialog"
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") {
+                setPending(null);
+              }
+            }}
+          >
+            <div className="chat-preview-header">
+              <span>{closeConfirmMessage(pending.length)}</span>
+              <button type="button" className="chat-preview-close" onClick={() => setPending(null)}>
+                <X size={16} />
+              </button>
+            </div>
+            <ul className="pr-close-confirm-list">
+              {pending.map((n) => (
+                <li key={n}>
+                  #{n} {titles[n] ?? ""}
+                </li>
+              ))}
+            </ul>
+            <div className="pr-broadcast-footer">
+              <button type="button" className="pr-close-confirm-cancel" onClick={() => setPending(null)}>
+                キャンセル
+              </button>
+              <button
+                type="button"
+                className="pr-broadcast-send"
+                autoFocus
+                onClick={() => {
+                  onCloseTabs(pending);
+                  setStatus(`閉じた ${pending.length}件`);
+                  setPending(null);
+                }}
+              >
+                閉じる
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -220,7 +279,8 @@ export function PrTabBar({
   onClose,
   onReorder,
   onBroadcast,
-  onCloseClosed,
+  onFindClosed,
+  onCloseTabs,
 }: Props) {
   // 5px 以上動かしたときだけドラッグにして、クリックでのタブ切り替えを妨げない
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
@@ -260,7 +320,7 @@ export function PrTabBar({
           </div>
         </SortableContext>
       </DndContext>
-      <CloseClosedTabs onCloseClosed={onCloseClosed} />
+      <CloseClosedTabs titles={titles} onFindClosed={onFindClosed} onCloseTabs={onCloseTabs} />
       <BroadcastAsk onBroadcast={onBroadcast} />
     </div>
   );

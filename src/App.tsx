@@ -283,20 +283,24 @@ export function App() {
     [visibleTabs, selectedPr, updatePrTabs, navigateToList, navigateToPr],
   );
 
-  const handleCloseClosedTabs = useCallback(async () => {
-    const closed = await fetchClosedPrs(repo, visibleTabs);
-    const result = closeTabs(visibleTabs, closed, selectedPr);
-    updatePrTabs(() => result.tabs);
-    setMountedTabs((prev) => new Set([...prev].filter((n) => !closed.includes(n))));
-    if (selectedPr !== null && closed.includes(selectedPr)) {
-      if (result.active === null) {
-        navigateToList();
-      } else {
-        navigateToPr(result.active);
+  const handleFindClosedTabs = useCallback(() => fetchClosedPrs(repo, visibleTabs), [repo, visibleTabs]);
+
+  // 確認ダイアログを出している間にタブが変わっても、今開いているタブだけを閉じる
+  const handleCloseTabs = useCallback(
+    (closed: number[]) => {
+      const result = closeTabs(visibleTabs, closed, selectedPr);
+      updatePrTabs(() => result.tabs);
+      setMountedTabs((prev) => new Set([...prev].filter((n) => !closed.includes(n))));
+      if (selectedPr !== null && closed.includes(selectedPr)) {
+        if (result.active === null) {
+          navigateToList();
+        } else {
+          navigateToPr(result.active);
+        }
       }
-    }
-    return closed.length;
-  }, [repo, visibleTabs, selectedPr, updatePrTabs, navigateToList, navigateToPr]);
+    },
+    [visibleTabs, selectedPr, updatePrTabs, navigateToList, navigateToPr],
+  );
 
   const handleTabLoaded = useCallback((prNumber: number, title: string) => {
     setTabTitles((prev) => (prev[prNumber] === title ? prev : { ...prev, [prNumber]: title }));
@@ -534,7 +538,8 @@ export function App() {
           onClose={handleCloseTab}
           onReorder={handleTabReorder}
           onBroadcast={(question, options) => broadcastChat(repo, visibleTabs, question, options)}
-          onCloseClosed={handleCloseClosedTabs}
+          onFindClosed={handleFindClosedTabs}
+          onCloseTabs={handleCloseTabs}
         />
       )}
       {/* 開いたタブは一覧に戻っても裏で保持し、chat やスクロール位置を残す */}

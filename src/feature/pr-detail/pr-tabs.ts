@@ -64,3 +64,7 @@ export async function fetchClosedPrs(repo: string, prNumbers: number[]): Promise
   const data = await res.json();
   return data.closed;
 }
+
+export function closeConfirmMessage(count: number): string {
+  return `close・merge 済みの PR ${count}件のタブを閉じます`;
+}

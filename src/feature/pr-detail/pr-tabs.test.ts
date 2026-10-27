@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { addTab, closeTab, closeTabs, moveTab, parseTabs, tabTooltip } from "./pr-tabs";
+import { addTab, closeConfirmMessage, closeTab, closeTabs, moveTab, parseTabs, tabTooltip } from "./pr-tabs";
 
 describe("moveTab", () => {
   it("右へドラッグするとドロップ先の位置に移る", () => {
@@ -89,5 +89,11 @@ describe("closeTabs", () => {
 
   it("開いていない PR 番号は無視する", () => {
     expect(closeTabs([1, 2], [9], 1)).toEqual({ tabs: [1, 2], active: 1 });
+  });
+});
+
+describe("closeConfirmMessage", () => {
+  it("閉じるタブの件数を入れた確認文を返す", () => {
+    expect(closeConfirmMessage(3)).toBe("close・merge 済みの PR 3件のタブを閉じます");
   });
 });
