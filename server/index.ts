@@ -13,6 +13,7 @@ import { chatSystemPrompt } from "./chat/chat-system-prompt";
 import { claudeArgs, execWithStdin } from "./chat/claude-cli";
 import { fillPrInfo } from "./chat/chat-pr-info";
 import { isApproved } from "./approval/pr-approval";
+import { type PrState, parsePrState } from "./pr-state/pr-state";
 import { UPLOAD_DIR, imagePromptParts, saveUploadedImage } from "./chat/chat-image";
 import { prListArgs } from "./pr-list/pr-list-args";
 import { createKvStore } from "./store/kv-store";
@@ -92,7 +93,7 @@ app.get("/notifications", async (c) => {
           }
         }
 
-        let prState: "open" | "closed" | "merged" = "open";
+        let prState: PrState = "open";
         try {
           const { stdout: prStdout } = await execFileAsync("gh", [
             "pr",
@@ -105,12 +106,7 @@ app.get("/notifications", async (c) => {
             "--jq",
             ".state",
           ]);
-          const s = prStdout.trim().toUpperCase();
-          if (s === "MERGED") {
-            prState = "merged";
-          } else if (s === "CLOSED") {
-            prState = "closed";
-          }
+          prState = parsePrState(prStdout);
         } catch {
           /* default to open */
         }
