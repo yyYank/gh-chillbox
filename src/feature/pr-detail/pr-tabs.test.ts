@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { addTab, closeTab, moveTab, parseTabs, tabTooltip } from "./pr-tabs";
+import { addTab, closeTab, closeTabs, moveTab, parseTabs, tabTooltip } from "./pr-tabs";
 
 describe("moveTab", () => {
   it("右へドラッグするとドロップ先の位置に移る", () => {
@@ -71,5 +71,23 @@ describe("parseTabs", () => {
     expect(parseTabs("not json")).toEqual([]);
     expect(parseTabs(null)).toEqual([]);
     expect(parseTabs('[1,"x",2.5,3]')).toEqual([1, 3]);
+  });
+});
+
+describe("closeTabs", () => {
+  it("指定した PR のタブをまとめて閉じ、表示中のタブは変えない", () => {
+    expect(closeTabs([1, 2, 3, 4], [1, 3], 2)).toEqual({ tabs: [2, 4], active: 2 });
+  });
+
+  it("表示中のタブも閉じると、残ったタブのうち右隣に移る", () => {
+    expect(closeTabs([1, 2, 3, 4], [2, 3], 2)).toEqual({ tabs: [1, 4], active: 4 });
+  });
+
+  it("全部閉じると表示中のタブはなくなる", () => {
+    expect(closeTabs([1, 2], [1, 2], 1)).toEqual({ tabs: [], active: null });
+  });
+
+  it("開いていない PR 番号は無視する", () => {
+    expect(closeTabs([1, 2], [9], 1)).toEqual({ tabs: [1, 2], active: 1 });
   });
 });

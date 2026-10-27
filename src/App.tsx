@@ -11,7 +11,7 @@ import { NotificationDrawer } from "./feature/notifications/NotificationDrawer";
 import { PrDetail } from "./feature/pr-detail/PrDetail";
 import { PrTabBar } from "./feature/pr-detail/PrTabBar";
 import { broadcastChat } from "./feature/chat/chat-store";
-import { addTab, closeTab, moveTab, parseTabs } from "./feature/pr-detail/pr-tabs";
+import { addTab, closeTab, closeTabs, fetchClosedPrs, moveTab, parseTabs } from "./feature/pr-detail/pr-tabs";
 import "./App.css";
 import headerIcon from "./assets/icon.png";
 import headerIconDark from "./assets/icon-dark.png";
@@ -283,6 +283,21 @@ export function App() {
     [visibleTabs, selectedPr, updatePrTabs, navigateToList, navigateToPr],
   );
 
+  const handleCloseClosedTabs = useCallback(async () => {
+    const closed = await fetchClosedPrs(repo, visibleTabs);
+    const result = closeTabs(visibleTabs, closed, selectedPr);
+    updatePrTabs(() => result.tabs);
+    setMountedTabs((prev) => new Set([...prev].filter((n) => !closed.includes(n))));
+    if (selectedPr !== null && closed.includes(selectedPr)) {
+      if (result.active === null) {
+        navigateToList();
+      } else {
+        navigateToPr(result.active);
+      }
+    }
+    return closed.length;
+  }, [repo, visibleTabs, selectedPr, updatePrTabs, navigateToList, navigateToPr]);
+
   const handleTabLoaded = useCallback((prNumber: number, title: string) => {
     setTabTitles((prev) => (prev[prNumber] === title ? prev : { ...prev, [prNumber]: title }));
   }, []);
@@ -519,6 +534,7 @@ export function App() {
           onClose={handleCloseTab}
           onReorder={handleTabReorder}
           onBroadcast={(question, options) => broadcastChat(repo, visibleTabs, question, options)}
+          onCloseClosed={handleCloseClosedTabs}
         />
       )}
       {/* 開いたタブは一覧に戻っても裏で保持し、chat やスクロール位置を残す */}

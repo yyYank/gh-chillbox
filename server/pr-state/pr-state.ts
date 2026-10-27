@@ -11,3 +11,20 @@ export function parsePrState(stdout: string): PrState {
   }
   return "open";
 }
+
+// 状態を取れなかった PR は閉じないよう open とみなす
+export async function closedPrNumbers(
+  prNumbers: number[],
+  viewState: (prNumber: number) => Promise<string>,
+): Promise<number[]> {
+  const results = await Promise.all(
+    prNumbers.map(async (n) => {
+      try {
+        return parsePrState(await viewState(n)) === "open" ? null : n;
+      } catch {
+        return null;
+      }
+    }),
+  );
+  return results.filter((n): n is number => n !== null);
+}

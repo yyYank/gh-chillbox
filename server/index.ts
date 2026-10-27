@@ -13,7 +13,7 @@ import { chatSystemPrompt } from "./chat/chat-system-prompt";
 import { claudeArgs, execWithStdin } from "./chat/claude-cli";
 import { fillPrInfo } from "./chat/chat-pr-info";
 import { isApproved } from "./approval/pr-approval";
-import { type PrState, parsePrState } from "./pr-state/pr-state";
+import { type PrState, closedPrNumbers, parsePrState } from "./pr-state/pr-state";
 import { UPLOAD_DIR, imagePromptParts, saveUploadedImage } from "./chat/chat-image";
 import { prListArgs } from "./pr-list/pr-list-args";
 import { createKvStore } from "./store/kv-store";
@@ -233,6 +233,34 @@ app.get("/pr-approvals", async (c) => {
     const message = e instanceof Error ? e.message : "Unknown error";
     return c.json({ error: message }, 500);
   }
+});
+
+// 開いているタブのうち close / merge 済みの PR を、押されたときの状態で返す
+app.get("/closed-prs", async (c) => {
+  const repo = c.req.query("repo");
+  const numbers = (c.req.query("numbers") ?? "")
+    .split(",")
+    .filter((n) => /^\d+$/.test(n))
+    .map(Number);
+  if (!repo || numbers.length === 0) {
+    return c.json({ error: "repo and numbers are required" }, 400);
+  }
+
+  const closed = await closedPrNumbers(numbers, async (n) => {
+    const { stdout } = await execFileAsync("gh", [
+      "pr",
+      "view",
+      String(n),
+      "--repo",
+      repo,
+      "--json",
+      "state",
+      "--jq",
+      ".state",
+    ]);
+    return stdout;
+  });
+  return c.json({ closed });
 });
 
 function filterDiffByFiles(fullDiff: string, files: string[]): string {

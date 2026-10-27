@@ -43,3 +43,24 @@ export function parseTabs(raw: string | null): number[] {
     return [];
   }
 }
+
+export function closeTabs(
+  tabs: number[],
+  prNumbers: number[],
+  active: number | null,
+): { tabs: number[]; active: number | null } {
+  return prNumbers.reduce((acc, n) => (acc.tabs.includes(n) ? closeTab(acc.tabs, n, acc.active) : acc), {
+    tabs,
+    active,
+  });
+}
+
+export async function fetchClosedPrs(repo: string, prNumbers: number[]): Promise<number[]> {
+  const params = new URLSearchParams({ repo, numbers: prNumbers.join(",") });
+  const res = await fetch(`/api/closed-prs?${params}`);
+  if (!res.ok) {
+    throw new Error(`API error: ${res.status}`);
+  }
+  const data = await res.json();
+  return data.closed;
+}

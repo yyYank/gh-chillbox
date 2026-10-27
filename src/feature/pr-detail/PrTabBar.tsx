@@ -2,7 +2,7 @@ import { useState } from "react";
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, horizontalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { MessagesSquare, Send, X } from "lucide-react";
+import { ListX, MessagesSquare, Send, X } from "lucide-react";
 import { tabTooltip } from "./pr-tabs";
 import { Tooltip } from "./Tooltip";
 import { BroadcastPresets } from "../chat/BroadcastPresets";
@@ -19,7 +19,42 @@ type Props = {
     question: string,
     options: { skipWithHistory: boolean; skipApproved: boolean },
   ) => Promise<{ sent: number[]; skipped: number[] }>;
+  onCloseClosed: () => Promise<number>;
 };
+
+// 押したときに gh で状態を確かめ、close / merge 済みの PR のタブをまとめて閉じる
+function CloseClosedTabs({ onCloseClosed }: { onCloseClosed: Props["onCloseClosed"] }) {
+  const [checking, setChecking] = useState(false);
+  const [status, setStatus] = useState<string | null>(null);
+
+  const run = async () => {
+    setChecking(true);
+    setStatus(null);
+    try {
+      const count = await onCloseClosed();
+      setStatus(`閉じた ${count}件`);
+    } catch (err) {
+      setStatus(`確認できませんでした: ${err instanceof Error ? err.message : "エラー"}`);
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  return (
+    <div className="pr-tab-broadcast">
+      {(checking || status) && <span className="pr-tab-broadcast-status">{checking ? "確認中…" : status}</span>}
+      <button
+        type="button"
+        className="pr-tab-broadcast-toggle"
+        onClick={run}
+        disabled={checking}
+        title="close / merge 済みの PR のタブを閉じる"
+      >
+        <ListX size={14} />
+      </button>
+    </div>
+  );
+}
 
 // 開いている全タブの Chat に同じ質問を送る。会話があるタブを飛ばすかは選べる
 function BroadcastAsk({ onBroadcast }: { onBroadcast: Props["onBroadcast"] }) {
@@ -176,7 +211,17 @@ function SortableTab({
   );
 }
 
-export function PrTabBar({ tabs, active, titles, memos, onSelect, onClose, onReorder, onBroadcast }: Props) {
+export function PrTabBar({
+  tabs,
+  active,
+  titles,
+  memos,
+  onSelect,
+  onClose,
+  onReorder,
+  onBroadcast,
+  onCloseClosed,
+}: Props) {
   // 5px 以上動かしたときだけドラッグにして、クリックでのタブ切り替えを妨げない
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
   const [dragging, setDragging] = useState(false);
@@ -215,6 +260,7 @@ export function PrTabBar({ tabs, active, titles, memos, onSelect, onClose, onReo
           </div>
         </SortableContext>
       </DndContext>
+      <CloseClosedTabs onCloseClosed={onCloseClosed} />
       <BroadcastAsk onBroadcast={onBroadcast} />
     </div>
   );
