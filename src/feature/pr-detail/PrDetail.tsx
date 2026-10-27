@@ -6,6 +6,7 @@ import { toggleFolderSelection } from "./file-tree";
 import { ChatPanel } from "../chat/ChatPanel";
 import { DiffPanel } from "../pr-diff/DiffPanel";
 import { MarpDeck } from "../pr-diff/MarpPreview";
+import { embedAttachmentMedia } from "./attachment-media";
 import { renderMermaidBlocks } from "../mermaid/render-mermaid";
 import { ChangeSurface } from "../insights/change-surface/ChangeSurface";
 import { AstAnalysis } from "../insights/ast-analysis/AstAnalysis";
@@ -357,7 +358,7 @@ export function PrDetail({
 
   const bodySource = bodyTab === "natural" ? (humanized?.rewritten ?? "") : (data?.body ?? "");
   const rawBodyHtml = useMemo(
-    () => (bodySource ? proxyImageUrls(marked.parse(bodySource) as string) : ""),
+    () => (bodySource ? embedAttachmentMedia(proxyImageUrls(marked.parse(bodySource) as string)) : ""),
     [bodySource],
   );
   const [renderedBody, setRenderedBody] = useState("");
@@ -669,7 +670,9 @@ export function PrDetail({
                         </div>
                         <div
                           className="pr-comment-body markdown-body"
-                          dangerouslySetInnerHTML={{ __html: proxyImageUrls(marked.parse(comment.body) as string) }}
+                          dangerouslySetInnerHTML={{
+                            __html: embedAttachmentMedia(proxyImageUrls(marked.parse(comment.body) as string)),
+                          }}
                         />
                       </div>
                     ))}
