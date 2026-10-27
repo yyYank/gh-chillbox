@@ -94,6 +94,11 @@ export function stepSlide(index: number, delta: number, count: number): number {
   return Math.max(0, Math.min(count - 1, index + delta));
 }
 
+// スライドの右半分を押したら次へ、左半分を押したら前へ進む
+export function clickStep(offsetX: number, width: number): 1 | -1 {
+  return offsetX >= width / 2 ? 1 : -1;
+}
+
 // 縮小すると折り返しが変わって大きさが比例しないため、実際に fits で試しながら二分探索する。
 // min までは収まるものとして扱う
 export function largestFittingScale(fits: (scale: number) => boolean, min = 0.05, steps = 10): number {

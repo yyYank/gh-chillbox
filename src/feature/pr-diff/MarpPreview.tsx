@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 import { Marp } from "@marp-team/marp-core";
 import { ChevronLeft, ChevronRight, Maximize2, X } from "lucide-react";
-import { largestFittingScale, splitLongSections, stepSlide, withMarpDirective } from "./diff-marp";
+import { clickStep, largestFittingScale, splitLongSections, stepSlide, withMarpDirective } from "./diff-marp";
 import { DEFAULT_FONT_SIZE } from "./diff-font-size";
 import { renderMermaidBlocks } from "../mermaid/render-mermaid";
 
@@ -86,7 +86,17 @@ async function withMermaidDiagrams(rendered: Rendered): Promise<Rendered> {
 }
 
 // index を渡すとそのスライドだけを表示する
-function SlideHost({ rendered, index, className }: { rendered: Rendered; index?: number; className?: string }) {
+function SlideHost({
+  rendered,
+  index,
+  className,
+  onClick,
+}: {
+  rendered: Rendered;
+  index?: number;
+  className?: string;
+  onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
+}) {
   const hostRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -114,7 +124,19 @@ function SlideHost({ rendered, index, className }: { rendered: Rendered; index?:
     });
   }, [rendered, index]);
 
-  return <div ref={hostRef} className={className} />;
+  return <div ref={hostRef} className={className} onClick={onClick} />;
+}
+
+// スライドの右半分を押したら次へ、左半分なら前へ。リンクを押したときや文字を選択したときはめくらない
+function slideClickHandler(step: (delta: number) => void) {
+  return (e: React.MouseEvent<HTMLDivElement>) => {
+    const onLink = e.nativeEvent.composedPath().some((el) => el instanceof HTMLAnchorElement);
+    if (onLink || window.getSelection()?.toString()) {
+      return;
+    }
+    const rect = e.currentTarget.getBoundingClientRect();
+    step(clickStep(e.clientX - rect.left, rect.width));
+  };
 }
 
 function SlideOverlay({ rendered, count, onClose }: { rendered: Rendered; count: number; onClose: () => void }) {
@@ -140,7 +162,12 @@ function SlideOverlay({ rendered, count, onClose }: { rendered: Rendered; count:
 
   return createPortal(
     <div className="marp-overlay">
-      <SlideHost rendered={rendered} index={index} className="marp-overlay-slide" />
+      <SlideHost
+        rendered={rendered}
+        index={index}
+        className="marp-overlay-slide"
+        onClick={slideClickHandler((delta) => setIndex((i) => stepSlide(i, delta, count)))}
+      />
       <div className="marp-overlay-controls">
         <button type="button" onClick={prev} disabled={index === 0} title="前へ (←)">
           <ChevronLeft size={16} />
@@ -215,6 +242,7 @@ export function MarpDeck({ content, fontSize = DEFAULT_FONT_SIZE }: { content: s
   // 本文が変わって枚数が減っても範囲外を指さないようにする
   const current = stepSlide(index, 0, count);
   const step = (delta: number) => setIndex(stepSlide(current, delta, count));
+  const onSlideClick = slideClickHandler(step);
 
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "ArrowRight") {
@@ -230,7 +258,7 @@ export function MarpDeck({ content, fontSize = DEFAULT_FONT_SIZE }: { content: s
     // biome-ignore lint/a11y/noNoninteractiveTabindex: フォーカス中だけ ← → キーでめくれるようにする
     <div className="marp-deck" tabIndex={0} onKeyDown={onKeyDown}>
       <div className="marp-deck-stage">
-        <SlideHost rendered={shown} index={current} className="marp-deck-slide" />
+        <SlideHost rendered={shown} index={current} className="marp-deck-slide" onClick={onSlideClick} />
         <button
           type="button"
           className="marp-deck-nav marp-deck-prev"
