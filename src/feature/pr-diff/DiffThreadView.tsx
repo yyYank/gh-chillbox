@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Send, Trash2, X } from "lucide-react";
-import { marked } from "marked";
+import { renderMarkdown } from "../markdown/safe-html";
 import type { ThreadAnchor, ThreadMessage } from "./diff-threads";
 import { useSession } from "../session-store/session-store";
 
@@ -88,7 +88,7 @@ export function DiffThreadView({
           {msg.role === "assistant" ? (
             <div
               className="chat-message-content markdown-body"
-              dangerouslySetInnerHTML={{ __html: marked.parse(msg.content) as string }}
+              dangerouslySetInnerHTML={{ __html: renderMarkdown(msg.content) }}
             />
           ) : (
             <div className="chat-message-content">{msg.content}</div>

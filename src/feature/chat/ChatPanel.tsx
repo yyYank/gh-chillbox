@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Send, X, HelpCircle, RotateCcw, AlertTriangle, Eye } from "lucide-react";
-import { marked } from "marked";
+import { renderMarkdown } from "../markdown/safe-html";
 import { appStorage } from "../../app-storage";
 import { initSession, useSession } from "../session-store/session-store";
 import { type Message, appendMessage, chatLoadingKey, chatStorageKey, loadMessages, postChat } from "./chat-store";
@@ -281,7 +281,7 @@ export function ChatPanel({
             {msg.role === "assistant" ? (
               <div
                 className="chat-message-content markdown-body"
-                dangerouslySetInnerHTML={{ __html: marked.parse(msg.content) as string }}
+                dangerouslySetInnerHTML={{ __html: renderMarkdown(msg.content) }}
               />
             ) : (
               <div className="chat-message-content">{msg.content}</div>

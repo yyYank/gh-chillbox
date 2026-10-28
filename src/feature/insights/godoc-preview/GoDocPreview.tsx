@@ -1,3 +1,4 @@
+import { sanitizeHtml } from "../../markdown/safe-html";
 import { visiblePackages, type GoDocItem, type GoPackage, type SymbolChange } from "./godoc-preview";
 import { useScopedFetch } from "../scope-preview/useScopedFetch";
 import { ScopeToggle } from "../scope-preview/ScopeToggle";
@@ -52,7 +53,7 @@ function PackageView({ pkg }: { pkg: GoPackage }) {
         <ChangeBadge change={pkg.change} />
       </header>
       {/* go/doc の HTML 出力はコメント本文をエスケープ済み */}
-      {pkg.docHtml && <div className="godoc-doc" dangerouslySetInnerHTML={{ __html: pkg.docHtml }} />}
+      {pkg.docHtml && <div className="godoc-doc" dangerouslySetInnerHTML={{ __html: sanitizeHtml(pkg.docHtml) }} />}
       {pkg.items.map((i) => (
         <ItemView key={`${i.kind}:${i.name}`} item={i} />
       ))}
@@ -70,7 +71,7 @@ function ItemView({ item: i }: { item: GoDocItem }) {
         {i.changedParts.length > 0 && <span className="api-changed-parts">変更箇所: {i.changedParts.join(", ")}</span>}
       </div>
       <pre className="godoc-decl">{i.decl}</pre>
-      {i.docHtml && <div className="godoc-doc" dangerouslySetInnerHTML={{ __html: i.docHtml }} />}
+      {i.docHtml && <div className="godoc-doc" dangerouslySetInnerHTML={{ __html: sanitizeHtml(i.docHtml) }} />}
     </div>
   );
 }

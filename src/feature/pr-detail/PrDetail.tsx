@@ -7,6 +7,7 @@ import { ChatPanel } from "../chat/ChatPanel";
 import { DiffPanel } from "../pr-diff/DiffPanel";
 import { MarpDeck } from "../pr-diff/MarpPreview";
 import { embedAttachmentMedia } from "./attachment-media";
+import { renderMarkdown } from "../markdown/safe-html";
 import { renderMermaidBlocks } from "../mermaid/render-mermaid";
 import { ChangeSurface } from "../insights/change-surface/ChangeSurface";
 import { AstAnalysis } from "../insights/ast-analysis/AstAnalysis";
@@ -358,7 +359,7 @@ export function PrDetail({
 
   const bodySource = bodyTab === "natural" ? (humanized?.rewritten ?? "") : (data?.body ?? "");
   const rawBodyHtml = useMemo(
-    () => (bodySource ? embedAttachmentMedia(proxyImageUrls(marked.parse(bodySource) as string)) : ""),
+    () => (bodySource ? embedAttachmentMedia(proxyImageUrls(renderMarkdown(bodySource))) : ""),
     [bodySource],
   );
   const [renderedBody, setRenderedBody] = useState("");
@@ -671,7 +672,7 @@ export function PrDetail({
                         <div
                           className="pr-comment-body markdown-body"
                           dangerouslySetInnerHTML={{
-                            __html: embedAttachmentMedia(proxyImageUrls(marked.parse(comment.body) as string)),
+                            __html: embedAttachmentMedia(proxyImageUrls(renderMarkdown(comment.body))),
                           }}
                         />
                       </div>

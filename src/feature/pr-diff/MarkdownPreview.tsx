@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { marked } from "marked";
+import { renderMarkdown } from "../markdown/safe-html";
 import { ScopeToggle } from "../insights/scope-preview/ScopeToggle";
 import type { Scope } from "../insights/scope-preview/useScopedFetch";
 import { markdownFromDiff } from "./diff-markdown";
@@ -19,7 +19,7 @@ export function MarkdownPreview({ repo, prNumber, path, lines, fontSize }: Props
   const [scope, setScope] = useState<Scope>("changed");
   const [full, setFull] = useState<FullState | null>(null);
 
-  const changedHtml = useMemo(() => markdownFromDiff(lines).map((md) => marked.parse(md) as string), [lines]);
+  const changedHtml = useMemo(() => markdownFromDiff(lines).map((md) => renderMarkdown(md)), [lines]);
 
   // 「全部」は切り替えたときに初めて取得する
   useEffect(() => {
@@ -42,7 +42,7 @@ export function MarkdownPreview({ repo, prNumber, path, lines, fontSize }: Props
       );
   }, [scope, full, repo, prNumber, path]);
 
-  const fullHtml = useMemo(() => (full?.content != null ? (marked.parse(full.content) as string) : ""), [full]);
+  const fullHtml = useMemo(() => (full?.content != null ? renderMarkdown(full.content) : ""), [full]);
 
   return (
     <div className="diff-md-preview" style={{ fontSize }}>
