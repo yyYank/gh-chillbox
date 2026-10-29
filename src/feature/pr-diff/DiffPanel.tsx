@@ -6,7 +6,7 @@ import { buildThreadAnchor, lineLabel, type ThreadAnchor, type ThreadMessage } f
 import { loadThreads, appendThreadMessage, removeThread, type ThreadMap } from "./diff-thread-storage";
 import { DiffThreadView } from "./DiffThreadView";
 import { initSession, useSession } from "../session-store/session-store";
-import { countViewed, type ViewedStates } from "./diff-viewed";
+import { countViewed, resolveCollapsed, type FoldRecords, type ViewedStates } from "./diff-viewed";
 import { languageFromPath, highlightLine } from "./diff-highlight";
 import { stepFontSize, parseFontSize } from "./diff-font-size";
 import { isMarkdown } from "./diff-markdown";
@@ -46,18 +46,18 @@ function isAtLineStart(container: Node, offset: number): boolean {
   return r.toString() === "";
 }
 
-function loadCollapsed(repo: string, prNumber: number): Set<string> {
+function loadFoldRecords(repo: string, prNumber: number): FoldRecords {
   try {
-    const raw = appStorage.getItem(`gh-chillbox:${repo}:${prNumber}:diff-collapsed`);
-    return raw ? new Set(JSON.parse(raw)) : new Set();
+    const raw = appStorage.getItem(`gh-chillbox:${repo}:${prNumber}:diff-fold`);
+    return raw ? JSON.parse(raw) : {};
   } catch {
-    return new Set();
+    return {};
   }
 }
 
-function saveCollapsed(repo: string, prNumber: number, collapsed: Set<string>) {
+function saveFoldRecords(repo: string, prNumber: number, records: FoldRecords) {
   try {
-    appStorage.setItem(`gh-chillbox:${repo}:${prNumber}:diff-collapsed`, JSON.stringify([...collapsed]));
+    appStorage.setItem(`gh-chillbox:${repo}:${prNumber}:diff-fold`, JSON.stringify(records));
   } catch {}
 }
 
@@ -70,7 +70,7 @@ export function DiffPanel({ repo, prNumber, prTitle = "", prBody = "", onFileHea
   const [error, setError] = useState<string | null>(null);
   const [pathQuery, setPathQuery] = useState("");
   const [textQuery, setTextQuery] = useState("");
-  const [collapsedFiles, setCollapsedFiles] = useState<Set<string>>(() => loadCollapsed(repo, prNumber));
+  const [foldRecords, setFoldRecords] = useState<FoldRecords>(() => loadFoldRecords(repo, prNumber));
   // Diff タブを離れている間に届いた回答も、戻ったときにすぐ表示できるよう置き場所に持つ
   const threadsKey = `diff-threads:${repo}:${prNumber}`;
   initSession(threadsKey, () => loadThreads(repo, prNumber));
@@ -79,6 +79,11 @@ export function DiffPanel({ repo, prNumber, prTitle = "", prBody = "", onFileHea
   const [floatingBtn, setFloatingBtn] = useState<{ x: number; y: number; anchor: ThreadAnchor } | null>(null);
   const [pullRequestId, setPullRequestId] = useState<string | null>(null);
   const [viewedStates, setViewedStates] = useState<ViewedStates>({});
+  // viewed の状態が取れるまでは、自分の開け閉めの記録だけで決める
+  const collapsedFiles = useMemo(
+    () => resolveCollapsed(foldRecords, pullRequestId ? viewedStates : null),
+    [foldRecords, pullRequestId, viewedStates],
+  );
   const [mdModes, setMdModes] = useState<Map<string, MdMode>>(new Map());
   const [fontSize, setFontSize] = useState(() => {
     try {
@@ -121,22 +126,20 @@ export function DiffPanel({ repo, prNumber, prTitle = "", prBody = "", onFileHea
   );
 
   const setCollapsed = useCallback(
-    (path: string, collapsed?: boolean) => {
-      setCollapsedFiles((prev) => {
-        const next = new Set(prev);
-        if (collapsed ?? !next.has(path)) {
-          next.add(path);
-        } else {
-          next.delete(path);
-        }
-        saveCollapsed(repo, prNumber, next);
+    (path: string, collapsed: boolean, viewed: boolean) => {
+      setFoldRecords((prev) => {
+        const next = { ...prev, [path]: { collapsed, viewed } };
+        saveFoldRecords(repo, prNumber, next);
         return next;
       });
     },
     [repo, prNumber],
   );
 
-  const toggleCollapse = useCallback((path: string) => setCollapsed(path), [setCollapsed]);
+  const toggleCollapse = useCallback(
+    (path: string) => setCollapsed(path, !collapsedFiles.has(path), viewedStates[path] === "VIEWED"),
+    [setCollapsed, collapsedFiles, viewedStates],
+  );
 
   const setMdMode = (path: string, mode: MdMode) => {
     setMdModes((prev) => new Map(prev).set(path, mode));
@@ -167,7 +170,7 @@ export function DiffPanel({ repo, prNumber, prTitle = "", prBody = "", onFileHea
       }
       const prevState = viewedStates[path];
       setViewedStates((s) => ({ ...s, [path]: viewed ? "VIEWED" : "UNVIEWED" }));
-      setCollapsed(path, viewed);
+      setCollapsed(path, viewed, viewed);
       fetch("/api/pr-viewed", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -180,7 +183,7 @@ export function DiffPanel({ repo, prNumber, prTitle = "", prBody = "", onFileHea
         })
         .catch(() => {
           setViewedStates((s) => ({ ...s, [path]: prevState }));
-          setCollapsed(path, !viewed);
+          setCollapsed(path, !viewed, prevState === "VIEWED");
         });
     },
     [pullRequestId, viewedStates, setCollapsed],
