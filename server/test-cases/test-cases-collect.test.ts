@@ -19,6 +19,11 @@ describe("testFileKind", () => {
     expect(testFileKind("features/login.feature")).toBe("gherkin");
   });
 
+  it("Swift はファイル名の決まりがないので、.swift はすべて候補にして中身で判定する", () => {
+    expect(testFileKind("Tests/AppTests/LoginTests.swift")).toBe("swift");
+    expect(testFileKind("Sources/App/Login.swift")).toBe("swift");
+  });
+
   it("テストでないファイルは null", () => {
     expect(testFileKind("user/user.go")).toBeNull();
     expect(testFileKind("src/a.ts")).toBeNull();
@@ -33,8 +38,11 @@ describe("extractTestFiles", () => {
       { path: "a_test.go", content: 'package a\nimport "testing"\nfunc TestA(t *testing.T) {}\n' },
       { path: "a.test.ts", content: `it("a", () => {});` },
       { path: "a.feature", content: "Feature: F\n  Scenario: S\n" },
+      { path: "ATests.swift", content: "import Testing\n@Test func a() {}\n" },
+      { path: "A.swift", content: "struct A {}\n" },
     ]);
     expect(files.map((f) => [f.path, f.framework, f.cases.length])).toEqual([
+      ["ATests.swift", "swift-testing", 1],
       ["a.feature", "gherkin", 2],
       ["a.test.ts", "jest", 1],
       ["a_test.go", "go", 1],

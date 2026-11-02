@@ -16,7 +16,7 @@ export type TestCaseItem = {
 
 export type TestFileItem = {
   path: string;
-  framework: "go" | "jest" | "playwright" | "gherkin";
+  framework: "go" | "jest" | "playwright" | "gherkin" | "xctest" | "xcuitest" | "swift-testing";
   category: TestCategory;
   changed: boolean;
   cases: TestCaseItem[];

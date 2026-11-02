@@ -1,8 +1,9 @@
 import type { GoTestFile } from "./test-cases-go";
 import type { TsTestFile } from "./test-cases-ts";
 import type { GherkinFile } from "./test-cases-gherkin";
+import type { SwiftTestFile } from "./test-cases-swift";
 
-export type TestFramework = "go" | "jest" | "playwright" | "gherkin";
+export type TestFramework = "go" | "jest" | "playwright" | "gherkin" | "xctest" | "xcuitest" | "swift-testing";
 
 export type TestCategory = "unit" | "e2e";
 
@@ -25,7 +26,7 @@ export type TestCaseChange = "added" | "modified" | "removed" | "unchanged";
 
 export type DiffedTestCase = TestCase & { change: TestCaseChange };
 
-const E2E_FRAMEWORKS = new Set<TestFramework>(["playwright", "gherkin"]);
+const E2E_FRAMEWORKS = new Set<TestFramework>(["playwright", "gherkin", "xcuitest"]);
 
 function toFile(path: string, framework: TestFramework, cases: TestCase[]): TestFile {
   return { path, framework, category: E2E_FRAMEWORKS.has(framework) ? "e2e" : "unit", cases };
@@ -47,6 +48,14 @@ export function fromGherkin(f: GherkinFile): TestFile {
   return toFile(
     f.path,
     "gherkin",
+    f.cases.map((c) => ({ ...c, dynamic: false })),
+  );
+}
+
+export function fromSwift(f: SwiftTestFile): TestFile {
+  return toFile(
+    f.path,
+    f.framework,
     f.cases.map((c) => ({ ...c, dynamic: false })),
   );
 }

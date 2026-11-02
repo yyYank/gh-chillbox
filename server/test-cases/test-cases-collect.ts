@@ -6,13 +6,22 @@ import { ensureRepo, checkoutSha, gitOutput } from "../git/repository-cache-hand
 import { extractGoTestCases } from "./test-cases-go";
 import { extractTsTestCases } from "./test-cases-ts";
 import { extractGherkinCases } from "./test-cases-gherkin";
-import { fromGo, fromTs, fromGherkin, diffTestCases, type DiffedTestCase, type TestFile } from "./test-cases-diff";
+import { extractSwiftTestCases } from "./test-cases-swift";
+import {
+  fromGo,
+  fromTs,
+  fromGherkin,
+  fromSwift,
+  diffTestCases,
+  type DiffedTestCase,
+  type TestFile,
+} from "./test-cases-diff";
 
 const execFileAsync = promisify(execFile);
 
 export type TestCaseScope = "changed" | "all";
 
-export type TestFileKind = "go" | "ts" | "gherkin";
+export type TestFileKind = "go" | "ts" | "gherkin" | "swift";
 
 export type DiffedTestFile = Omit<TestFile, "cases"> & { changed: boolean; cases: DiffedTestCase[] };
 
@@ -27,6 +36,10 @@ export function testFileKind(filePath: string): TestFileKind | null {
   if (filePath.endsWith(".feature")) {
     return "gherkin";
   }
+  // Swift はテストファイルの名前の決まりがないため、import を見て extractSwiftTestCases で絞る
+  if (filePath.endsWith(".swift")) {
+    return "swift";
+  }
   if (!/\.[cm]?[jt]sx?$/.test(filePath)) {
     return null;
   }
@@ -38,11 +51,12 @@ export function testFileKind(filePath: string): TestFileKind | null {
 
 export async function extractTestFiles(sources: Source[]): Promise<TestFile[]> {
   const byKind = (kind: TestFileKind) => sources.filter((s) => testFileKind(s.path) === kind);
-  const [go, ts, gherkin] = [byKind("go"), byKind("ts"), byKind("gherkin")];
+  const [go, ts, gherkin, swift] = [byKind("go"), byKind("ts"), byKind("gherkin"), byKind("swift")];
   const files = [
     ...(await extractGoTestCases(go)).map(fromGo),
     ...extractTsTestCases(ts).map(fromTs),
     ...extractGherkinCases(gherkin).map(fromGherkin),
+    ...extractSwiftTestCases(swift).map(fromSwift),
   ];
   // mergeTestFiles と同じくコード単位で並べる（localeCompare は記号を無視するため順序が揃わない）
   return files.sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
