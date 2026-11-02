@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { parseDiff } from "./diff-parse";
-import { lineLabel, buildThreadAnchor } from "./diff-threads";
+import { lineLabel, buildThreadAnchor, formatLineRange } from "./diff-threads";
 
 const file = parseDiff(
   [
@@ -54,5 +54,20 @@ describe("buildThreadAnchor", () => {
 
   it("開始と終了が逆順でも同じスレッドになる", () => {
     expect(buildThreadAnchor(file, 4, 1)?.key).toBe("src/a.ts:R10-R12");
+  });
+});
+
+describe("formatLineRange", () => {
+  it("変更後の行は「変更後」をつけて L の行番号で表す", () => {
+    expect(formatLineRange("R1", "R49")).toBe("変更後L1-L49");
+    expect(formatLineRange("R5", "R5")).toBe("変更後L5");
+  });
+
+  it("変更前の行は「変更前」をつけて表す", () => {
+    expect(formatLineRange("L3", "L5")).toBe("変更前L3-L5");
+  });
+
+  it("変更前と変更後にまたがるときは、両端にそれぞれつける", () => {
+    expect(formatLineRange("L3", "R5")).toBe("変更前L3-変更後L5");
   });
 });

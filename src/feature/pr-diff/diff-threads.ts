@@ -28,6 +28,17 @@ export function lineLabel(line: DiffLine): string | null {
   return null;
 }
 
+// R / L は分かりにくいので、画面には「変更後」「変更前」と L の行番号で出す（保存や質問では R / L のまま）
+export function formatLineRange(start: string, end: string): string {
+  const side = (label: string) => (label.startsWith("R") ? "変更後" : "変更前");
+  const num = (label: string) => `L${label.slice(1)}`;
+  if (start === end) {
+    return `${side(start)}${num(start)}`;
+  }
+  const endSide = side(end) === side(start) ? "" : side(end);
+  return `${side(start)}${num(start)}-${endSide}${num(end)}`;
+}
+
 export function buildThreadAnchor(file: DiffFile, fromIdx: number, toIdx: number): ThreadAnchor | null {
   const [lo, hi] = fromIdx <= toIdx ? [fromIdx, toIdx] : [toIdx, fromIdx];
   const lines = file.lines.slice(lo, hi + 1).filter((l) => l.type !== "hunk");
