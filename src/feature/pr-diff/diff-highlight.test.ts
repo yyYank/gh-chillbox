@@ -9,6 +9,10 @@ describe("languageFromPath", () => {
     expect(languageFromPath("scripts/verify.sh")).toBe("bash");
   });
 
+  it("Swift のファイルを判定する", () => {
+    expect(languageFromPath("Tests/AppTests/LoginTests.swift")).toBe("swift");
+  });
+
   it("対応していない拡張子や拡張子なしは null を返す", () => {
     expect(languageFromPath("notes.txt")).toBeNull();
     expect(languageFromPath("Makefile")).toBeNull();
@@ -18,6 +22,10 @@ describe("languageFromPath", () => {
 describe("highlightLine", () => {
   it("キーワードを hljs のクラス付き span で囲む", () => {
     expect(highlightLine("const a = 1;", "typescript")).toContain('<span class="hljs-keyword">const</span>');
+  });
+
+  it("Swift のキーワードもハイライトする", () => {
+    expect(highlightLine("func testA() {}", "swift")).toContain('<span class="hljs-keyword">func</span>');
   });
 
   it("ハイライト時も HTML の特殊文字をエスケープする", () => {

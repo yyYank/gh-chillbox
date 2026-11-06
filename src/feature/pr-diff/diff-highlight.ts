@@ -7,6 +7,7 @@ import yaml from "highlight.js/lib/languages/yaml";
 import css from "highlight.js/lib/languages/css";
 import markdown from "highlight.js/lib/languages/markdown";
 import bash from "highlight.js/lib/languages/bash";
+import swift from "highlight.js/lib/languages/swift";
 
 hljs.registerLanguage("typescript", typescript);
 hljs.registerLanguage("javascript", javascript);
@@ -16,6 +17,7 @@ hljs.registerLanguage("yaml", yaml);
 hljs.registerLanguage("css", css);
 hljs.registerLanguage("markdown", markdown);
 hljs.registerLanguage("bash", bash);
+hljs.registerLanguage("swift", swift);
 
 const EXTENSION_LANGUAGES: Record<string, string> = {
   ts: "typescript",
@@ -35,6 +37,7 @@ const EXTENSION_LANGUAGES: Record<string, string> = {
   sh: "bash",
   bash: "bash",
   zsh: "bash",
+  swift: "swift",
 };
 
 export function languageFromPath(path: string): string | null {
