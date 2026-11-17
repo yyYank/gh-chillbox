@@ -486,9 +486,11 @@ app.post("/chat", async (c) => {
     const repoDir = await ensureRepo(repo, [sha]);
     const worktreeDir = await ensureWorktree(repoDir, prNumber, sha);
 
+    // claude はコードを読んでから答えるため時間がかかる。Node のサーバーは1リクエストを300秒で打ち切るので、
+    // それより先に claude を止めてエラーを返せるよう 295 秒にしている
     const { stdout } = await execWithStdin("claude", args, prompt, {
       cwd: worktreeDir,
-      timeout: 120000,
+      timeout: 295000,
     });
     const parsed = JSON.parse(stdout);
     if (!existingSessionId && parsed.session_id) {
