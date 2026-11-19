@@ -3,6 +3,8 @@ import { Send, Trash2, X } from "lucide-react";
 import { renderMarkdown } from "../markdown/safe-html";
 import { formatLineRange, type ThreadAnchor, type ThreadMessage } from "./diff-threads";
 import { useSession } from "../session-store/session-store";
+import { useImageAttachments } from "../chat/use-image-attachments";
+import { AttachedImageList } from "../chat/AttachedImageList";
 
 type Props = {
   anchor: ThreadAnchor;
@@ -30,6 +32,7 @@ export function DiffThreadView({
   const [input, setInput] = useState("");
   // 返事待ちの間に画面が破棄されても、戻ったときに待ち状態を出せるよう置き場所に持つ
   const [loading, setLoading] = useSession(`diff-thread:${repo}:${prNumber}:${anchor.key}:loading`, false);
+  const { images, dragOver, dropHandlers, removeImage, clearImages } = useImageAttachments();
   const isNew = messages.length === 0;
   const range = formatLineRange(anchor.start, anchor.end);
 
@@ -42,12 +45,17 @@ export function DiffThreadView({
 
     onAppend(anchor, { role: "user", content: question });
     setInput("");
+    clearImages();
     setLoading(true);
     try {
+      const payload: Record<string, unknown> = { repo, prNumber, question, prTitle, prBody, diffThread: anchor };
+      if (images.length > 0) {
+        payload.imagePaths = images.map((img) => img.path);
+      }
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ repo, prNumber, question, prTitle, prBody, diffThread: anchor }),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) {
         throw new Error(`API error: ${res.status}`);
@@ -101,7 +109,12 @@ export function DiffThreadView({
           <div className="chat-message-content chat-loading">考え中…</div>
         </div>
       )}
-      <form className="diff-thread-input-area" onSubmit={handleSubmit}>
+      <AttachedImageList images={images} onRemove={removeImage} />
+      <form
+        className={`diff-thread-input-area${dragOver ? " chat-input-area-dragover" : ""}`}
+        onSubmit={handleSubmit}
+        {...dropHandlers}
+      >
         <textarea
           className="chat-input"
           placeholder={isNew ? "この行について質問…" : "返信…"}
