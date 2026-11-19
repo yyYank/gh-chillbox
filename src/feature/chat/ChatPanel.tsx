@@ -4,11 +4,8 @@ import { renderMarkdown } from "../markdown/safe-html";
 import { appStorage } from "../../app-storage";
 import { initSession, useSession } from "../session-store/session-store";
 import { type Message, appendMessage, chatLoadingKey, chatStorageKey, loadMessages, postChat } from "./chat-store";
-
-type AttachedImage = {
-  path: string;
-  previewUrl: string;
-};
+import { useImageAttachments } from "./use-image-attachments";
+import { AttachedImageList } from "./AttachedImageList";
 
 type Props = {
   selectedFiles: string[];
@@ -43,8 +40,7 @@ export function ChatPanel({
   const [diffLoading, setDiffLoading] = useState(false);
   const [previewContent, setPreviewContent] = useState<string | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
-  const [images, setImages] = useState<AttachedImage[]>([]);
-  const [dragOver, setDragOver] = useState(false);
+  const { images, dragOver, dropHandlers, removeImage, clearImages } = useImageAttachments();
   const bodyRef = useRef<HTMLDivElement>(null);
 
   const fetchDiffSize = useCallback(
@@ -82,36 +78,6 @@ export function ChatPanel({
   useEffect(() => {
     bodyRef.current?.scrollTo({ top: bodyRef.current.scrollHeight, behavior: "smooth" });
   }, [messages]);
-
-  const handleDropImages = async (e: React.DragEvent) => {
-    e.preventDefault();
-    setDragOver(false);
-    const files = Array.from(e.dataTransfer.files).filter((f) => f.type.startsWith("image/"));
-    for (const file of files) {
-      const form = new FormData();
-      form.append("file", file);
-      try {
-        const res = await fetch("/api/chat/image", { method: "POST", body: form });
-        if (!res.ok) {
-          throw new Error();
-        }
-        const data = await res.json();
-        setImages((prev) => [...prev, { path: data.path, previewUrl: URL.createObjectURL(file) }]);
-      } catch {
-        /* アップロード失敗時はその画像だけ添付しない */
-      }
-    }
-  };
-
-  const removeImage = (path: string) => {
-    setImages((prev) => {
-      const target = prev.find((img) => img.path === path);
-      if (target) {
-        URL.revokeObjectURL(target.previewUrl);
-      }
-      return prev.filter((img) => img.path !== path);
-    });
-  };
 
   const handlePreview = async () => {
     const question = input.trim();
@@ -164,10 +130,7 @@ export function ChatPanel({
 
     appendMessage(storageKey, { role: "user", content: question });
     setInput("");
-    for (const img of images) {
-      URL.revokeObjectURL(img.previewUrl);
-    }
-    setImages([]);
+    clearImages();
     setLoading(true);
 
     try {
@@ -296,28 +259,12 @@ export function ChatPanel({
         )}
       </div>
 
-      {images.length > 0 && (
-        <div className="chat-attached-images">
-          {images.map((img) => (
-            <div key={img.path} className="chat-attached-image">
-              <img src={img.previewUrl} alt="添付画像" />
-              <button type="button" className="chat-clear-btn" onClick={() => removeImage(img.path)} title="添付解除">
-                <X size={12} />
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
+      <AttachedImageList images={images} onRemove={removeImage} />
 
       <form
         className={`chat-input-area${dragOver ? " chat-input-area-dragover" : ""}`}
         onSubmit={handleSubmit}
-        onDragOver={(e) => {
-          e.preventDefault();
-          setDragOver(true);
-        }}
-        onDragLeave={() => setDragOver(false)}
-        onDrop={handleDropImages}
+        {...dropHandlers}
       >
         <textarea
           className="chat-input"
