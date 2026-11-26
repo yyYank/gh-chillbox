@@ -56,7 +56,16 @@ export function SortableRow({ pr, rank, reviewers, formatDate, onContextMenu, on
       <td className="col-date">{formatDate(pr.updatedAt)}</td>
       <MemoCell memo={memo} onChange={(text) => onMemoChange(pr.number, text)} />
       <td className="col-detail">
-        <button type="button" className="detail-btn" onClick={() => onDetail(pr.number)} title="PR詳細">
+        <button
+          type="button"
+          className="detail-btn"
+          onClick={(e) => {
+            // 行の onClick と二重に別タブが開かないようにする
+            e.stopPropagation();
+            onDetail(pr.number);
+          }}
+          title="PR詳細"
+        >
           <ChevronRight size={16} />
         </button>
       </td>

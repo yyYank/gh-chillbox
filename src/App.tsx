@@ -19,6 +19,7 @@ import headerLogo from "./assets/logo.png";
 import headerLogoDark from "./assets/logo-dark.png";
 import { setMemo, parseMemos, memoStorageKey, type PrMemos } from "./feature/pull-requests/pr-memo";
 import { MemoCell } from "./feature/pull-requests/MemoCell";
+import { openPrDetailInNewTab } from "./feature/pull-requests/open-pr-detail";
 import { appStorage } from "./app-storage";
 
 const REPO_STORAGE_KEY = "gh-chillbox:repo";
@@ -680,7 +681,7 @@ export function App() {
                                 prNumber: pr.number,
                               });
                             }}
-                            onDetail={navigateToPr}
+                            onDetail={openPrDetailInNewTab}
                             memo={memos[pr.number] ?? ""}
                             onMemoChange={updateMemo}
                           />
@@ -713,7 +714,7 @@ export function App() {
                               prNumber: pr.number,
                             });
                           }}
-                          onDetail={navigateToPr}
+                          onDetail={openPrDetailInNewTab}
                           memo={memos[pr.number] ?? ""}
                           onMemoChange={updateMemo}
                         />
