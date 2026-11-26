@@ -1,4 +1,4 @@
-import { parse as parseYaml } from "yaml";
+import { parse as parseYaml, parseDocument } from "yaml";
 
 export type ApiParam = {
   name: string;
@@ -47,10 +47,11 @@ const HTTP_METHODS = new Set(["get", "put", "post", "delete", "options", "head",
 // swagger 2.0 の非 body parameter はスキーマ相当のキーを parameter 直下に持つ
 const V2_SCHEMA_KEYS = ["type", "format", "items", "enum", "default"];
 
-export function parseOpenApi(content: string): ApiSpec | null {
+// tolerateErrors は YAML エラーがあっても読めた範囲で解釈する。base 側の比較用
+export function parseOpenApi(content: string, { tolerateErrors = false } = {}): ApiSpec | null {
   let doc: unknown;
   try {
-    doc = parseYaml(content);
+    doc = tolerateErrors ? parseDocument(content).toJS() : parseYaml(content);
   } catch {
     return null;
   }

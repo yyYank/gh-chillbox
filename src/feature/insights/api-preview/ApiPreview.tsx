@@ -16,6 +16,7 @@ const CHANGE_LABELS: Record<Exclude<EndpointChange, "unchanged">, string> = {
   added: "追加",
   modified: "変更",
   removed: "削除",
+  unknown: "差分不明",
 };
 
 type Props = {
@@ -60,6 +61,9 @@ function SpecView({ file, scope }: { file: SpecFile; scope: Scope }) {
         <span className="api-badge">{file.spec.version === "2.0" ? "Swagger 2.0" : "OpenAPI 3.x"}</span>
       </header>
       {file.spec.title && <div className="api-spec-title">{file.spec.title}</div>}
+      {file.baseParseFailed && (
+        <div className="api-spec-warning">変更前のファイルを解析できなかったため、差分を判定できません</div>
+      )}
       {groups.length === 0 && <div className="api-preview-empty">endpoint の変更はありません</div>}
       {groups.map((g) => (
         <div key={g.tag} className="api-tag-group">

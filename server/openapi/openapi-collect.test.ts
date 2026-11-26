@@ -59,6 +59,33 @@ describe("collectSpecs", () => {
     ]);
   });
 
+  it("base に YAML エラーがあっても読めた範囲で比べ、base に無い endpoint は added ではなく unknown にする", () => {
+    // 引用符なしの「: 」を含む summary は YAML エラーになるが、parseDocument なら読める
+    const base = "openapi: 3.0.0\npaths:\n  /a:\n    get:\n      summary: Ops support: 注文一覧\n  /b:\n    get: {}\n";
+    const head =
+      'openapi: 3.0.0\npaths:\n  /a:\n    get:\n      summary: "Ops support: 注文一覧"\n  /b:\n    get: {}\n  /c:\n    get: {}\n';
+    const [result] = collectSpecs([{ path: "rest.yaml", content: head, baseContent: base, changed: true }]);
+    expect(result.baseParseFailed).toBe(true);
+    expect(result.spec.endpoints.map((e) => [e.path, e.change])).toEqual([
+      ["/a", "modified"],
+      ["/b", "unchanged"],
+      ["/c", "unknown"],
+    ]);
+  });
+
+  it("base が壊れて endpoint を1件も読めないときも、head の endpoint を added にしない", () => {
+    const base = "openapi: 3.0.0\npaths: {\n";
+    const head = "openapi: 3.0.0\npaths:\n  /a:\n    get: {}\n";
+    const [result] = collectSpecs([{ path: "rest.yaml", content: head, baseContent: base, changed: true }]);
+    expect(result.baseParseFailed).toBe(true);
+    expect(result.spec.endpoints.map((e) => [e.path, e.change])).toEqual([["/a", "unknown"]]);
+  });
+
+  it("base を正しく読めたときは baseParseFailed を立てない", () => {
+    const [result] = collectSpecs([{ path: "openapi.yaml", content: spec, baseContent: spec, changed: true }]);
+    expect(result.baseParseFailed).toBe(false);
+  });
+
   it("PR で追加されたファイル（base 無し）の endpoint はすべて added", () => {
     const [result] = collectSpecs([{ path: "openapi.yaml", content: spec, baseContent: null, changed: true }]);
     expect(result.spec.endpoints.map((e) => e.change)).toEqual(["added"]);

@@ -17,9 +17,11 @@ export type OpenApiScope = "changed" | "all";
 // content は head の中身、baseContent は merge-base の中身。どちらも存在しなければ null
 export type SpecSource = { path: string; content: string | null; baseContent?: string | null; changed: boolean };
 
+// baseParseFailed は base の版に YAML エラーがあり、差分を正しく判定できないこと
 export type SpecFile = {
   path: string;
   changed: boolean;
+  baseParseFailed: boolean;
   spec: Omit<ApiSpec, "endpoints"> & { endpoints: DiffedEndpoint[] };
 };
 
@@ -43,15 +45,19 @@ export function collectSpecs(sources: SpecSource[]): SpecFile[] {
 function toSpecFile({ path, content, baseContent, changed }: SpecSource): SpecFile | null {
   const head = content !== null ? parseOpenApi(content) : null;
   if (!changed) {
-    return head && { path, changed, spec: { ...head, endpoints: markUnchanged(head.endpoints) } };
+    return (
+      head && { path, changed, baseParseFailed: false, spec: { ...head, endpoints: markUnchanged(head.endpoints) } }
+    );
   }
-  const base = baseContent ? parseOpenApi(baseContent) : null;
+  const strictBase = baseContent ? parseOpenApi(baseContent) : null;
+  const baseParseFailed = !!baseContent && !strictBase;
+  const base = baseParseFailed ? parseOpenApi(baseContent, { tolerateErrors: true }) : strictBase;
   const meta = head ?? base;
   if (!meta) {
     return null;
   }
-  const endpoints = diffEndpoints(base?.endpoints ?? [], head?.endpoints ?? []);
-  return { path, changed, spec: { version: meta.version, title: meta.title, endpoints } };
+  const endpoints = diffEndpoints(base?.endpoints ?? [], head?.endpoints ?? [], { uncertainAdds: baseParseFailed });
+  return { path, changed, baseParseFailed, spec: { version: meta.version, title: meta.title, endpoints } };
 }
 
 export async function loadOpenApiSpecs(repo: string, number: number, scope: OpenApiScope): Promise<SpecFile[]> {

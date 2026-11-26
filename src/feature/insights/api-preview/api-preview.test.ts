@@ -56,6 +56,10 @@ describe("schemaTypeLabel", () => {
 });
 
 describe("visibleEndpoints", () => {
+  it("差分モードでも差分不明（unknown）の endpoint は隠さない", () => {
+    expect(visibleEndpoints([ep("GET", "/b", [], "unknown")], "changed").map((e) => e.path)).toEqual(["/b"]);
+  });
+
   const eps = [
     ep("GET", "/a", [], "unchanged"),
     ep("POST", "/a", [], "added"),

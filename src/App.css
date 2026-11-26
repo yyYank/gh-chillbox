@@ -3402,6 +3402,16 @@ tr:hover .memo-view-empty {
   background: var(--danger-soft);
   color: var(--danger);
 }
+.api-badge.change-unknown {
+  background: var(--surface-alt);
+  color: var(--text-muted);
+  border: 1px dashed var(--text-muted);
+}
+.api-spec-warning {
+  color: #d97706;
+  font-size: 0.85rem;
+  margin-top: 4px;
+}
 .api-endpoint.change-removed {
   opacity: 0.7;
 }

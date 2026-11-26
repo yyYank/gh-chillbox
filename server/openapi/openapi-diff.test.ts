@@ -19,6 +19,16 @@ describe("diffEndpoints", () => {
     ]);
   });
 
+  it("uncertainAdds のときは head にだけあるものを added ではなく unknown にする", () => {
+    const result = diffEndpoints([ep("GET", "/users")], [ep("GET", "/users"), ep("POST", "/users")], {
+      uncertainAdds: true,
+    });
+    expect(result.map((e) => [e.method, e.change])).toEqual([
+      ["GET", "unchanged"],
+      ["POST", "unknown"],
+    ]);
+  });
+
   it("同じ path でも method が違えば別の endpoint として扱う", () => {
     const result = diffEndpoints([ep("GET", "/users")], [ep("PUT", "/users")]);
     expect(result.map((e) => [e.method, e.change])).toEqual([

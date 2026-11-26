@@ -11,7 +11,7 @@ export type ApiBody = { required: boolean; contentType?: string; schema?: unknow
 
 export type ApiResponse = { status: string; description?: string; contentType?: string; schema?: unknown };
 
-export type EndpointChange = "added" | "modified" | "removed" | "unchanged";
+export type EndpointChange = "added" | "modified" | "removed" | "unchanged" | "unknown";
 
 export type Scope = "changed" | "all";
 
@@ -32,7 +32,7 @@ export type ApiEndpoint = {
 
 export type ApiSpec = { version: "2.0" | "3.x"; title?: string; endpoints: ApiEndpoint[] };
 
-export type SpecFile = { path: string; changed: boolean; spec: ApiSpec };
+export type SpecFile = { path: string; changed: boolean; baseParseFailed: boolean; spec: ApiSpec };
 
 export type TagGroup = { tag: string; endpoints: ApiEndpoint[] };
 

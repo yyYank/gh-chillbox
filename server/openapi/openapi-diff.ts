@@ -1,6 +1,7 @@
 import type { ApiEndpoint } from "./openapi";
 
-export type EndpointChange = "added" | "modified" | "removed" | "unchanged";
+// unknown は base を正しく読めず、added と言い切れないもの
+export type EndpointChange = "added" | "modified" | "removed" | "unchanged" | "unknown";
 
 export type DiffedEndpoint = ApiEndpoint & {
   change: EndpointChange;
@@ -19,7 +20,12 @@ const COMPARED_PARTS = [
 ] as const satisfies readonly (keyof ApiEndpoint)[];
 
 // head の並び順を保ち、base にだけある endpoint は末尾に removed として足す
-export function diffEndpoints(base: ApiEndpoint[], head: ApiEndpoint[]): DiffedEndpoint[] {
+// uncertainAdds は base を一部しか読めなかったときに使い、base に無いものを unknown にする
+export function diffEndpoints(
+  base: ApiEndpoint[],
+  head: ApiEndpoint[],
+  { uncertainAdds = false } = {},
+): DiffedEndpoint[] {
   const key = (e: ApiEndpoint) => `${e.method} ${e.path}`;
   const baseByKey = new Map(base.map((e) => [key(e), e]));
   const headKeys = new Set(head.map(key));
@@ -27,7 +33,7 @@ export function diffEndpoints(base: ApiEndpoint[], head: ApiEndpoint[]): DiffedE
   const current = head.map((e): DiffedEndpoint => {
     const before = baseByKey.get(key(e));
     if (!before) {
-      return { ...e, change: "added", changedParts: [] };
+      return { ...e, change: uncertainAdds ? "unknown" : "added", changedParts: [] };
     }
     const changedParts = COMPARED_PARTS.filter((p) => canonical(before[p]) !== canonical(e[p]));
     return { ...e, change: changedParts.length > 0 ? "modified" : "unchanged", changedParts };
