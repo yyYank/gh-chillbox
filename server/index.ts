@@ -12,6 +12,7 @@ import { newNonce, untrustedBlock } from "./chat/untrusted";
 import { chatSystemPrompt } from "./chat/chat-system-prompt";
 import { claudeArgs, execWithStdin } from "./chat/claude-cli";
 import { fillPrInfo } from "./chat/chat-pr-info";
+import { startDiffFetch } from "./chat/chat-diff";
 import { isApproved } from "./approval/pr-approval";
 import { type PrState, closedPrNumbers, parsePrState } from "./pr-state/pr-state";
 import { UPLOAD_DIR, imagePromptParts, saveUploadedImage } from "./chat/chat-image";
@@ -331,8 +332,17 @@ type ChatBody = {
   imagePaths?: string[];
 };
 
-async function buildContextParts(body: ChatBody, nonce: string): Promise<string[]> {
-  const { repo, prNumber, files, quotedText, includeDiff, quotedFromRewritten, diffThread } = body;
+async function fetchPrDiff(repo: string, prNumber: number): Promise<string> {
+  const { stdout } = await execFileAsync("gh", ["pr", "diff", String(prNumber), "--repo", repo]);
+  return stdout;
+}
+
+function startChatDiffFetch(body: ChatBody): Promise<string | null> {
+  return startDiffFetch(body, () => fetchPrDiff(body.repo, body.prNumber));
+}
+
+async function buildContextParts(body: ChatBody, nonce: string, diff: Promise<string | null>): Promise<string[]> {
+  const { files, quotedText, quotedFromRewritten, diffThread } = body;
   const parts: string[] = [];
 
   if (diffThread) {
@@ -351,15 +361,11 @@ async function buildContextParts(body: ChatBody, nonce: string): Promise<string[
     const fileList = files.map((f) => `- ${f}`).join("\n");
     parts.push("## 質問対象の変更ファイル", untrustedBlock("変更ファイル", fileList, nonce));
 
-    if (includeDiff) {
-      try {
-        const { stdout } = await execFileAsync("gh", ["pr", "diff", String(prNumber), "--repo", repo]);
-        const filtered = filterDiffByFiles(stdout, files);
-        if (filtered) {
-          parts.push("", "## 選択ファイルのdiff", untrustedBlock("diff", filtered, nonce));
-        }
-      } catch {
-        /* diff取得失敗時は無視してファイル一覧のみで続行 */
+    const stdout = await diff;
+    if (stdout !== null) {
+      const filtered = filterDiffByFiles(stdout, files);
+      if (filtered) {
+        parts.push("", "## 選択ファイルのdiff", untrustedBlock("diff", filtered, nonce));
       }
     }
   }
@@ -372,7 +378,7 @@ async function buildContextParts(body: ChatBody, nonce: string): Promise<string[
   return parts;
 }
 
-async function buildInitialPrompt(body: ChatBody, nonce: string): Promise<string> {
+async function buildInitialPrompt(body: ChatBody, nonce: string, diff: Promise<string | null>): Promise<string> {
   const { repo, prNumber, question, prTitle, prBody } = body;
   const prUrl = `https://github.com/${repo}/pull/${prNumber}`;
   const parts = [
@@ -385,7 +391,7 @@ async function buildInitialPrompt(body: ChatBody, nonce: string): Promise<string
     "## PR本文",
     untrustedBlock("PR本文", prBody || "(なし)", nonce),
     "",
-    ...(await buildContextParts(body, nonce)),
+    ...(await buildContextParts(body, nonce, diff)),
     "",
     "## 質問",
     question,
@@ -393,9 +399,9 @@ async function buildInitialPrompt(body: ChatBody, nonce: string): Promise<string
   return parts.join("\n");
 }
 
-async function buildFollowUpPrompt(body: ChatBody, nonce: string): Promise<string> {
+async function buildFollowUpPrompt(body: ChatBody, nonce: string, diff: Promise<string | null>): Promise<string> {
   const { question } = body;
-  const contextParts = await buildContextParts(body, nonce);
+  const contextParts = await buildContextParts(body, nonce, diff);
 
   if (contextParts.length === 0) {
     return question;
@@ -419,11 +425,11 @@ app.post("/chat/preview", async (c) => {
   const hasSession = chatSessions.has(sessionKey);
 
   if (hasSession) {
-    const prompt = await buildFollowUpPrompt(body, newNonce());
+    const prompt = await buildFollowUpPrompt(body, newNonce(), startChatDiffFetch(body));
     return c.json({ prompt, resumed: true });
   }
 
-  const prompt = await buildInitialPrompt(body, newNonce());
+  const prompt = await buildInitialPrompt(body, newNonce(), startChatDiffFetch(body));
   return c.json({ prompt, resumed: false });
 });
 
@@ -473,9 +479,10 @@ app.post("/chat", async (c) => {
     const filledBody: ChatBody = { ...body, ...fillPrInfo(body, { title, body: prBody }) };
 
     const nonce = newNonce();
+    const diff = startChatDiffFetch(filledBody);
     const prompt = existingSessionId
-      ? await buildFollowUpPrompt(filledBody, nonce)
-      : await buildInitialPrompt(filledBody, nonce);
+      ? await buildFollowUpPrompt(filledBody, nonce, diff)
+      : await buildInitialPrompt(filledBody, nonce, diff);
     const args = claudeArgs({
       sessionId: existingSessionId,
       allowedTools,

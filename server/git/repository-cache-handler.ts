@@ -15,10 +15,15 @@ function repoDir(owner: string, repo: string): string {
 
 // clone が無ければ作り、呼び出し側が使うコミットだけを取ってくる
 export async function ensureRepo(fullRepo: string, shas: string[]): Promise<string> {
-  // 並列に呼ばれても同じ repo の clone は1回にまとめる
-  const dir = await cloneInFlight(fullRepo, () => cloneIfMissing(fullRepo));
+  const dir = await ensureClone(fullRepo);
   await fetchCommits(dir, shas);
   return dir;
+}
+
+// clone が無ければ作る。sha が要らないので、sha を調べる処理と並列に始められる
+export function ensureClone(fullRepo: string): Promise<string> {
+  // 並列に呼ばれても同じ repo の clone は1回にまとめる
+  return cloneInFlight(fullRepo, () => cloneIfMissing(fullRepo));
 }
 
 async function cloneIfMissing(fullRepo: string): Promise<string> {
