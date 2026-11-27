@@ -5,7 +5,7 @@ import { promisify } from "node:util";
 import { resolve } from "node:path";
 import { lintJa } from "./polish/textlint";
 import { replaceAiWords } from "./polish/ai-words";
-import { ensureRepo, ensureWorktree, gitOutput } from "./git/repository-cache-handler";
+import { ensureClone, ensureRepo, ensureWorktree, fetchCommits, gitOutput } from "./git/repository-cache-handler";
 import { chatSessionKey } from "./chat/chat-session";
 import { isValidChatTarget } from "./chat/chat-target";
 import { newNonce, untrustedBlock } from "./chat/untrusted";
@@ -466,6 +466,12 @@ app.post("/chat", async (c) => {
     "WebSearch,WebFetch,Read,Grep,Glob,Bash(gh pr view *),Bash(gh pr diff *),Bash(gh issue view *),Bash(gh issue list *),Bash(gh api repos/*/commits/*),Bash(gh api repos/*/compare/*),Bash(gh search *)";
 
   try {
+    // diff の取得は gh pr view の結果を使わないので、先に始めて並列に走らせる
+    const diff = startChatDiffFetch(body);
+    // clone は sha が要らないので gh pr view と並列に始める
+    const clone = ensureClone(repo);
+    // gh pr view が先に失敗しても、clone の失敗が未処理の reject でサーバーを落とさないようにする
+    clone.catch(() => {});
     const { stdout: prJson } = await execFileAsync("gh", [
       "pr",
       "view",
@@ -479,10 +485,6 @@ app.post("/chat", async (c) => {
     const filledBody: ChatBody = { ...body, ...fillPrInfo(body, { title, body: prBody }) };
 
     const nonce = newNonce();
-    const diff = startChatDiffFetch(filledBody);
-    const prompt = existingSessionId
-      ? await buildFollowUpPrompt(filledBody, nonce, diff)
-      : await buildInitialPrompt(filledBody, nonce, diff);
     const args = claudeArgs({
       sessionId: existingSessionId,
       allowedTools,
@@ -490,8 +492,14 @@ app.post("/chat", async (c) => {
       systemPrompt: chatSystemPrompt(nonce),
     });
 
-    const repoDir = await ensureRepo(repo, [sha]);
-    const worktreeDir = await ensureWorktree(repoDir, prNumber, sha);
+    // 質問文づくり(diff 待ち)と git の取得・切り替えは互いに使わないので並列に走らせる
+    const [prompt, worktreeDir] = await Promise.all([
+      existingSessionId ? buildFollowUpPrompt(filledBody, nonce, diff) : buildInitialPrompt(filledBody, nonce, diff),
+      clone.then(async (repoDir) => {
+        await fetchCommits(repoDir, [sha]);
+        return ensureWorktree(repoDir, prNumber, sha);
+      }),
+    ]);
 
     // claude はコードを読んでから答えるため時間がかかる。Node のサーバーは1リクエストを300秒で打ち切るので、
     // それより先に claude を止めてエラーを返せるよう 295 秒にしている
