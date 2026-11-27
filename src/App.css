@@ -2318,6 +2318,22 @@ tr:hover .memo-view-empty {
     background 0.15s,
     border-color 0.15s;
 }
+.diff-line-num-selectable {
+  cursor: pointer;
+}
+
+.diff-line-num-selectable:hover {
+  color: var(--accent);
+}
+
+.diff-line-selected {
+  background: var(--accent-soft);
+}
+
+.diff-line-ask-btn {
+  margin: 4px 0 4px 8px;
+}
+
 .quote-floating-btn:hover {
   background: var(--accent-soft);
   border-color: var(--accent);

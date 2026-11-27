@@ -12,6 +12,7 @@ import { stepFontSize, parseFontSize } from "./diff-font-size";
 import { isMarkdown } from "./diff-markdown";
 import { MarkdownPreview } from "./MarkdownPreview";
 import { MarpPreview } from "./MarpPreview";
+import { clickLine, isLineSelected, selectionRange, type LineSelection } from "./diff-line-selection";
 import { appStorage } from "../../app-storage";
 
 const FONT_SIZE_STORAGE_KEY = "gh-chillbox:diff-font-size";
@@ -23,28 +24,6 @@ type Props = {
   prBody?: string;
   onFileHeaderClick?: (path: string) => void;
 };
-
-function lineIdxOf(node: Node): { path: string; idx: number } | null {
-  const el = (node instanceof Element ? node : node.parentElement)?.closest<HTMLElement>("[data-line-idx]");
-  const body = el?.closest<HTMLElement>("[data-path]");
-  const path = body?.dataset.path;
-  if (!el || path === undefined) {
-    return null;
-  }
-  return { path, idx: Number(el.dataset.lineIdx) };
-}
-
-// ハイライトで内容が span に分かれるため、オフセット 0 でも行頭とは限らない。行頭からの文字列で判定する
-function isAtLineStart(container: Node, offset: number): boolean {
-  const lineEl = (container instanceof Element ? container : container.parentElement)?.closest("[data-line-idx]");
-  if (!lineEl) {
-    return false;
-  }
-  const r = document.createRange();
-  r.setStart(lineEl, 0);
-  r.setEnd(container, offset);
-  return r.toString() === "";
-}
 
 function loadFoldRecords(repo: string, prNumber: number): FoldRecords {
   try {
@@ -76,7 +55,7 @@ export function DiffPanel({ repo, prNumber, prTitle = "", prBody = "", onFileHea
   initSession(threadsKey, () => loadThreads(repo, prNumber));
   const [threads, setThreads] = useSession<ThreadMap>(threadsKey, {});
   const [pending, setPending] = useState<ThreadAnchor | null>(null);
-  const [floatingBtn, setFloatingBtn] = useState<{ x: number; y: number; anchor: ThreadAnchor } | null>(null);
+  const [lineSelection, setLineSelection] = useState<LineSelection | null>(null);
   const [pullRequestId, setPullRequestId] = useState<string | null>(null);
   const [viewedStates, setViewedStates] = useState<ViewedStates>({});
   // viewed の状態が取れるまでは、自分の開け閉めの記録だけで決める
@@ -103,6 +82,7 @@ export function DiffPanel({ repo, prNumber, prTitle = "", prBody = "", onFileHea
 
   useEffect(() => {
     setPending(null);
+    setLineSelection(null);
   }, [repo, prNumber]);
 
   const handleAppend = useCallback(
@@ -240,40 +220,23 @@ export function DiffPanel({ repo, prNumber, prTitle = "", prBody = "", onFileHea
     [allFiles, viewedStates],
   );
 
-  const handleMouseUp = () => {
-    const sel = window.getSelection();
-    if (!sel || sel.isCollapsed || !sel.toString().trim()) {
-      setFloatingBtn(null);
-      return;
+  const selectedAnchor = useMemo(() => {
+    if (!lineSelection) {
+      return null;
     }
-    const range = sel.getRangeAt(0);
-    const from = lineIdxOf(range.startContainer);
-    const to = lineIdxOf(range.endContainer);
-    if (!from || !to || from.path !== to.path) {
-      setFloatingBtn(null);
-      return;
-    }
-    // 行末まで選ぶと終点が次の行の先頭になるので、その行は含めない
-    const toIdx = isAtLineStart(range.endContainer, range.endOffset) && to.idx > from.idx ? to.idx - 1 : to.idx;
-    const file = allFiles.find((f) => f.path === from.path);
-    const anchor = file && buildThreadAnchor(file, from.idx, toIdx);
-    if (!anchor) {
-      setFloatingBtn(null);
-      return;
-    }
-    const rect = range.getBoundingClientRect();
-    setFloatingBtn({ x: rect.left + rect.width / 2, y: rect.top - 8, anchor });
-  };
+    const file = allFiles.find((f) => f.path === lineSelection.path);
+    const [lo, hi] = selectionRange(lineSelection);
+    return file ? buildThreadAnchor(file, lo, hi) : null;
+  }, [lineSelection, allFiles]);
 
   const handleStartThread = () => {
-    if (!floatingBtn) {
+    if (!selectedAnchor) {
       return;
     }
-    if (!threads[floatingBtn.anchor.key]) {
-      setPending(floatingBtn.anchor);
+    if (!threads[selectedAnchor.key]) {
+      setPending(selectedAnchor);
     }
-    setFloatingBtn(null);
-    window.getSelection()?.removeAllRanges();
+    setLineSelection(null);
   };
 
   const threadsEndingAt = (path: string, label: string | null) => {
@@ -352,7 +315,7 @@ export function DiffPanel({ repo, prNumber, prTitle = "", prBody = "", onFileHea
         </span>
       </div>
 
-      <div className="diff-panel-content" onMouseUp={handleMouseUp}>
+      <div className="diff-panel-content">
         {filteredFiles.length === 0 ? (
           <div className="diff-panel-status">一致するファイルがありません</div>
         ) : (
@@ -428,9 +391,25 @@ export function DiffPanel({ repo, prNumber, prTitle = "", prBody = "", onFileHea
                   <div className="diff-file-body" data-path={file.path} style={{ fontSize }}>
                     {file.lines.map((line, j) => (
                       <Fragment key={j}>
-                        <div data-line-idx={j} className={`diff-line diff-line-${line.type}`}>
-                          <span className="diff-line-num">{line.oldLine ?? ""}</span>
-                          <span className="diff-line-num">{line.newLine ?? ""}</span>
+                        <div
+                          data-line-idx={j}
+                          className={`diff-line diff-line-${line.type}${isLineSelected(lineSelection, file.path, j) ? " diff-line-selected" : ""}`}
+                        >
+                          {[line.oldLine, line.newLine].map((num, side) => (
+                            <span
+                              key={side}
+                              className={`diff-line-num${line.type === "hunk" ? "" : " diff-line-num-selectable"}`}
+                              // Shift+クリックでコードの文字まで選択されないようにする
+                              onMouseDown={(e) => e.shiftKey && e.preventDefault()}
+                              onClick={(e) => {
+                                if (line.type !== "hunk") {
+                                  setLineSelection((prev) => clickLine(prev, file.path, j, e.shiftKey));
+                                }
+                              }}
+                            >
+                              {num ?? ""}
+                            </span>
+                          ))}
                           <span className="diff-line-marker">
                             {line.type === "add" ? "+" : line.type === "del" ? "-" : line.type === "hunk" ? "" : " "}
                           </span>
@@ -443,6 +422,18 @@ export function DiffPanel({ repo, prNumber, prTitle = "", prBody = "", onFileHea
                             />
                           )}
                         </div>
+                        {selectedAnchor &&
+                          lineSelection?.path === file.path &&
+                          selectionRange(lineSelection)[1] === j && (
+                            <button
+                              type="button"
+                              className="quote-floating-btn diff-line-ask-btn"
+                              onClick={handleStartThread}
+                            >
+                              <MessageSquarePlus size={14} />
+                              この行について質問
+                            </button>
+                          )}
                         {threadsEndingAt(file.path, lineLabel(line)).map(({ anchor, messages }) => (
                           <DiffThreadView
                             key={anchor.key}
@@ -466,18 +457,6 @@ export function DiffPanel({ repo, prNumber, prTitle = "", prBody = "", onFileHea
           })
         )}
       </div>
-      {floatingBtn && (
-        <button
-          type="button"
-          className="quote-floating-btn"
-          style={{ position: "fixed", left: floatingBtn.x, top: floatingBtn.y, transform: "translate(-50%, -100%)" }}
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={handleStartThread}
-        >
-          <MessageSquarePlus size={14} />
-          この行について質問
-        </button>
-      )}
     </div>
   );
 }
